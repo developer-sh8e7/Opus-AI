@@ -94,7 +94,7 @@ export async function createChannels(
     text: ChannelType.GuildText,
     voice: ChannelType.GuildVoice,
     category: ChannelType.GuildCategory,
-  };
+  } as const;
 
   const channelType = typeMap[type];
   if (channelType === undefined) {

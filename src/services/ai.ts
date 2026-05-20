@@ -227,7 +227,7 @@ export async function getAIResponse(messages: AIMessage[]): Promise<any> {
         ...formattedMessages,
       ],
       tools: tools as any,
-      tool_choice: 'auto',
+      tool_choice: 'auto' as any,
       temperature: 0.2,
     });
 
