@@ -105,20 +105,13 @@ client.on('messageCreate', async (message) => {
   // التحقق من أن الرسالة أرسلت داخل سيرفر (وليس في الخاص)
   if (!message.guild) return;
 
-  // التفاعل فقط عند ذكر البوت (Mention) أو استخدام البادئة !opus
-  const prefix = '!opus';
-  const isMentioned = message.mentions.has(client.user!) && !message.mentions.everyone;
-  const isPrefix = message.content.startsWith(prefix);
-
-  if (!isMentioned && !isPrefix) return;
-
   // تنظيف الرسالة من المينشن أو البادئة للحصول على الطلب الفعلي للمستخدم
-  let promptText = message.content;
-  if (isPrefix) {
+  let promptText = message.content.trim();
+  const prefix = '!opus';
+  if (promptText.startsWith(prefix)) {
     promptText = promptText.slice(prefix.length).trim();
-  } else if (isMentioned) {
-    promptText = promptText.replace(new RegExp(`<@!?${client.user!.id}>`, 'g'), '').trim();
   }
+  promptText = promptText.replace(new RegExp(`<@!?${client.user!.id}>`, 'g'), '').trim();
 
   // إذا كان الطلب فارغاً
   if (!promptText) {
