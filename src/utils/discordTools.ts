@@ -111,8 +111,10 @@ export async function createChannels(
       const resolvedAllow = allowBits.reduce((acc, bit) => acc | bit, 0n);
       const resolvedDeny = denyBits.reduce((acc, bit) => acc | bit, 0n);
 
+      const targetId = perm.id === '@everyone' ? guild.id : perm.id;
+
       permissionOverwrites.push({
-        id: perm.id,
+        id: targetId,
         allow: resolvedAllow,
         deny: resolvedDeny,
       });
@@ -223,12 +225,14 @@ export async function manageRoles(
       return bits;
     };
 
+    const resolvedRoleId = roleData.roleId === '@everyone' ? guild.id : roleData.roleId;
+
     // 🔒 فحص أمان الرتبة الهرمية الإلزامي قبل التعديل أو الحذف أو المنح أو السحب
     if (['delete', 'edit', 'assign', 'remove'].includes(action)) {
-      if (!roleData.roleId) {
+      if (!resolvedRoleId) {
         return { success: false, message: "معرف الرتبة (roleId) مطلوب لتنفيذ هذا الإجراء." };
       }
-      const hierarchyCheck = await validateHierarchy(guild, roleData.roleId);
+      const hierarchyCheck = await validateHierarchy(guild, resolvedRoleId);
       if (!hierarchyCheck.allowed) {
         return { success: false, message: `فشل التحقق الأمني: ${hierarchyCheck.reason}` };
       }
@@ -257,7 +261,7 @@ export async function manageRoles(
 
     // 2. حذف رتبة
     if (action === 'delete') {
-      const role = guild.roles.cache.get(roleData.roleId!);
+      const role = guild.roles.cache.get(resolvedRoleId!);
       if (!role) {
         return { success: false, message: "الرتبة غير موجودة في السيرفر." };
       }
@@ -268,7 +272,7 @@ export async function manageRoles(
 
     // 3. تعديل رتبة
     if (action === 'edit') {
-      const role = guild.roles.cache.get(roleData.roleId!);
+      const role = guild.roles.cache.get(resolvedRoleId!);
       if (!role) {
         return { success: false, message: "الرتبة غير موجودة في السيرفر." };
       }
@@ -303,7 +307,7 @@ export async function manageRoles(
       }
 
       const member = memberHierarchyCheck.targetMember!;
-      const role = guild.roles.cache.get(roleData.roleId!);
+      const role = guild.roles.cache.get(resolvedRoleId!);
       if (!role) {
         return { success: false, message: "الرتبة غير موجودة في السيرفر." };
       }
@@ -353,14 +357,16 @@ export async function editPermissions(
       return { success: false, message: "القناة المطلوبة غير موجودة في السيرفر." };
     }
 
+    const resolvedTargetId = targetId === '@everyone' ? guild.id : targetId;
+
     // 🔒 فحص الأمان لعدم التعديل على رتبة أو عضو أعلى من البوت
     if (targetType === 'role') {
-      const hierarchyCheck = await validateHierarchy(guild, targetId);
+      const hierarchyCheck = await validateHierarchy(guild, resolvedTargetId);
       if (!hierarchyCheck.allowed) {
         return { success: false, message: `حماية أمنية: ${hierarchyCheck.reason}` };
       }
     } else {
-      const memberCheck = await validateMemberHierarchy(guild, targetId);
+      const memberCheck = await validateMemberHierarchy(guild, resolvedTargetId);
       if (!memberCheck.allowed) {
         return { success: false, message: `حماية أمنية: ${memberCheck.reason}` };
       }
@@ -386,7 +392,7 @@ export async function editPermissions(
     }
 
     if ('permissionOverwrites' in channel) {
-      await channel.permissionOverwrites.edit(targetId, overwrites, {
+      await channel.permissionOverwrites.edit(resolvedTargetId, overwrites, {
         reason: 'تعديل صلاحيات القناة بواسطة نظام الإدارة الذكي'
       });
       return { success: true, message: `تم تحديث صلاحيات القناة "${channel.name}" بنجاح.` };
