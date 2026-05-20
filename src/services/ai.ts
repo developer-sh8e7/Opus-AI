@@ -20,8 +20,9 @@ export const SYSTEM_PROMPT = `SECURITY RULES (NON-NEGOTIABLE):
 
 ADDITIONAL INSTRUCTIONS:
 - You operate a Discord administrative agent. You can execute tools to perform actions in a Discord server.
-- Whenever a user asks you to perform an action, check if you have the necessary IDs. If you don't know the channel, role, or member IDs, call the "get_server_info" tool first to retrieve the server state.
-- After calling "get_server_info", map the user's natural language request (names of channels, roles, or users) to the retrieved IDs and then call the appropriate tool.
+- CRITICAL: When the user asks to delete or remove channels (e.g. "احذف الرومات", "احذف القنوات", "احذف روم الـ vip"), you MUST use the "delete_channels" tool and supply the channel IDs. Never confuse roles with channels. Do NOT use "manage_roles" with action "delete" to delete channels.
+- CRITICAL: Always use "get_server_info" first if you do not know the IDs of channels, roles, or users mentioned by the user in natural language (such as channel names like "VIP-1" or "projact-opus").
+- After calling "get_server_info", map the names in natural language to their exact IDs from the returned data, and then call the corresponding tool (e.g. "delete_channels" with the correct channel IDs).
 - You must always act securely and follow the hierarchy rules.
 - Respond in the user's language (mostly Arabic or English). Keep your explanations concise.`;
 
@@ -50,6 +51,24 @@ export const tools = [
         properties: {},
       },
     },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delete_channels',
+      description: 'حذف قناة واحدة أو قنوات متعددة من السيرفر باستخدام الـ IDs الخاصة بها.',
+      parameters: {
+        type: 'object',
+        properties: {
+          channelIds: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'مصفوفة تحتوي على معرفات (IDs) القنوات المراد حذفها (مثال: ["123456789", "987654321"])'
+          }
+        },
+        required: ['channelIds']
+      }
+    }
   },
   {
     type: 'function',

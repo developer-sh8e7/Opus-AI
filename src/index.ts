@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { getAIResponse, AIMessage } from './services/ai.js';
 import { 
   createChannels, 
+  deleteChannels,
   manageRoles, 
   editPermissions, 
   manageMembers, 
@@ -45,6 +46,8 @@ async function executeTool(name: string, args: any, guild: Guild): Promise<any> 
         args.categoryId,
         args.permissions
       );
+    case 'delete_channels':
+      return await deleteChannels(guild, args.channelIds);
     case 'manage_roles':
       return await manageRoles(
         guild,

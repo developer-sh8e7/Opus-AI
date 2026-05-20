@@ -151,6 +151,48 @@ export async function createChannels(
 }
 
 /**
+ * الأداة الإضافية: حذف قناة واحدة أو قنوات متعددة بالتتالي لمنع الـ Rate Limit.
+ * @param guild السيرفر الحالي
+ * @param channelIds مصفوفة معرفات القنوات المراد حذفها
+ */
+export async function deleteChannels(
+  guild: Guild,
+  channelIds: string[]
+): Promise<{ success: boolean; message: string; deleted: string[]; failed: string[] }> {
+  const deleted: string[] = [];
+  const failed: string[] = [];
+
+  for (let i = 0; i < channelIds.length; i++) {
+    const id = channelIds[i];
+    if (i > 0) {
+      await delay(500); // تأخير لتفادي الـ Rate Limit
+    }
+
+    try {
+      const channel = guild.channels.cache.get(id) || await guild.channels.fetch(id).catch(() => null);
+      if (!channel) {
+        failed.push(id);
+        continue;
+      }
+      const channelName = channel.name;
+      await channel.delete('حذف قنوات بواسطة نظام الإدارة الذكي');
+      deleted.push(channelName);
+    } catch (error) {
+      failed.push(id);
+      console.error(`[DiscordTools] فشل حذف القناة ذات المعرف "${id}":`, error);
+    }
+  }
+
+  const successMessage = `تم حذف ${deleted.length} قناة بنجاح${failed.length > 0 ? `، وفشل حذف ${failed.length} قناة` : ''}.`;
+  return {
+    success: true,
+    message: successMessage,
+    deleted,
+    failed,
+  };
+}
+
+/**
  * الأداة 2: إدارة الرتب (إنشاء، تعديل، حذف، منح، إزالة) مع تفعيل نظام الأمان وفحص رتبة البوت الهرمية.
  * @param guild السيرفر الحالي
  * @param action نوع الإجراء المطلوبة ("create", "delete", "edit", "assign", "remove")
