@@ -34,6 +34,7 @@ import {
   TextChannel
 } from 'discord.js';
 import { config } from './config.js';
+import { startRenderWebServer } from './renderWebServer.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
 import { 
   createChannels, 
@@ -2516,6 +2517,8 @@ export const OFFLINE_RESPONDER_GUIDELINES = `
 // ============================================================
 //  20. Ø¨Ø¯Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Client Login Gateway)
 // ============================================================
+startRenderWebServer();
+
 client.login(config.discordToken).catch((err) => {
   console.error('[Bot Boot Failure] âŒ ÙØ´Ù„ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯:', err);
   process.exit(1);
