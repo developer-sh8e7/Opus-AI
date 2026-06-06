@@ -23,6 +23,12 @@ export interface Config {
   aiMaxRetries: number;
 }
 
+function useAllowedModel(value: string | undefined, allowedModel: string, variableName: string): string {
+  if (!value || value === allowedModel) return allowedModel;
+  console.warn(`[Config] Ignoring unsupported ${variableName}="${value}". Using "${allowedModel}".`);
+  return allowedModel;
+}
+
 /**
  * Validates and retrieves environment variables.
  * @throws Error if any required environment variable is missing.
@@ -37,10 +43,10 @@ export function getEnvConfig(): Config {
   const aiProvider = process.env.AI_PROVIDER || 'groq';
   const ollamaEnabled = process.env.OLLAMA_ENABLED === 'true';
   const groqApiKey = process.env.GROQ_API_KEY;
-  const groqModel = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-  const groqFastModel = process.env.GROQ_FAST_MODEL || 'llama-3.1-8b-instant';
+  const groqModel = useAllowedModel(process.env.GROQ_MODEL, 'llama-3.3-70b-versatile', 'GROQ_MODEL');
+  const groqFastModel = useAllowedModel(process.env.GROQ_FAST_MODEL, 'llama-3.1-8b-instant', 'GROQ_FAST_MODEL');
   const cerebrasApiKey = process.env.CEREBRAS_API_KEY;
-  const cerebrasModel = process.env.CEREBRAS_MODEL || 'zai-glm-4.7';
+  const cerebrasModel = useAllowedModel(process.env.CEREBRAS_MODEL, 'zai-glm-4.7', 'CEREBRAS_MODEL');
   const aiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 25000);
   const aiMaxRetries = Number(process.env.AI_MAX_RETRIES || 2);
 

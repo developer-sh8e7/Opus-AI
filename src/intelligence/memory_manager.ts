@@ -167,7 +167,7 @@ export class MemoryManager {
     const entry = this.memories.get(channelId);
     if (!entry) return [];
     entry.lastAccessed = Date.now();
-    return entry.messages;
+    return [...entry.messages];
   }
 
   /**

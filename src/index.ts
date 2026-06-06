@@ -713,13 +713,17 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
 // ============================================================
 client.once(Events.ClientReady, () => {
   Logger.startup(`Opus Bot (${client.user?.tag})`);
+  Logger.info(
+    'System',
+    `AI routing ready: Groq primary (${config.groqModel} / ${config.groqFastModel}), Cerebras fallback (${config.cerebrasModel})`
+  );
   
   // ØªÙ‡ÙŠØ¦Ø© Ù…Ø±Ø§Ù‚Ø¨ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¨ØµÙˆØªÙŠØ§Øª Ø§Ù„Ø´Ø§Øª ÙˆØ±Ø§Ø¨Ø· Ø§Ù„Ø­Ù…Ø§ÙŠØ©
   startAutonomousMonitor(client);
   
   // ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø¨ÙˆØª ÙÙŠ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯
   client.user?.setActivity({
-    name: 'Ø³ÙŠØ±ÙØ± Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø°ÙƒÙŠ !opus',
+    name: 'Opus Ai',
     type: ActivityType.Watching,
   });
 });
@@ -896,7 +900,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
     // Ø­Ù„Ù‚Ø© Ù…Ø¹Ø§Ù„Ø¬Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…ÙƒØ±Ø±Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
     let loopCount = 0;
-    const maxLoops = 20;
+    const maxLoops = 6;
     let finalResponseSent = false;
 
     let aiResponse = await getAIResponse(history);
