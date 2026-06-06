@@ -36,6 +36,11 @@ import {
 import { config } from './config.js';
 import { startRenderWebServer } from './renderWebServer.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
+import {
+  applyExplicitTargets,
+  buildExplicitTargetsContext,
+  resolveExplicitToolTargets,
+} from './services/toolTargeting.js';
 import { 
   createChannels, 
   deleteChannels,
@@ -328,6 +333,56 @@ async function executeTool(
     default:
       throw new Error(`Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© ÙÙŠ Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${name}`);
   }
+}
+
+function buildToolExecutionReply(
+  guild: Guild,
+  completedResults: Array<{ name: string; args: any; result: any }>
+): string | undefined {
+  const actionResults = completedResults.filter(({ name }) => [
+    'build_custom_server',
+    'execute_community_build',
+    'create_channels',
+    'delete_channels',
+    'manage_roles',
+    'edit_permissions',
+    'manage_members',
+    'edit_bot_profile',
+    'bulk_delete_messages',
+    'join_voice_channel',
+    'leave_voice_channel',
+    'play_music',
+    'pause_music',
+    'resume_music',
+    'skip_music',
+    'stop_music',
+    'set_volume',
+    'toggle_loop',
+    'shuffle_queue',
+    'remove_from_queue',
+  ].includes(name));
+
+  if (actionResults.length === 0) return undefined;
+
+  return actionResults.map(({ name, args, result }) => {
+    if (!result?.success) {
+      return result?.message || 'تعذر تنفيذ الإجراء المطلوب.';
+    }
+
+    if (name === 'edit_permissions') {
+      const channelName = guild.channels.cache.get(args.channelId)?.name ?? args.channelId;
+      const targetName = args.targetType === 'role'
+        ? guild.roles.cache.get(args.targetId)?.name ?? args.targetId
+        : guild.members.cache.get(args.targetId)?.displayName ?? args.targetId;
+      return `تم تحديث صلاحيات روم "${channelName}" للرتبة/العضو "${targetName}" بنجاح.`;
+    }
+
+    if (name === 'edit_bot_profile' && args.username) {
+      return `تم تغيير اسم البوت إلى "${args.username}" بنجاح.`;
+    }
+
+    return result.message || 'تم تنفيذ الإجراء بنجاح.';
+  }).join('\n');
 }
 
 // ============================================================
@@ -891,7 +946,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
     );
 
     // Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ§Ù‚ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ø²Ø²Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
-    const enrichedPrompt = ContextAnalyzer.buildEnrichedPrompt(ctx);
+    const explicitTargets = resolveExplicitToolTargets(message.guild, cleanedPromptText);
+    const explicitTargetsContext = buildExplicitTargetsContext(message.guild, explicitTargets);
+    const enrichedPrompt = [
+      ContextAnalyzer.buildEnrichedPrompt(ctx),
+      explicitTargetsContext,
+    ].filter(Boolean).join('\n');
     const history = memoryManager.getHistory(message.channel.id);
 
     const userMessage: AIMessage = { role: 'user', content: enrichedPrompt };
@@ -902,6 +962,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     let loopCount = 0;
     const maxLoops = 6;
     let finalResponseSent = false;
+    const completedToolResults: Array<{ name: string; args: any; result: any }> = [];
 
     let aiResponse = await getAIResponse(history);
 
@@ -924,9 +985,28 @@ client.on(Events.MessageCreate, async (message: Message) => {
         } catch {
           toolArgs = {};
         }
+        const targetedCall = applyExplicitTargets(toolName, toolArgs, explicitTargets);
+        toolArgs = targetedCall.args;
         const toolCallId = toolCall.id;
 
         // Tool call logged internally
+
+        if (targetedCall.error) {
+          const targetError = {
+            success: false,
+            message: targetedCall.error,
+          };
+          const targetErrorMsg: AIMessage = {
+            role: 'tool',
+            name: toolName,
+            tool_call_id: toolCallId,
+            content: JSON.stringify(targetError),
+          };
+          memoryManager.addMessage(message.channel.id, targetErrorMsg);
+          history.push(targetErrorMsg);
+          completedToolResults.push({ name: toolName, args: toolArgs, result: targetError });
+          continue;
+        }
 
         // Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ù…Ù† Ø§Ù„Ø­Ø°Ù Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠ
         if (toolName === 'delete_channels' && toolArgs.channelIds) {
@@ -966,12 +1046,23 @@ client.on(Events.MessageCreate, async (message: Message) => {
         };
         memoryManager.addMessage(message.channel.id, toolMsg);
         history.push(toolMsg);
+        completedToolResults.push({ name: toolName, args: toolArgs, result: executionResult });
       }
 
       // ÙØ­Øµ Ø£Ù…Ø§Ù† Ø£Ù† Ø§Ù„Ù‚Ù†Ø§Ø© Ù„Ù… ÙŠØªÙ… Ø­Ø°ÙÙ‡Ø§ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª
       const channelStillExists = message.guild.channels.cache.has(message.channel.id);
       if (!channelStillExists) {
         console.warn('[AI Router] âš ï¸ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ø­ÙØ°ÙØª Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ù…ØªØ¹Ø¯Ø¯ Ù„Ù„Ø£Ø¯ÙˆØ§Øª.');
+        finalResponseSent = true;
+        break;
+      }
+
+      const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults);
+      if (deterministicReply) {
+        await sendLongMessage(message, deterministicReply);
+        const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
+        memoryManager.addMessage(message.channel.id, finalMsg);
+        history.push(finalMsg);
         finalResponseSent = true;
         break;
       }
@@ -992,7 +1083,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
     }
 
     if (!finalResponseSent && channelOk) {
-      await message.reply("âœ… ØªÙ…Øª Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø© ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø¨Ù†Ø¬Ø§Ø­.").catch(() => null);
+      const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults);
+      await message.reply(deterministicReply || 'تمت معالجة الطلب.').catch(() => null);
     }
   } catch (error) {
     console.error('[Core AI Loop] âŒ ÙØ´Ù„ Ø£Ø«Ù†Ø§Ø¡ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø·Ù„Ø¨ Ø§Ù„Ø°ÙƒÙŠ:', error);
