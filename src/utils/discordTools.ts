@@ -132,8 +132,16 @@ export async function createChannels(
   names: string[],
   categoryId?: string,
   permissions?: Array<{ id: string; allow: string[]; deny: string[] }>
-): Promise<{ success: boolean; message: string; created: string[]; failed: string[] }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  created: string[];
+  createdEntities?: Array<{ id: string; name: string; type: 'text' | 'voice' | 'category' }>;
+  channelId?: string;
+  failed: string[];
+}> {
   const created: string[] = [];
+  const createdEntities: Array<{ id: string; name: string; type: 'text' | 'voice' | 'category' }> = [];
   const failed: string[] = [];
 
   const typeMap = {
@@ -181,6 +189,7 @@ export async function createChannels(
         reason: 'إنشاء قنوات جماعية بواسطة نظام الإدارة الذكي',
       });
       created.push(createdChannel.name);
+      createdEntities.push({ id: createdChannel.id, name: createdChannel.name, type });
     } catch (error) {
       failed.push(name);
       console.error(`[DiscordTools] فشل إنشاء القناة "${name}":`, error);
@@ -192,6 +201,8 @@ export async function createChannels(
     success: true,
     message: successMessage,
     created,
+    createdEntities,
+    channelId: createdEntities[0]?.id,
     failed,
   };
 }
@@ -478,21 +489,77 @@ export async function editPermissions(
   }
 }
 
+export async function bulkPermissionUpdate(
+  guild: Guild,
+  options: {
+    channelIds?: string[];
+    categoryId?: string;
+    targetId: string;
+    targetType: 'role' | 'member';
+    allow: string[];
+    deny: string[];
+  }
+): Promise<{ success: boolean; message: string; updated: string[]; failed: string[] }> {
+  const selectedIds = new Set(options.channelIds ?? []);
+  if (options.categoryId) {
+    for (const channel of guild.channels.cache.values()) {
+      if (channel.parentId === options.categoryId) selectedIds.add(channel.id);
+    }
+  }
+
+  if (selectedIds.size === 0) {
+    return {
+      success: false,
+      message: 'لم يتم تحديد أي رومات لتحديث الصلاحيات.',
+      updated: [],
+      failed: [],
+    };
+  }
+
+  const updated: string[] = [];
+  const failed: string[] = [];
+  for (const channelId of selectedIds) {
+    const result = await editPermissions(
+      guild,
+      channelId,
+      options.targetId,
+      options.targetType,
+      options.allow,
+      options.deny
+    );
+    if (result.success) updated.push(channelId);
+    else failed.push(channelId);
+  }
+
+  return {
+    success: failed.length === 0,
+    message: `تم تحديث صلاحيات ${updated.length} روم${failed.length > 0 ? `، وتعذر تحديث ${failed.length}` : ''}.`,
+    updated,
+    failed,
+  };
+}
+
 // ============================================================
 //  إدارة وتنفيذ العقوبات والعمليات ضد الأعضاء
 // ============================================================
 export async function manageMembers(
   guild: Guild,
-  action: 'move' | 'kick' | 'ban' | 'timeout' | 'nickname',
+  action: 'move' | 'kick' | 'ban' | 'unban' | 'timeout' | 'untimeout' | 'nickname' | 'voicekick' | 'deafen' | 'mute_voice',
   memberId: string,
   data?: {
     channelId?: string;
     duration?: number;
     reason?: string;
     nickname?: string;
+    enabled?: boolean;
   }
 ): Promise<{ success: boolean; message: string }> {
   try {
+    if (action === 'unban') {
+      await guild.bans.remove(memberId, data?.reason || 'Administrative action by Opus Ai');
+      return { success: true, message: `تم فك الحظر عن المستخدم ${memberId} بنجاح.` };
+    }
+
     // فحص الأمان لضمان عدم التحكم بعضو مساوٍ أو أعلى من البوت
     const memberCheck = await validateMemberHierarchy(guild, memberId);
     if (!memberCheck.allowed) {
@@ -526,6 +593,37 @@ export async function manageMembers(
     }
 
     // 4. تعديل لقب عضو
+    if (action === 'untimeout') {
+      await member.timeout(null, reason);
+      return { success: true, message: `تمت إزالة التايم أوت عن "${member.displayName}" بنجاح.` };
+    }
+
+    if (action === 'voicekick') {
+      if (!member.voice.channelId) {
+        return { success: false, message: `العضو "${member.displayName}" غير موجود في روم صوتي.` };
+      }
+      await member.voice.disconnect(reason);
+      return { success: true, message: `تم فصل "${member.displayName}" من الروم الصوتي.` };
+    }
+
+    if (action === 'deafen') {
+      if (!member.voice.channelId) {
+        return { success: false, message: `العضو "${member.displayName}" غير موجود في روم صوتي.` };
+      }
+      const enabled = data?.enabled ?? true;
+      await member.voice.setDeaf(enabled, reason);
+      return { success: true, message: `تم ${enabled ? 'تفعيل' : 'إلغاء'} الديفن للعضو "${member.displayName}".` };
+    }
+
+    if (action === 'mute_voice') {
+      if (!member.voice.channelId) {
+        return { success: false, message: `العضو "${member.displayName}" غير موجود في روم صوتي.` };
+      }
+      const enabled = data?.enabled ?? true;
+      await member.voice.setMute(enabled, reason);
+      return { success: true, message: `تم ${enabled ? 'تفعيل' : 'إلغاء'} الميوت الصوتي للعضو "${member.displayName}".` };
+    }
+
     if (action === 'nickname') {
       const newNickname = data?.nickname ?? null;
       await member.setNickname(newNickname, reason);
@@ -1009,5 +1107,3 @@ export class ServerStatusDashboard {
 • تم التوليد في: ${new Date().toLocaleString('ar-EG')}`;
   }
 }
-
-

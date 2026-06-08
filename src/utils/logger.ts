@@ -2,6 +2,26 @@
  * Clean Logger - Outputs only errors in English
  */
 export class Logger {
+  private static sanitize(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map((item) => this.sanitize(item));
+    if (!value || typeof value !== 'object') return value;
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        /token|secret|password|api.?key|authorization/i.test(key) ? '[REDACTED]' : this.sanitize(item),
+      ])
+    );
+  }
+
+  static audit(event: string, fields: Record<string, unknown>): void {
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      event,
+      ...this.sanitize(fields) as Record<string, unknown>,
+    }));
+  }
+
   static error(title: string, error: any): void {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     console.error(`[${timestamp}] ERROR [${title}]`);

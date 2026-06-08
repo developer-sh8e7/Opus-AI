@@ -33,6 +33,7 @@ import {
   Role,
   TextChannel
 } from 'discord.js';
+import path from 'node:path';
 import { config } from './config.js';
 import { startRenderWebServer } from './renderWebServer.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
@@ -41,11 +42,14 @@ import {
   buildExplicitTargetsContext,
   resolveExplicitToolTargets,
 } from './services/toolTargeting.js';
+import { SkillRegistry } from './skills/skill_registry.js';
+import { AIRequestLimiter } from './utils/aiRateLimiter.js';
 import { 
   createChannels, 
   deleteChannels,
   manageRoles, 
   editPermissions, 
+  bulkPermissionUpdate,
   manageMembers, 
   getServerInfo,
   editBotProfile,
@@ -91,6 +95,10 @@ import {
   runMonitorDiagnostics
 } from './autonomous/monitor.js';
 import { ContextAnalyzer } from './intelligence/context_analyzer.js';
+import { ContextEngine } from './intelligence/context_engine.js';
+import { EntityRegistry } from './intelligence/entity_registry.js';
+import { applyArabicPermissionsToToolArgs, detectArabicIntent } from './intelligence/arabic_nlp.js';
+import { WorkflowEngine } from './intelligence/workflow_engine.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
 import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.js';
@@ -147,6 +155,15 @@ const systemState: BotSessionState = {
   toolsExecutedCount: 0,
   errorsLoggedCount: 0,
 };
+const aiRateLimiter = new AIRequestLimiter(5, 20, 60_000);
+
+function runAIRequest(
+  guildId: string,
+  messages: AIMessage[],
+  options: Parameters<typeof getAIResponse>[1] = {}
+): Promise<any> {
+  return aiRateLimiter.schedule(guildId, () => getAIResponse(messages, options));
+}
 
 // ============================================================
 //  ØªÙ‡ÙŠØ¦Ø© Ø¹Ù…ÙŠÙ„ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù… (Client Configuration)
@@ -191,6 +208,7 @@ function validateAIToolPermission(
       };
     case 'manage_roles':
     case 'edit_permissions':
+    case 'bulk_permission_update':
       return {
         allowed: hasAnyPermission(actorMember, [PermissionFlagsBits.ManageRoles]),
         message: denied,
@@ -204,12 +222,18 @@ function validateAIToolPermission(
       const action = String(args?.action ?? '');
       const required = action === 'ban'
         ? [PermissionFlagsBits.BanMembers]
+        : action === 'unban'
+          ? [PermissionFlagsBits.BanMembers]
         : action === 'kick'
           ? [PermissionFlagsBits.KickMembers]
-          : action === 'timeout'
+          : action === 'timeout' || action === 'untimeout'
             ? [PermissionFlagsBits.ModerateMembers]
-            : action === 'move'
+            : action === 'move' || action === 'voicekick'
               ? [PermissionFlagsBits.MoveMembers]
+              : action === 'deafen'
+                ? [PermissionFlagsBits.DeafenMembers]
+                : action === 'mute_voice'
+                  ? [PermissionFlagsBits.MuteMembers]
               : [PermissionFlagsBits.ManageNicknames];
 
       return {
@@ -318,6 +342,9 @@ async function executeTool(
     case 'edit_permissions':
       return await editPermissions(guild, args.channelId, args.targetId, args.targetType, args.allow, args.deny);
 
+    case 'bulk_permission_update':
+      return await bulkPermissionUpdate(guild, args);
+
     case 'manage_members':
       return await manageMembers(guild, args.action, args.memberId, args.data);
 
@@ -335,6 +362,48 @@ async function executeTool(
   }
 }
 
+async function executeToolWithAudit(
+  name: string,
+  args: any,
+  guild: Guild,
+  activeChannelId: string,
+  userId?: string,
+  actorMember?: GuildMember | null
+): Promise<any> {
+  const startedAt = Date.now();
+  try {
+    const result = await executeTool(name, args, guild, activeChannelId, userId, actorMember);
+    Logger.audit('tool_execution', {
+      guild_id: guild.id,
+      user_id: userId ?? null,
+      tool_name: name,
+      params: args,
+      result,
+      duration_ms: Date.now() - startedAt,
+    });
+    return result;
+  } catch (error) {
+    Logger.audit('tool_execution', {
+      guild_id: guild.id,
+      user_id: userId ?? null,
+      tool_name: name,
+      params: args,
+      result: { success: false, error: error instanceof Error ? error.message : String(error) },
+      duration_ms: Date.now() - startedAt,
+    });
+    throw error;
+  }
+}
+
+SkillRegistry.configureToolAdapter((toolName, args, params) => executeToolWithAudit(
+  toolName,
+  args,
+  params.guild,
+  params.channel.id,
+  params.user.id,
+  params.user
+));
+
 function buildToolExecutionReply(
   guild: Guild,
   completedResults: Array<{ name: string; args: any; result: any }>
@@ -346,6 +415,7 @@ function buildToolExecutionReply(
     'delete_channels',
     'manage_roles',
     'edit_permissions',
+    'bulk_permission_update',
     'manage_members',
     'edit_bot_profile',
     'bulk_delete_messages',
@@ -410,10 +480,15 @@ async function handleManualCommand(message: Message, commandText: string): Promi
         await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø³Ø¤Ø§Ù„ Ø£Ùˆ Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª Ù„ÙŠØªÙ… ØªØ­Ù„ÙŠÙ„Ù‡ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ. Ù…Ø«Ø§Ù„: `!opus ai Ù…Ù† Ø£Ù†ØªØŸ`').catch(() => null);
         return true;
       }
+      const aiLimit = aiRateLimiter.check(message.author.id, message.guild!.id);
+      if (!aiLimit.allowed) {
+        await message.reply(`وصلت حد طلبات الذكاء مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
+        return true;
+      }
       await (message.channel as any).sendTyping().catch(() => null);
       try {
         const history: AIMessage[] = [{ role: 'user', content: prompt }];
-        const response = await getAIResponse(history);
+        const response = await runAIRequest(message.guild!.id, history);
         if (response.content) {
           await sendLongMessage(message, response.content);
         } else {
@@ -766,8 +841,18 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
 // ============================================================
 //  4. Ù…Ø³ØªÙ…Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø© Ø§Ù„Ø³ÙŠØ±ÙØ± (Discord client Events)
 // ============================================================
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
   Logger.startup(`Opus Bot (${client.user?.tag})`);
+  EntityRegistry.initialize();
+  await SkillRegistry.loadDirectory(path.join(__dirname, 'skills')).catch((error) => {
+    console.error('[SkillRegistry] Failed to load skills:', error);
+  });
+  const contextCleanupTimer = setInterval(() => {
+    ContextEngine.cleanup();
+    EntityRegistry.cleanup();
+    aiRateLimiter.cleanup();
+  }, 5 * 60_000);
+  contextCleanupTimer.unref();
   Logger.info(
     'System',
     `AI routing ready: Groq primary (${config.groqModel} / ${config.groqFastModel}), Cerebras fallback (${config.cerebrasModel})`
@@ -906,6 +991,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // For non-targeted messages, only process if authorized
   if (!isTargeted && !isAuthorized) return;
 
+  const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
+  if (!aiLimit.allowed) {
+    const scope = aiLimit.scope === 'guild' ? 'السيرفر وصل حد طلبات الذكاء' : 'وصلت حد طلبات الذكاء';
+    await message.reply(`${scope} مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
+    return;
+  }
+
   // ØªÙ†Ø¸ÙŠÙ Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù Ø¨Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©
   let cleanedPromptText = message.content.trim();
   cleanedPromptText = cleanedPromptText.replace(new RegExp(botMention, 'g'), '').trim();
@@ -947,7 +1039,39 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
     // Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ§Ù‚ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ø²Ø²Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
     const explicitTargets = resolveExplicitToolTargets(message.guild, cleanedPromptText);
+    const sessionContext = ContextEngine.getOrCreate(message.channel.id, message.guild.id);
+    ContextEngine.addTurn(message.channel.id, {
+      role: 'user',
+      content: cleanedPromptText,
+      timestamp: Date.now(),
+      userId: message.author.id,
+      intent: detectArabicIntent(cleanedPromptText),
+      extractedEntities: [
+        ...explicitTargets.channelIds.map((id) => ({
+          type: 'channel' as const,
+          id,
+          name: message.guild!.channels.cache.get(id)?.name ?? id,
+          mentioned: true,
+        })),
+        ...explicitTargets.categoryIds.map((id) => ({
+          type: 'category' as const,
+          id,
+          name: message.guild!.channels.cache.get(id)?.name ?? id,
+          mentioned: true,
+        })),
+        ...explicitTargets.roleIds.map((id) => ({
+          type: 'role' as const,
+          id,
+          name: message.guild!.roles.cache.get(id)?.name ?? id,
+          mentioned: true,
+        })),
+      ],
+    });
     const explicitTargetsContext = buildExplicitTargetsContext(message.guild, explicitTargets);
+    const systemPrompt = [
+      ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+      SkillRegistry.buildSkillManifestForAI(),
+    ].join('\n');
     const enrichedPrompt = [
       ContextAnalyzer.buildEnrichedPrompt(ctx),
       explicitTargetsContext,
@@ -964,7 +1088,55 @@ client.on(Events.MessageCreate, async (message: Message) => {
     let finalResponseSent = false;
     const completedToolResults: Array<{ name: string; args: any; result: any }> = [];
 
-    let aiResponse = await getAIResponse(history);
+    let aiResponse = await runAIRequest(message.guild.id, history, { systemPrompt });
+
+    const structuredWorkflow = WorkflowEngine.parseFromAIResponse(aiResponse.content);
+    if (structuredWorkflow.length > 0) {
+      const workflowGuild = message.guild;
+      const workflowMember = message.member;
+      if (!workflowGuild || !workflowMember) return;
+      ContextEngine.setWorkflow(message.channel.id, `ai_${Date.now()}`, structuredWorkflow);
+      const workflowResult = await WorkflowEngine.execute(structuredWorkflow, async (skillId, rawArgs) => {
+        const skill = SkillRegistry.get(skillId);
+        if (!skill) {
+          return { success: false, message: `المهارة "${skillId}" غير محملة أو غير مدعومة.` };
+        }
+        let skillArgs = applyArabicPermissionsToToolArgs(
+          skillId,
+          rawArgs,
+          cleanedPromptText,
+          workflowGuild.id
+        );
+        const targeted = applyExplicitTargets(skillId, skillArgs, explicitTargets);
+        if (targeted.error) return { success: false, message: targeted.error };
+        skillArgs = targeted.args;
+        const skillResult = await skill.execute({
+          guild: workflowGuild,
+          channel: message.channel as TextChannel,
+          user: workflowMember,
+          args: skillArgs,
+          context: sessionContext,
+        });
+        const toolResult = skillResult.data && typeof skillResult.data === 'object'
+          ? skillResult.data as Record<string, any>
+          : skillResult;
+        EntityRegistry.registerToolResult(workflowGuild, skillId, skillArgs, toolResult);
+        return skillResult;
+      });
+      ContextEngine.clearWorkflow(message.channel.id);
+      const workflowReply = workflowResult.steps
+        .map((step) => step.result?.messageAr ?? step.result?.message ?? 'تمت معالجة الخطوة.')
+        .join('\n');
+      await sendLongMessage(message, workflowReply);
+      ContextEngine.addTurn(message.channel.id, {
+        role: 'assistant',
+        content: workflowReply,
+        timestamp: Date.now(),
+        userId: client.user!.id,
+        toolsUsed: workflowResult.steps.map((step) => step.tool),
+      });
+      return;
+    }
 
     while (aiResponse.tool_calls && aiResponse.tool_calls.length > 0 && loopCount < maxLoops) {
       loopCount++;
@@ -985,6 +1157,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
         } catch {
           toolArgs = {};
         }
+        toolArgs = applyArabicPermissionsToToolArgs(
+          toolName,
+          toolArgs,
+          cleanedPromptText,
+          message.guild.id
+        );
         const targetedCall = applyExplicitTargets(toolName, toolArgs, explicitTargets);
         toolArgs = targetedCall.args;
         const toolCallId = toolCall.id;
@@ -1026,7 +1204,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
         let executionResult;
         try {
-          executionResult = await executeTool(
+          executionResult = await executeToolWithAudit(
             toolName, toolArgs, message.guild,
             message.channel.id, message.author.id, message.member
           );
@@ -1047,6 +1225,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
         memoryManager.addMessage(message.channel.id, toolMsg);
         history.push(toolMsg);
         completedToolResults.push({ name: toolName, args: toolArgs, result: executionResult });
+        EntityRegistry.registerToolResult(message.guild, toolName, toolArgs, executionResult);
       }
 
       // ÙØ­Øµ Ø£Ù…Ø§Ù† Ø£Ù† Ø§Ù„Ù‚Ù†Ø§Ø© Ù„Ù… ÙŠØªÙ… Ø­Ø°ÙÙ‡Ø§ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª
@@ -1063,12 +1242,24 @@ client.on(Events.MessageCreate, async (message: Message) => {
         const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
         memoryManager.addMessage(message.channel.id, finalMsg);
         history.push(finalMsg);
+        ContextEngine.addTurn(message.channel.id, {
+          role: 'assistant',
+          content: deterministicReply,
+          timestamp: Date.now(),
+          userId: client.user!.id,
+          toolsUsed: completedToolResults.map((result) => result.name),
+        });
         finalResponseSent = true;
         break;
       }
 
       await (message.channel as any).sendTyping().catch(() => null);
-      aiResponse = await getAIResponse(history);
+      aiResponse = await runAIRequest(message.guild.id, history, {
+        systemPrompt: [
+          ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+          SkillRegistry.buildSkillManifestForAI(),
+        ].join('\n'),
+      });
     }
 
     // Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ø¯ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…
@@ -1079,6 +1270,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
       const finalMsg: AIMessage = { role: 'assistant', content: aiResponse.content };
       memoryManager.addMessage(message.channel.id, finalMsg);
       history.push(finalMsg);
+      ContextEngine.addTurn(message.channel.id, {
+        role: 'assistant',
+        content: aiResponse.content,
+        timestamp: Date.now(),
+        userId: client.user!.id,
+      });
       finalResponseSent = true;
     }
 

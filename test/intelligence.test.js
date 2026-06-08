@@ -1,0 +1,171 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+const { ChannelType, Collection } = require('discord.js');
+const { ContextEngine } = require('../dist/intelligence/context_engine.js');
+const { EntityRegistry } = require('../dist/intelligence/entity_registry.js');
+const { WorkflowEngine } = require('../dist/intelligence/workflow_engine.js');
+const {
+  applyArabicPermissionsToToolArgs,
+  detectArabicIntent,
+} = require('../dist/intelligence/arabic_nlp.js');
+const {
+  applyExplicitTargets,
+  resolveExplicitToolTargets,
+} = require('../dist/services/toolTargeting.js');
+const { SkillRegistry } = require('../dist/skills/skill_registry.js');
+const { AIRequestLimiter } = require('../dist/utils/aiRateLimiter.js');
+const {
+  getChannelTypeReference,
+  getPermissionReference,
+} = require('../dist/intelligence/discord_knowledge.js');
+
+function createGuild() {
+  const channels = new Collection([
+    ['100', { id: '100', name: 'general', type: ChannelType.GuildText, parentId: null }],
+    ['200', { id: '200', name: 'TestRoom', type: ChannelType.GuildVoice, parentId: '300' }],
+    ['300', { id: '300', name: 'VIP', type: ChannelType.GuildCategory, parentId: null }],
+  ]);
+  const roles = new Collection([
+    ['500', { id: '500', name: 'مشرف' }],
+    ['999', { id: '999', name: '@everyone' }],
+  ]);
+  return {
+    id: '999',
+    name: 'Test Guild',
+    memberCount: 10,
+    channels: { cache: channels },
+    roles: { cache: roles },
+  };
+}
+
+test('context switches language based on the latest user message', () => {
+  const context = ContextEngine.getOrCreate('language-channel', '999');
+  ContextEngine.addTurn('language-channel', {
+    role: 'user', content: 'كيف حالك', timestamp: Date.now(), userId: '1',
+  });
+  assert.equal(ContextEngine.getDominantLanguage(context, '1'), 'ar');
+  ContextEngine.addTurn('language-channel', {
+    role: 'user', content: 'can you help me?', timestamp: Date.now(), userId: '1',
+  });
+  assert.equal(ContextEngine.getDominantLanguage(context, '1'), 'en');
+});
+
+test('recent channel and category resolve implicit Arabic references', () => {
+  const guild = createGuild();
+  EntityRegistry.clearGuild(guild.id);
+  EntityRegistry.register({ guildId: guild.id, type: 'category', id: '300', name: 'VIP' });
+  EntityRegistry.register({ guildId: guild.id, type: 'channel', id: '200', name: 'TestRoom' });
+
+  const roomTargets = resolveExplicitToolTargets(guild, 'ابي البرمشن حق الروم الكل يشوف بس ما يدخل');
+  assert.deepEqual(roomTargets.channelIds, ['200']);
+
+  const categoryTargets = resolveExplicitToolTargets(guild, 'سو فيها روم تكست اسمه vip-chat');
+  const call = applyExplicitTargets('create_channels', { type: 'text', names: ['vip-chat'] }, categoryTargets);
+  assert.equal(call.args.categoryId, '300');
+});
+
+test('Arabic permissions are applied atomically to channel creation', () => {
+  const args = applyArabicPermissionsToToolArgs(
+    'create_channels',
+    { type: 'text', names: ['rules'] },
+    'سو روم rules وخلي الكل يقرأ بس ما يكتب',
+    '999'
+  );
+  assert.deepEqual(args.permissions, [{
+    id: '999',
+    allow: ['ViewChannel'],
+    deny: ['SendMessages'],
+  }]);
+  assert.equal(detectArabicIntent('سو لي روم فويس اسمه TestRoom'), 'CREATE_CHANNEL');
+});
+
+test('workflow resolves values from a previous step', async () => {
+  const calls = [];
+  const result = await WorkflowEngine.execute([
+    { id: 'create', tool: 'create_channels', args: { names: ['Room1'] } },
+    {
+      id: 'permissions',
+      tool: 'edit_permissions',
+      dependsOn: 'create',
+      args: { channelId: '$create.channelId' },
+    },
+  ], async (tool, args) => {
+    calls.push({ tool, args });
+    return tool === 'create_channels'
+      ? { success: true, channelId: '987654321' }
+      : { success: true };
+  });
+  assert.equal(result.success, true);
+  assert.equal(calls[1].args.channelId, '987654321');
+});
+
+test('workflow parser accepts only structured tool JSON', () => {
+  const steps = WorkflowEngine.parseFromAIResponse(JSON.stringify([
+    { id: 'create', tool: 'create_channels', params: { names: ['Room1'] } },
+    { tool: 'edit_permissions', dependsOn: 'create', params: { channelId: '$create.channelId' } },
+  ]));
+  assert.equal(steps.length, 2);
+  assert.equal(steps[1].dependsOn, 'create');
+  assert.deepEqual(WorkflowEngine.parseFromAIResponse('ordinary chat reply'), []);
+});
+
+test('complex Arabic voice permissions map without contradictory flags', () => {
+  const text = '\u0627\u0644\u0643\u0644 \u064a\u0634\u0648\u0641 \u0627\u0644\u0631\u0648\u0645 \u0628\u0633 \u0645\u062d\u062f \u064a\u0642\u062f\u0631 \u064a\u062f\u062e\u0644\u0647 \u0628\u0633 \u0627\u0630\u0627 \u062f\u062e\u0644\u0648\u0647 \u064a\u0642\u062f\u0631\u0648\u0646 \u064a\u062a\u0643\u0644\u0645\u0648\u0646 \u0648\u064a\u0641\u062a\u062d\u0648\u0646 \u0633\u0643\u0631\u064a\u0646 \u0634\u064a\u0631';
+  const args = applyArabicPermissionsToToolArgs('edit_permissions', {}, text, '999');
+  assert.deepEqual(args.allow.sort(), ['Speak', 'Stream', 'ViewChannel'].sort());
+  assert.deepEqual(args.deny, ['Connect']);
+  assert.equal(args.targetId, '999');
+});
+
+test('bulk permission request resolves category and everyone target', () => {
+  const guild = createGuild();
+  EntityRegistry.clearGuild(guild.id);
+  EntityRegistry.register({ guildId: guild.id, type: 'category', id: '300', name: 'VIP' });
+  const text = '\u0641\u064a \u0627\u0644\u0643\u0627\u062a\u0642\u0648\u0631\u064a \u0647\u0630\u064a \u0627\u0645\u0633\u062d \u0635\u0644\u0627\u062d\u064a\u0629 \u0645\u0646\u0634\u0646 @everyone \u0645\u0646 \u0643\u0644 \u0627\u0644\u0631\u0648\u0645\u0627\u062a';
+  const targets = resolveExplicitToolTargets(guild, text);
+  let args = applyArabicPermissionsToToolArgs('bulk_permission_update', {}, text, guild.id);
+  args = applyExplicitTargets('bulk_permission_update', args, targets).args;
+  assert.equal(args.categoryId, '300');
+  assert.equal(args.targetId, '999');
+  assert.deepEqual(args.deny, ['MentionEveryone']);
+});
+
+test('AI limiter enforces user and guild windows and preserves queue order', async () => {
+  const limiter = new AIRequestLimiter(2, 3, 60_000);
+  assert.equal(limiter.check('user-1', 'guild-1', 1).allowed, true);
+  assert.equal(limiter.check('user-1', 'guild-1', 2).allowed, true);
+  assert.equal(limiter.check('user-1', 'guild-1', 3).scope, 'user');
+  assert.equal(limiter.check('user-2', 'guild-1', 4).allowed, true);
+  assert.equal(limiter.check('user-3', 'guild-1', 5).scope, 'guild');
+
+  const order = [];
+  await Promise.all([
+    limiter.schedule('guild-queue', async () => { order.push(1); }),
+    limiter.schedule('guild-queue', async () => { order.push(2); }),
+  ]);
+  assert.deepEqual(order, [1, 2]);
+});
+
+test('Discord knowledge covers installed permission and channel enums', () => {
+  assert.ok(getPermissionReference().length >= 45);
+  assert.ok(getChannelTypeReference().length >= 10);
+});
+
+test('skill registry dynamically loads executable skills', async () => {
+  const count = await SkillRegistry.loadDirectory(path.join(__dirname, '..', 'dist', 'skills'));
+  assert.ok(count >= 19);
+  assert.ok(SkillRegistry.get('edit_permissions'));
+  assert.ok(SkillRegistry.get('bulk_permission_update'));
+  assert.ok(SkillRegistry.get('unban'));
+  assert.ok(SkillRegistry.get('voice_mute'));
+});
+
+test('AI service is compact and free from broken Arabic encoding', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'ai.ts'), 'utf8');
+  assert.ok(source.split(/\r?\n/).length < 1_000);
+  assert.doesNotMatch(source, /[ØÙ]/);
+  assert.match(source, /llama|config\.groqModel/);
+  assert.match(source, /api\.cerebras\.ai/);
+});
