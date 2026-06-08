@@ -37,6 +37,7 @@ import path from 'node:path';
 import { config } from './config.js';
 import { startRenderWebServer } from './renderWebServer.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
+import { getConversationReply } from './services/conversation.js';
 import {
   applyExplicitTargets,
   buildExplicitTargetsContext,
@@ -44,6 +45,12 @@ import {
 } from './services/toolTargeting.js';
 import { SkillRegistry } from './skills/skill_registry.js';
 import { AIRequestLimiter } from './utils/aiRateLimiter.js';
+import {
+  AdvancedActionGroup,
+  AdvancedDiscordAction,
+  executeAdvancedDiscordAction,
+  requiredPermissionForAdvancedAction,
+} from './utils/advancedDiscordActions.js';
 import { 
   createChannels, 
   deleteChannels,
@@ -54,6 +61,7 @@ import {
   getServerInfo,
   editBotProfile,
   bulkDeleteMessages,
+  sendCustomEmbed,
   getMemberInfo,
   DiscordInviteManager,
   ServerAuditLogAnalyzer,
@@ -214,6 +222,7 @@ function validateAIToolPermission(
         message: denied,
       };
     case 'bulk_delete_messages':
+    case 'send_embed':
       return {
         allowed: hasAnyPermission(actorMember, [PermissionFlagsBits.ManageMessages]),
         message: denied,
@@ -238,6 +247,22 @@ function validateAIToolPermission(
 
       return {
         allowed: hasAnyPermission(actorMember, required),
+        message: denied,
+      };
+    }
+    case 'channel_operations':
+    case 'thread_operations':
+    case 'message_operations':
+    case 'webhook_operations':
+    case 'role_operations':
+    case 'guild_operations':
+    case 'expression_operations':
+    case 'automod_operations':
+    case 'event_operations':
+    case 'analytics_operations': {
+      const action = String(args?.action ?? '') as AdvancedDiscordAction;
+      return {
+        allowed: hasAnyPermission(actorMember, [requiredPermissionForAdvancedAction(action)]),
         message: denied,
       };
     }
@@ -354,8 +379,28 @@ async function executeTool(
     case 'bulk_delete_messages':
       return await bulkDeleteMessages(guild, args.channelId, args.count, args.userId);
 
+    case 'send_embed':
+      return await sendCustomEmbed(guild, args);
+
     case 'get_member_info':
       return await getMemberInfo(guild, args.memberId);
+
+    case 'channel_operations':
+    case 'thread_operations':
+    case 'message_operations':
+    case 'webhook_operations':
+    case 'role_operations':
+    case 'guild_operations':
+    case 'expression_operations':
+    case 'automod_operations':
+    case 'event_operations':
+    case 'analytics_operations':
+      return await executeAdvancedDiscordAction(
+        guild,
+        name as AdvancedActionGroup,
+        args.action as AdvancedDiscordAction,
+        args
+      );
 
     default:
       throw new Error(`Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© ÙÙŠ Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${name}`);
@@ -419,6 +464,17 @@ function buildToolExecutionReply(
     'manage_members',
     'edit_bot_profile',
     'bulk_delete_messages',
+    'send_embed',
+    'channel_operations',
+    'thread_operations',
+    'message_operations',
+    'webhook_operations',
+    'role_operations',
+    'guild_operations',
+    'expression_operations',
+    'automod_operations',
+    'event_operations',
+    'analytics_operations',
     'join_voice_channel',
     'leave_voice_channel',
     'play_music',
@@ -967,7 +1023,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // 8. AI Assistant Logic - respond if mentioned, in helper channels, or any message with content
   const isTargeted = message.mentions.has(client.user!) || 
                      message.content.toLowerCase().includes('opus') || 
-                     ((message.channel as any).name?.includes('Ù…Ø³Ø§Ø¹Ø¯') ?? false) || 
+                     ((message.channel as any).name?.includes('مساعد') ?? false) ||
                      ((message.channel as any).name?.includes('opus') ?? false) || 
                      message.channel.isDMBased() ||
                      isCommand;
@@ -983,20 +1039,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // For targeted messages, require authorization
   if (isTargeted && !isAuthorized) {
     try {
-      await message.reply({ content: "ðŸ”’ You need an authorized role to use the Opus AI Assistant." });
+      await message.reply({ content: 'You need an authorized role to use Opus Ai.' });
     } catch {}
     return;
   }
 
   // For non-targeted messages, only process if authorized
   if (!isTargeted && !isAuthorized) return;
-
-  const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
-  if (!aiLimit.allowed) {
-    const scope = aiLimit.scope === 'guild' ? 'السيرفر وصل حد طلبات الذكاء' : 'وصلت حد طلبات الذكاء';
-    await message.reply(`${scope} مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
-    return;
-  }
 
   // ØªÙ†Ø¸ÙŠÙ Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù Ø¨Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©
   let cleanedPromptText = message.content.trim();
@@ -1006,7 +1055,20 @@ client.on(Events.MessageCreate, async (message: Message) => {
   }
 
   if (!cleanedPromptText) {
-    await message.reply("Ù…Ø±Ø­Ø¨Ø§Ù‹ Ø¨Ùƒ! Ø£Ù†Ø§ Opus Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„Ø°ÙƒÙŠ Ù„Ù„Ø³ÙŠØ±ÙØ±. ÙƒÙŠÙ ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ø®Ø¯Ù…ØªÙƒ Ø§Ù„ÙŠÙˆÙ…ØŸ ðŸ§ ").catch(() => null);
+    await message.reply('ياهلا! أنا Opus Ai. وش تبغاني أسوي لك؟').catch(() => null);
+    return;
+  }
+
+  const conversationReply = getConversationReply(cleanedPromptText);
+  if (conversationReply) {
+    await message.reply(conversationReply).catch(() => null);
+    return;
+  }
+
+  const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
+  if (!aiLimit.allowed) {
+    const scope = aiLimit.scope === 'guild' ? 'السيرفر وصل حد طلبات الذكاء' : 'وصلت حد طلبات الذكاء';
+    await message.reply(`${scope} مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
     return;
   }
 
@@ -1186,7 +1248,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           continue;
         }
 
-        // Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ù…Ù† Ø§Ù„Ø­Ø°Ù Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠ
+        // Protect the active channel from accidental deletion.
         if (toolName === 'delete_channels' && toolArgs.channelIds) {
           toolArgs.channelIds = toolArgs.channelIds.filter((id: string) => id !== message.channel.id);
           if (toolArgs.channelIds.length === 0) {
@@ -1194,7 +1256,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
               role: 'tool',
               name: toolName,
               tool_call_id: toolCallId,
-              content: JSON.stringify({ success: false, message: 'ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ù„Ø­ÙØ¸ Ø§Ø³ØªÙ…Ø±Ø§Ø±ÙŠØ© Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©.' }),
+              content: JSON.stringify({ success: false, message: 'لا يمكن حذف الروم الحالي حتى تستمر المحادثة.' }),
             };
             memoryManager.addMessage(message.channel.id, protectMsg);
             history.push(protectMsg);
@@ -1231,7 +1293,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       // ÙØ­Øµ Ø£Ù…Ø§Ù† Ø£Ù† Ø§Ù„Ù‚Ù†Ø§Ø© Ù„Ù… ÙŠØªÙ… Ø­Ø°ÙÙ‡Ø§ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª
       const channelStillExists = message.guild.channels.cache.has(message.channel.id);
       if (!channelStillExists) {
-        console.warn('[AI Router] âš ï¸ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ø­ÙØ°ÙØª Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ØªÙ†ÙÙŠØ° Ø§Ù„Ù…ØªØ¹Ø¯Ø¯ Ù„Ù„Ø£Ø¯ÙˆØ§Øª.');
+        console.warn('[AI Router] The active channel was deleted during multi-tool execution.');
         finalResponseSent = true;
         break;
       }
@@ -1284,7 +1346,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       await message.reply(deterministicReply || 'تمت معالجة الطلب.').catch(() => null);
     }
   } catch (error) {
-    console.error('[Core AI Loop] âŒ ÙØ´Ù„ Ø£Ø«Ù†Ø§Ø¡ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø·Ù„Ø¨ Ø§Ù„Ø°ÙƒÙŠ:', error);
+    console.error('[Core AI Loop] AI request processing failed:', error);
     const fallbackText = OfflineFallbackResponder.getFallbackReply(message.content);
     if (fallbackText) {
       await message.reply(fallbackText).catch(() => null);
@@ -1352,21 +1414,25 @@ function formatUserError(error: unknown): string {
     return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
   }
 
+  if (msg.includes('مفاتيح الذكاء الاصطناعي غير صالحة')) {
+    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Groq وCerebras في Render.';
+  }
+
   if (msg.includes('API error') || msg.includes('fetch') || msg.includes('ECONNREFUSED')) {
-    return 'âŒ ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø®ÙˆØ§Ø¯Ù… Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ù„ØºÙˆÙŠØ© Ù…Ø¤Ù‚ØªØ§Ù‹. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹.';
+    return 'تعذر الاتصال بمزودي الذكاء الاصطناعي مؤقتًا. جرّب بعد شوي.';
   }
   if (msg.includes('rate limit') || msg.includes('429')) {
-    return 'â³ Ø§Ù„Ù†Ø¸Ø§Ù… ÙŠØ´Ù‡Ø¯ Ø¶ØºØ·Ø§Ù‹ Ø­Ø§Ù„ÙŠØ§Ù‹. ÙŠØ±Ø¬Ù‰ Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø¯Ù‚ÙŠÙ‚Ø© ÙˆØªØ¬Ø±Ø¨Ø© Ø§Ù„Ø·Ù„Ø¨ Ù…Ø¬Ø¯Ø¯Ø§Ù‹.';
+    return 'مزود الذكاء مزدحم حاليًا. انتظر دقيقة ثم جرّب مجددًا.';
   }
   if (msg.includes('permission') || msg.includes('Missing Permissions')) {
-    return 'ðŸ”’ ÙŠÙØªÙ‚Ø± Ø§Ù„Ø¨ÙˆØª Ù„Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ± Ù„ØªÙ†ÙÙŠØ° Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ (Ù…Ø«Ù„ Ø±ØªØ¨Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ø£Ùˆ Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù‚Ù†ÙˆØ§Øª).';
+    return 'صلاحيات البوت غير كافية لتنفيذ هذا الإجراء.';
   }
   if (msg.includes('Unknown Channel') || msg.includes('Unknown Role')) {
-    return 'âŒ Ø§Ù„Ø±ØªØ¨Ø© Ø£Ùˆ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ© ØºÙŠØ± ØµØ§Ù„Ø­Ø© Ø£Ùˆ ØªÙ… Ø­Ø°ÙÙ‡Ø§ Ù…Ø¤Ø®Ø±Ø§Ù‹.';
+    return 'الروم أو الرتبة المطلوبة غير موجودة أو حُذفت مؤخرًا.';
   }
 
   const shortMsg = msg.length > 250 ? msg.slice(0, 250) + '...' : msg;
-  return `âŒ ÙØ´Ù„Øª Ø§Ù„Ø¹Ù…Ù„ÙŠØ©: ${shortMsg}`;
+  return `فشلت العملية: ${shortMsg}`;
 }
 
 // ============================================================
@@ -3428,7 +3494,7 @@ export class ServerChannelTreeVisualizer {
 // ============================================================================
 // Ø¯Ù…Ø¬ Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆØªÙ‡ÙŠØ¦Ø© Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ø§Ù„Ø°Ø§ØªÙŠØ© Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª
 // ============================================================================
-client.once('ready', () => {
+client.once(Events.ClientReady, () => {
   // ØªÙ‡ÙŠØ¦Ø© Ù…Ø¬Ø¯ÙˆÙ„ Ø§Ù„ØªØ­Ù„ÙŠÙ„Ø§Øª ÙˆØ§Ù„ØªØ´Ø®ÙŠØµØ§Øª Ø§Ù„Ø°Ø§ØªÙŠØ© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
   SelfTestingDiagnosticsScheduler.initializeAutoDiagnostics(client);
   

@@ -5,6 +5,8 @@ export interface ExplicitToolTargets {
   channelIds: string[];
   categoryIds: string[];
   roleIds: string[];
+  excludedChannelIds: string[];
+  bulkDeleteChannelIds: string[];
   everyoneRoleId: string;
 }
 
@@ -35,6 +37,30 @@ function findNamedMatches(rawText: string, entities: NamedEntity[]): string[] {
     .map((entity) => entity.id);
 }
 
+function normalizeText(value: string): string {
+  return normalizeWords(value).join(' ');
+}
+
+function findExcludedChannelIds(rawText: string, entities: NamedEntity[]): string[] {
+  const normalizedText = normalizeText(rawText);
+  return entities
+    .filter((entity) => {
+      const normalizedName = normalizeText(entity.name);
+      if (!normalizedName) return false;
+
+      let matchIndex = normalizedText.indexOf(normalizedName);
+      while (matchIndex >= 0) {
+        const precedingText = normalizedText.slice(Math.max(0, matchIndex - 70), matchIndex);
+        if (/(?:الا|ما عدا|باستثناء|سوى|و?(?:خلي|خله|اترك|ابق|ابقي|تبقي)|احتفظ ب|keep|except|excluding|preserve)(?:\s+\S+){0,3}\s*$/i.test(precedingText)) {
+          return true;
+        }
+        matchIndex = normalizedText.indexOf(normalizedName, matchIndex + normalizedName.length);
+      }
+      return false;
+    })
+    .map((entity) => entity.id);
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
@@ -61,6 +87,16 @@ export function resolveExplicitToolTargets(guild: Guild, rawText: string): Expli
 
   const channelIds = unique([...mentionedChannelIds, ...findNamedMatches(rawText, namedChannels)]);
   const categoryIds = unique([...mentionedCategoryIds, ...findNamedMatches(rawText, namedCategories)]);
+  const excludedChannelIds = unique(findExcludedChannelIds(rawText, namedChannels));
+  const requestsBulkChannelDeletion =
+    /(?:احذف|تحذف|حذف|امسح|تمسح|ازل|تزيل|شيل|تشيل|delete|remove).*(?:كل|جميع|all).*(?:الرومات|رومات|القنوات|قنوات|الرومز|رومز|channels|rooms)/i.test(
+      normalizeText(rawText)
+    );
+  const bulkDeleteChannelIds = requestsBulkChannelDeletion && excludedChannelIds.length > 0
+    ? guild.channels.cache
+      .filter((channel) => !excludedChannelIds.includes(channel.id))
+      .map((channel) => channel.id)
+    : [];
 
   if (channelIds.length === 0 && /(?:الروم|القناة|الشانل|the\s+(?:room|channel))/i.test(rawText)) {
     const latestChannel = EntityRegistry.getLatest(guild.id, 'channel');
@@ -75,6 +111,8 @@ export function resolveExplicitToolTargets(guild: Guild, rawText: string): Expli
     channelIds,
     categoryIds,
     roleIds: unique([...mentionedRoleIds, ...findNamedMatches(rawText, namedRoles)]),
+    excludedChannelIds,
+    bulkDeleteChannelIds,
     everyoneRoleId: guild.id,
   };
 }
@@ -86,7 +124,7 @@ export function applyExplicitTargets(
 ): { args: Record<string, any>; error?: string } {
   const resolvedArgs = { ...args };
 
-  if (toolName === 'edit_permissions' || toolName === 'bulk_delete_messages') {
+  if (toolName === 'edit_permissions' || toolName === 'bulk_delete_messages' || toolName === 'send_embed') {
     if (targets.channelIds.length > 1) {
       return { args: resolvedArgs, error: 'لقيت أكثر من روم مطابق. منشن الروم المطلوب بشكل مباشر.' };
     }
@@ -105,8 +143,17 @@ export function applyExplicitTargets(
     }
   }
 
-  if (toolName === 'delete_channels' && targets.channelIds.length > 0) {
-    resolvedArgs.channelIds = targets.channelIds;
+  if (toolName === 'delete_channels') {
+    const requestedIds = targets.bulkDeleteChannelIds.length > 0
+      ? targets.bulkDeleteChannelIds
+      : targets.channelIds.length > 0
+        ? targets.channelIds
+        : Array.isArray(resolvedArgs.channelIds)
+          ? resolvedArgs.channelIds
+          : [];
+    resolvedArgs.channelIds = requestedIds.filter(
+      (id: string) => !targets.excludedChannelIds.includes(id)
+    );
   }
   if (toolName === 'create_channels' && !resolvedArgs.categoryId && targets.categoryIds.length === 1) {
     resolvedArgs.categoryId = targets.categoryIds[0];
@@ -139,9 +186,18 @@ export function buildExplicitTargetsContext(
     .map((id) => guild.roles.cache.get(id))
     .filter(Boolean)
     .map((role) => `${role!.name}:${role!.id}`);
+  const preservedChannels = targets.excludedChannelIds
+    .map((id) => guild.channels.cache.get(id))
+    .filter(Boolean)
+    .map((channel) => `${channel!.name}:${channel!.id}`);
 
-  if (channelTargets.length === 0 && categoryTargets.length === 0 && roleTargets.length === 0) {
+  if (
+    channelTargets.length === 0 &&
+    categoryTargets.length === 0 &&
+    roleTargets.length === 0 &&
+    preservedChannels.length === 0
+  ) {
     return undefined;
   }
-  return `[RESOLVED_TARGETS|CHANNELS:${channelTargets.join(',') || 'none'}|CATEGORIES:${categoryTargets.join(',') || 'none'}|ROLES:${roleTargets.join(',') || 'none'}]`;
+  return `[RESOLVED_TARGETS|CHANNELS:${channelTargets.join(',') || 'none'}|CATEGORIES:${categoryTargets.join(',') || 'none'}|ROLES:${roleTargets.join(',') || 'none'}|PRESERVE_CHANNELS:${preservedChannels.join(',') || 'none'}|BULK_DELETE_EXCEPT:${targets.bulkDeleteChannelIds.length > 0 ? 'true' : 'false'}]`;
 }

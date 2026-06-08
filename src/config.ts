@@ -55,7 +55,9 @@ export function getEnvConfig(): Config {
   if (!guildId) missingVars.push('GUILD_ID');
   if (!authorizedRoleId) missingVars.push('AUTHORIZED_ROLE_ID');
   if (!groqApiKey) missingVars.push('GROQ_API_KEY');
+  else if (!groqApiKey.startsWith('gsk_')) missingVars.push('GROQ_API_KEY (invalid format)');
   if (!cerebrasApiKey) missingVars.push('CEREBRAS_API_KEY');
+  else if (!cerebrasApiKey.startsWith('csk-')) missingVars.push('CEREBRAS_API_KEY (invalid format)');
   if (aiProvider !== 'groq') missingVars.push('AI_PROVIDER=groq');
   if (ollamaEnabled) missingVars.push('OLLAMA_ENABLED=false');
   if (!Number.isFinite(aiTimeoutMs) || aiTimeoutMs <= 0) missingVars.push('AI_TIMEOUT_MS');

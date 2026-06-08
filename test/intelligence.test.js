@@ -16,6 +16,11 @@ const {
 } = require('../dist/services/toolTargeting.js');
 const { SkillRegistry } = require('../dist/skills/skill_registry.js');
 const { AIRequestLimiter } = require('../dist/utils/aiRateLimiter.js');
+const { getConversationReply } = require('../dist/services/conversation.js');
+const {
+  ADVANCED_DISCORD_ACTIONS,
+  ADVANCED_ACTION_GROUPS,
+} = require('../dist/utils/advancedDiscordActions.js');
 const {
   getChannelTypeReference,
   getPermissionReference,
@@ -26,6 +31,7 @@ function createGuild() {
     ['100', { id: '100', name: 'general', type: ChannelType.GuildText, parentId: null }],
     ['200', { id: '200', name: 'TestRoom', type: ChannelType.GuildVoice, parentId: '300' }],
     ['300', { id: '300', name: 'VIP', type: ChannelType.GuildCategory, parentId: null }],
+    ['400', { id: '400', name: 'الو', type: ChannelType.GuildText, parentId: null }],
   ]);
   const roles = new Collection([
     ['500', { id: '500', name: 'مشرف' }],
@@ -132,6 +138,23 @@ test('bulk permission request resolves category and everyone target', () => {
   assert.deepEqual(args.deny, ['MentionEveryone']);
 });
 
+test('bulk channel deletion preserves every explicitly excluded channel', () => {
+  const guild = createGuild();
+  const text = 'ابي تحذف كل الرومات وتبقي فقط الو';
+  const targets = resolveExplicitToolTargets(guild, text);
+  const call = applyExplicitTargets(
+    'delete_channels',
+    { channelIds: ['400', '100'] },
+    targets
+  );
+
+  assert.deepEqual(targets.excludedChannelIds, ['400']);
+  assert.ok(targets.bulkDeleteChannelIds.includes('100'));
+  assert.ok(targets.bulkDeleteChannelIds.includes('300'));
+  assert.ok(!targets.bulkDeleteChannelIds.includes('400'));
+  assert.ok(!call.args.channelIds.includes('400'));
+});
+
 test('AI limiter enforces user and guild windows and preserves queue order', async () => {
   const limiter = new AIRequestLimiter(2, 3, 60_000);
   assert.equal(limiter.check('user-1', 'guild-1', 1).allowed, true);
@@ -155,11 +178,14 @@ test('Discord knowledge covers installed permission and channel enums', () => {
 
 test('skill registry dynamically loads executable skills', async () => {
   const count = await SkillRegistry.loadDirectory(path.join(__dirname, '..', 'dist', 'skills'));
-  assert.ok(count >= 19);
+  assert.ok(count >= 100);
   assert.ok(SkillRegistry.get('edit_permissions'));
   assert.ok(SkillRegistry.get('bulk_permission_update'));
   assert.ok(SkillRegistry.get('unban'));
   assert.ok(SkillRegistry.get('voice_mute'));
+  assert.ok(SkillRegistry.get('automod_create_keyword'));
+  assert.ok(SkillRegistry.get('event_create_external'));
+  assert.ok(SkillRegistry.get('webhook_create'));
 });
 
 test('AI service is compact and free from broken Arabic encoding', () => {
@@ -168,4 +194,20 @@ test('AI service is compact and free from broken Arabic encoding', () => {
   assert.doesNotMatch(source, /[ØÙ]/);
   assert.match(source, /llama|config\.groqModel/);
   assert.match(source, /api\.cerebras\.ai/);
+});
+
+test('common Gulf conversation is answered naturally without an AI provider', () => {
+  assert.equal(
+    getConversationReply('كيف حالك يالشيخ'),
+    'بخير دامك بخير يا شيخ 😄 وش أخبارك أنت؟'
+  );
+  assert.equal(getConversationReply('ابي تحذف روم العام'), null);
+});
+
+test('advanced Discord skill catalog contains unique executable operations', () => {
+  const groupedCount = Object.values(ADVANCED_ACTION_GROUPS)
+    .reduce((total, actions) => total + actions.length, 0);
+  assert.equal(ADVANCED_DISCORD_ACTIONS.length, groupedCount);
+  assert.equal(new Set(ADVANCED_DISCORD_ACTIONS).size, ADVANCED_DISCORD_ACTIONS.length);
+  assert.ok(ADVANCED_DISCORD_ACTIONS.length >= 90);
 });

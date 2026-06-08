@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
+import { ADVANCED_ACTION_GROUPS } from '../utils/advancedDiscordActions.js';
 
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -88,12 +89,73 @@ function defineTool(
   };
 }
 
+const ADVANCED_TOOL_DESCRIPTIONS: Record<keyof typeof ADVANCED_ACTION_GROUPS, string> = {
+  channel_operations: 'Advanced channel and voice-channel configuration, cloning, locking, invites, and inspection.',
+  thread_operations: 'Create and manage Discord threads, members, archive state, locks, and slowmode.',
+  message_operations: 'Send, inspect, pin, edit, publish, react to, or remove Discord messages.',
+  webhook_operations: 'Create, inspect, edit, send through, and delete Discord webhooks.',
+  role_operations: 'Inspect, clone, configure, position, and mass-assign Discord roles.',
+  guild_operations: 'Inspect and configure Discord server identity, community channels, verification, bans, and invites.',
+  expression_operations: 'Manage and inspect server emojis, stickers, and soundboard sounds.',
+  automod_operations: 'Create and manage native Discord AutoMod rules.',
+  event_operations: 'Create and manage Discord scheduled events.',
+  analytics_operations: 'Read audit logs and server, member, role, channel, voice, boost, and thread statistics.',
+};
+
+const advancedTools: FunctionTool[] = Object.entries(ADVANCED_ACTION_GROUPS).map(([group, actions]) =>
+  defineTool(
+    group,
+    ADVANCED_TOOL_DESCRIPTIONS[group as keyof typeof ADVANCED_ACTION_GROUPS],
+    {
+      action: {
+        type: 'string',
+        enum: actions,
+        description: 'Exact operation to execute.',
+      },
+      channelId: stringProperty('Exact channel or thread ID.'),
+      categoryId: stringProperty('Exact category ID.'),
+      roleId: stringProperty('Exact role ID.'),
+      memberId: stringProperty('Exact member ID.'),
+      messageId: stringProperty('Exact message ID.'),
+      webhookId: stringProperty('Exact webhook ID.'),
+      eventId: stringProperty('Exact scheduled event ID.'),
+      ruleId: stringProperty('Exact AutoMod rule ID.'),
+      emojiId: stringProperty('Exact emoji ID.'),
+      name: stringProperty('Name for create or rename operations.'),
+      content: stringProperty('Message or webhook content.'),
+      description: stringProperty('Description text.'),
+      topic: stringProperty('Channel topic.'),
+      color: stringProperty('Hex color.'),
+      reason: stringProperty('Audit-log reason.'),
+      url: stringProperty('Public image or asset URL.'),
+      emoji: stringProperty('Emoji for a reaction.'),
+      location: stringProperty('External event location.'),
+      region: stringProperty('Voice RTC region, or omit for automatic.'),
+      keyword: stringProperty('AutoMod keyword.'),
+      alertChannelId: stringProperty('AutoMod alert channel ID.'),
+      scheduledStartTime: stringProperty('ISO-8601 event start time.'),
+      scheduledEndTime: stringProperty('ISO-8601 event end time.'),
+      enabled: { type: 'boolean' },
+      value: { type: 'number' },
+      position: { type: 'integer' },
+      count: { type: 'integer', minimum: 1 },
+      duration: { type: 'integer', minimum: 0 },
+      mentionTotalLimit: { type: 'integer', minimum: 1, maximum: 50 },
+      permissions: stringArrayProperty('Discord permission names.'),
+      memberIds: stringArrayProperty('Discord member IDs.'),
+    },
+    ['action']
+  )
+);
+
 export const SYSTEM_PROMPT = `You are Opus Ai, a specialized Discord server administration assistant.
 
 Language:
 - Reply in the same language and dialect as the user's latest message.
 - If the user writes Arabic, reply in clear natural Arabic and understand Gulf Discord terms such as روم، رتبة، رول، برمشن، فويس، منشن، بان، كيك، وتايم أوت.
-- Keep ordinary chat concise and never argue with a user correction.
+- Keep ordinary chat warm, concise, and natural. When asked how you are, answer the question directly instead of saying you are ready for use.
+- Never repeat the same canned sentence when the user rephrases a social question.
+- Never argue with a user correction.
 
 Accuracy:
 - Use exact Discord IDs supplied in mentions, explicit target context, server information, or recent entity memory.
@@ -107,6 +169,9 @@ Tool behavior:
 - Tool calls are proposals. TypeScript performs authorization, permission, hierarchy, target, and argument validation.
 - Never claim an action succeeded until a tool result confirms success.
 - For a compound request, continue until every requested step succeeds or a tool reports a failure.
+- For "delete everything except X", fetch server information first, preserve X exactly, and never delete the active conversation channel.
+- For server redesign requests, perform cleanup, structure creation, permissions, and embeds as separate verified steps.
+- Design embeds with concise sections, a consistent color, useful fields, and no decorative clutter.
 - After tool results, summarize exactly what changed and use the names returned by the tools.
 
 Security:
@@ -321,11 +386,39 @@ export const tools: FunctionTool[] = [
     ['channelId', 'count']
   ),
   defineTool(
+    'send_embed',
+    'Send a polished custom embed to a Discord text channel.',
+    {
+      channelId: stringProperty('Exact destination channel ID.'),
+      title: stringProperty('Optional embed title.'),
+      description: stringProperty('Main embed text.'),
+      color: stringProperty('Optional six-digit hex color such as #5865F2.'),
+      footer: stringProperty('Optional footer text.'),
+      imageUrl: stringProperty('Optional public image URL.'),
+      thumbnailUrl: stringProperty('Optional public thumbnail URL.'),
+      fields: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: stringProperty('Field title.'),
+            value: stringProperty('Field content.'),
+            inline: { type: 'boolean' },
+          },
+          required: ['name', 'value'],
+          additionalProperties: false,
+        },
+      },
+    },
+    ['channelId', 'description']
+  ),
+  defineTool(
     'get_member_info',
     'Get a Discord member profile, roles, and effective guild permissions.',
     { memberId: stringProperty('Exact Discord member ID.') },
     ['memberId']
   ),
+  ...advancedTools,
 ];
 
 const TOOL_DESCRIPTIONS = Object.fromEntries(
@@ -334,8 +427,21 @@ const TOOL_DESCRIPTIONS = Object.fromEntries(
 
 const TOOL_GROUPS = {
   server: ['get_server_info', 'build_custom_server', 'execute_community_build'],
-  channels: ['get_server_info', 'create_channels', 'delete_channels', 'edit_permissions', 'bulk_permission_update'],
-  roles: ['get_server_info', 'manage_roles', 'edit_permissions', 'bulk_permission_update', 'get_member_info'],
+  channels: [
+    'get_server_info',
+    'create_channels',
+    'delete_channels',
+    'edit_permissions',
+    'bulk_permission_update',
+    'send_embed',
+  ],
+  roles: [
+    'get_server_info',
+    'manage_roles',
+    'edit_permissions',
+    'bulk_permission_update',
+    'get_member_info',
+  ],
   members: ['get_member_info', 'manage_members', 'bulk_delete_messages'],
   profile: ['edit_bot_profile'],
   voice: ['get_voice_status', 'get_user_voice_channel', 'join_voice_channel', 'leave_voice_channel'],
@@ -446,6 +552,7 @@ export class AIResponseParser {
 }
 
 export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
+export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث GROQ_API_KEY و CEREBRAS_API_KEY في Render.';
 export const EXTENDED_CONVERSATIONAL_SCENARIOS_DATABASE: readonly never[] = [];
 
 class AIProviderError extends Error {
@@ -525,7 +632,9 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
 
   const addGroup = (group: readonly string[]) => group.forEach((name) => selected.add(name));
 
-  if (/(server|سيرفر|خادم|build|بناء|صمم)/i.test(content)) addGroup(TOOL_GROUPS.server);
+  if (/(server|سيرفر|خادم|متجر|build|بناء|صمم|نظم.*السيرفر|ضبط.*السيرفر)/i.test(content)) {
+    addGroup(TOOL_GROUPS.server);
+  }
   if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|اخف|إخف)/i.test(content)) {
     addGroup(TOOL_GROUPS.channels);
   }
@@ -541,6 +650,30 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع)/i.test(content)) addGroup(TOOL_GROUPS.voice);
   if (/(music|song|play|pause|resume|skip|queue|volume|اغنية|أغنية|موسيقى|شغل|وقف|الصوت)/i.test(content)) {
     addGroup(TOOL_GROUPS.music);
+  }
+  if (/(thread|ثريد|موضوع منتدى|archive|ارشفة|أرشفة)/i.test(content)) selected.add('thread_operations');
+  if (/(webhook|ويب هوك)/i.test(content)) selected.add('webhook_operations');
+  if (/(automod|اوتو مود|أوتو مود|منع الروابط|منع السبام|mention spam)/i.test(content)) {
+    selected.add('automod_operations');
+  }
+  if (/(scheduled event|فعالية|ايفنت|إيفنت|حدث مجدول)/i.test(content)) selected.add('event_operations');
+  if (/(emoji|ايموجي|إيموجي|sticker|ملصق|soundboard|ساوند بورد)/i.test(content)) {
+    selected.add('expression_operations');
+  }
+  if (/(audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i.test(content)) {
+    selected.add('analytics_operations');
+  }
+  if (/(clone|نسخ الروم|غير اسم الروم|غيّر اسم الروم|topic|وصف الروم|nsfw|سلومود|slowmode|bitrate|حد المستخدمين|قفل الروم|فك قفل الروم|دعوة|invite|مزامنة الصلاحيات)/i.test(content)) {
+    selected.add('channel_operations');
+  }
+  if (/(pin|ثبت الرسالة|ثبّت الرسالة|crosspost|نشر الإعلان|react|تفاعل على الرسالة|عدل رسالة البوت)/i.test(content)) {
+    selected.add('message_operations');
+  }
+  if (/(clone role|نسخ الرتبة|لون الرتبة|hoist|mentionable|اعط.*رتبة.*للجميع|اسحب.*رتبة.*من الجميع)/i.test(content)) {
+    selected.add('role_operations');
+  }
+  if (/(اسم السيرفر|وصف السيرفر|ايقونة السيرفر|أيقونة السيرفر|بنر السيرفر|مستوى التحقق|روم النظام|روم القوانين)/i.test(content)) {
+    selected.add('guild_operations');
   }
 
   return selected;
@@ -611,8 +744,19 @@ function buildCompletionBody(
 function safeErrorDetail(raw: string): string {
   let detail = raw;
   try {
-    const parsed = JSON.parse(raw) as { error?: { message?: string }; message?: string };
-    detail = parsed.error?.message ?? parsed.message ?? raw;
+    const parsed = JSON.parse(raw) as {
+      error?: {
+        message?: string;
+        failed_generation?: { reason?: string } | string;
+      };
+      message?: string;
+    };
+    const failedGeneration = typeof parsed.error?.failed_generation === 'string'
+      ? parsed.error.failed_generation
+      : parsed.error?.failed_generation?.reason;
+    detail = [parsed.error?.message ?? parsed.message, failedGeneration]
+      .filter(Boolean)
+      .join(' - ') || raw;
   } catch {}
 
   return String(detail)
@@ -656,10 +800,14 @@ async function postChatCompletion(
 
     if (!response.ok) {
       const detail = safeErrorDetail(await response.text());
+      const isToolGenerationFailure = response.status === 400 &&
+        /(tool call|failed_generation|arguments are not valid json|invalid tool)/i.test(detail);
       const retryable = response.status === 408 ||
         response.status === 425 ||
         response.status === 429 ||
         response.status === 498 ||
+        response.status === 422 ||
+        isToolGenerationFailure ||
         response.status >= 500;
       throw new AIProviderError(
         provider,
@@ -709,13 +857,13 @@ function delay(ms: number): Promise<void> {
 
 async function retryProvider(
   provider: 'groq' | 'cerebras',
-  request: () => Promise<ProviderMessage>
+  request: (attempt: number) => Promise<ProviderMessage>
 ): Promise<ProviderMessage> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= config.aiMaxRetries; attempt++) {
     try {
-      return await request();
+      return await request(attempt);
     } catch (error) {
       lastError = error;
       const retryable = error instanceof AIProviderError && error.retryable;
@@ -738,31 +886,40 @@ export async function callGroq(
 ): Promise<ProviderMessage> {
   const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
   const model = intent === 'smart' ? config.groqModel : config.groqFastModel;
-  const body = buildCompletionBody(messages, options, model);
 
-  return retryProvider('groq', () => postChatCompletion(
-    'groq',
-    'https://api.groq.com/openai/v1/chat/completions',
-    config.groqApiKey,
-    body
-  ));
+  return retryProvider('groq', (attempt) => {
+    const body = buildCompletionBody(messages, {
+      ...options,
+      temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
+    }, model);
+    return postChatCompletion(
+      'groq',
+      'https://api.groq.com/openai/v1/chat/completions',
+      config.groqApiKey,
+      body
+    );
+  });
 }
 
 export async function callCerebras(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
-  const body: ChatCompletionBody = {
-    ...buildCompletionBody(messages, options, config.cerebrasModel),
-    reasoning_effort: 'none',
-  };
-
-  return retryProvider('cerebras', () => postChatCompletion(
-    'cerebras',
-    'https://api.cerebras.ai/v1/chat/completions',
-    config.cerebrasApiKey,
-    body
-  ));
+  return retryProvider('cerebras', (attempt) => {
+    const body: ChatCompletionBody = {
+      ...buildCompletionBody(messages, {
+        ...options,
+        temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
+      }, config.cerebrasModel),
+      reasoning_effort: 'none',
+    };
+    return postChatCompletion(
+      'cerebras',
+      'https://api.cerebras.ai/v1/chat/completions',
+      config.cerebrasApiKey,
+      body
+    );
+  });
 }
 
 export async function generateAIResponse(
@@ -770,10 +927,12 @@ export async function generateAIResponse(
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
   const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
+  let groqFailure: unknown;
 
   try {
     return await callGroq(messages, { ...options, intent });
   } catch (groqError) {
+    groqFailure = groqError;
     Logger.warn(
       'AI',
       `Groq unavailable (${groqError instanceof AIProviderError ? groqError.status ?? 'network' : 'unknown'}); using Cerebras.`
@@ -787,7 +946,15 @@ export async function generateAIResponse(
       'AI',
       cerebrasError instanceof Error ? cerebrasError.message : 'Cerebras request failed.'
     );
-    throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
+    const groqAuthFailed = groqFailure instanceof AIProviderError &&
+      (groqFailure.status === 401 || groqFailure.status === 403);
+    const cerebrasAuthFailed = cerebrasError instanceof AIProviderError &&
+      (cerebrasError.status === 401 || cerebrasError.status === 403);
+    throw new Error(
+      groqAuthFailed && cerebrasAuthFailed
+        ? AI_CONFIGURATION_ERROR_MESSAGE
+        : AI_TEMPORARY_ERROR_MESSAGE
+    );
   }
 }
 

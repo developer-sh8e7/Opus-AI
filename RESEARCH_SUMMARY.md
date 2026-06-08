@@ -147,3 +147,18 @@ Implementation decisions:
 - Existing Discord tool router remains the single permission-checked execution boundary.
 
 The skill count reported to AI must always equal the number of executable registered skills.
+
+## Expanded Executable Skill Catalog
+
+Primary references:
+
+- https://discord.js.org/docs/packages/discord.js/main
+- https://discord.js.org/docs/packages/discord.js/main/ClientEventTypes%3AInterface
+- https://docs.discord.com/developers/resources/auto-moderation
+- https://docs.discord.com/developers/resources/guild-scheduled-event
+
+The executable registry now exposes 119 skills. The advanced skills are backed by real
+discord.js operations grouped into channel, thread, message, webhook, role, guild, expression,
+AutoMod, scheduled-event, and analytics executors. They are not placeholder files: every
+registered advanced skill routes to an implemented action and still passes through the central
+permission validator and structured audit logger.

@@ -14,7 +14,8 @@ import {
   GuildMember,
   Client,
   Invite,
-  AuditLogEvent
+  AuditLogEvent,
+  EmbedBuilder
 } from 'discord.js';
 import { validateHierarchy, validateMemberHierarchy } from './security.js';
 import { delay } from './rateLimiter.js';
@@ -772,6 +773,58 @@ export async function bulkDeleteMessages(
     };
   } catch (e: any) {
     return { success: false, deleted: 0, message: `فشل حذف الرسائل: ${e.message}` };
+  }
+}
+
+export async function sendCustomEmbed(
+  guild: Guild,
+  data: {
+    channelId: string;
+    title?: string;
+    description: string;
+    color?: string;
+    footer?: string;
+    imageUrl?: string;
+    thumbnailUrl?: string;
+    fields?: Array<{ name: string; value: string; inline?: boolean }>;
+  }
+): Promise<{ success: boolean; message: string; messageId?: string }> {
+  try {
+    const channel = guild.channels.cache.get(data.channelId)
+      || await guild.channels.fetch(data.channelId).catch(() => null);
+    if (!channel || !channel.isTextBased() || !('send' in channel)) {
+      return { success: false, message: 'القناة غير موجودة أو لا تدعم إرسال الرسائل.' };
+    }
+
+    const embed = new EmbedBuilder()
+      .setDescription(data.description.slice(0, 4096))
+      .setColor(/^#[0-9A-F]{6}$/i.test(data.color ?? '') ? data.color as `#${string}` : '#5865F2')
+      .setTimestamp();
+
+    if (data.title) embed.setTitle(data.title.slice(0, 256));
+    if (data.footer) embed.setFooter({ text: data.footer.slice(0, 2048) });
+    if (data.imageUrl) embed.setImage(data.imageUrl);
+    if (data.thumbnailUrl) embed.setThumbnail(data.thumbnailUrl);
+    if (data.fields?.length) {
+      embed.addFields(data.fields.slice(0, 25).map((field) => ({
+        name: field.name.slice(0, 256),
+        value: field.value.slice(0, 1024),
+        inline: field.inline ?? false,
+      })));
+    }
+
+    const sent = await channel.send({
+      embeds: [embed],
+      allowedMentions: { parse: [] },
+    });
+    return {
+      success: true,
+      message: `تم إرسال الإيمبد في قناة "${channel.name}" بنجاح.`,
+      messageId: sent.id,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, message: `فشل إرسال الإيمبد: ${errorMessage}` };
   }
 }
 
