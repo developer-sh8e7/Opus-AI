@@ -47,7 +47,10 @@ const EXPLICIT_DESIRE_PATTERN =
 const EXPLICIT_INFORMATION_PATTERN =
   /(?:عطني|اعطني|أعطني|ورني|أرني|ارني|هات|جيب|اعرض|أعرض|افحص|تحقق|وش عندنا|كم عدد|what|show|list|get|check|inspect).*(?:السيرفر|الخادم|الروم|القناة|القنوات|الرومات|الرتبة|الرتب|الرولات|العضو|الأعضاء|member|server|channel|role|audit|stats|queue)/iu;
 
-function getCurrentUserText(messages: AIMessage[]): string {
+const EXPLICIT_PERMISSION_PATTERN =
+  /(?:\d{17,20}|<#\d{17,20}>|روم|قناة|كاتقوري|فئة).*(?:الكل|everyone|رتبة|رول).*(?:يشوف|يدخل|يكتب|يتكلم|سكرين|منشن|صلاحية|برمشن)/iu;
+
+export function getCurrentUserText(messages: AIMessage[]): string {
   const latestUserMessage = [...messages]
     .reverse()
     .find((message) => message.role === 'user' && typeof message.content === 'string');
@@ -59,7 +62,8 @@ export function currentMessageAllowsTools(messages: AIMessage[]): boolean {
   if (!current) return false;
   return EXPLICIT_ACTION_PATTERN.test(current) ||
     EXPLICIT_DESIRE_PATTERN.test(current) ||
-    EXPLICIT_INFORMATION_PATTERN.test(current);
+    EXPLICIT_INFORMATION_PATTERN.test(current) ||
+    EXPLICIT_PERMISSION_PATTERN.test(current);
 }
 
 export function selectToolNames(messages: AIMessage[]): Set<string> {

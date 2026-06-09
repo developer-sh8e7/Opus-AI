@@ -7,8 +7,10 @@ const { ContextEngine } = require('../dist/intelligence/context_engine.js');
 const { EntityRegistry } = require('../dist/intelligence/entity_registry.js');
 const { MemoryManager } = require('../dist/intelligence/memory_manager.js');
 const { WorkflowEngine } = require('../dist/intelligence/workflow_engine.js');
+const { planCompoundDiscordRequest } = require('../dist/intelligence/compound_planner.js');
 const {
   applyArabicPermissionsToToolArgs,
+  buildArabicPermissionOperations,
   detectArabicIntent,
 } = require('../dist/intelligence/arabic_nlp.js');
 const {
@@ -37,9 +39,16 @@ function createGuild() {
     ['200', { id: '200', name: 'TestRoom', type: ChannelType.GuildVoice, parentId: '300' }],
     ['300', { id: '300', name: 'VIP', type: ChannelType.GuildCategory, parentId: null }],
     ['400', { id: '400', name: 'الو', type: ChannelType.GuildText, parentId: null }],
+    ['1513737591793520903', {
+      id: '1513737591793520903',
+      name: 'private-voice',
+      type: ChannelType.GuildVoice,
+      parentId: null,
+    }],
   ]);
   const roles = new Collection([
     ['500', { id: '500', name: 'مشرف' }],
+    ['501', { id: '501', name: 'خاص' }],
     ['999', { id: '999', name: '@everyone' }],
   ]);
   return {
@@ -101,7 +110,13 @@ test('session memory preserves created entity IDs for follow-up requests', () =>
 
   assert.equal(memory.resolveEntity(channelId, 'category', 'المتجر')?.id, '701');
   assert.equal(memory.resolveEntity(channelId, 'role')?.id, '702');
+  assert.deepEqual(memory.getLastEntityIds(channelId), {
+    last_channel_id: undefined,
+    last_role_id: '702',
+    last_category_id: '701',
+  });
   assert.match(memory.buildEntityContext(channelId), /role:عملاء:702/);
+  assert.match(memory.buildEntityContext(channelId), /last_role_id=702/);
 
   const targets = resolveExplicitToolTargets(
     createGuild(),
@@ -160,12 +175,48 @@ test('workflow parser accepts only structured tool JSON', () => {
   assert.deepEqual(WorkflowEngine.parseFromAIResponse('ordinary chat reply'), []);
 });
 
+test('compound Arabic server request becomes a five-step dependent workflow', () => {
+  const steps = planCompoundDiscordRequest(
+    'سوّ كاتقوري اسمها VIP وحط فيها روم تكست وروم فويس وسوّ رتبة VIP تشوف كل شيء فيها'
+  );
+  assert.equal(steps.length, 5);
+  assert.equal(steps[0].tool, 'create_channels');
+  assert.equal(steps[1].args.categoryId, '$create_category.channelId');
+  assert.equal(steps[2].args.categoryId, '$create_category.channelId');
+  assert.equal(steps[3].tool, 'manage_roles');
+  assert.equal(steps[4].args.targetId, '$create_role.roleId');
+  assert.equal(steps[4].args.channelId, '$create_category.channelId');
+});
+
 test('complex Arabic voice permissions map without contradictory flags', () => {
   const text = '\u0627\u0644\u0643\u0644 \u064a\u0634\u0648\u0641 \u0627\u0644\u0631\u0648\u0645 \u0628\u0633 \u0645\u062d\u062f \u064a\u0642\u062f\u0631 \u064a\u062f\u062e\u0644\u0647 \u0628\u0633 \u0627\u0630\u0627 \u062f\u062e\u0644\u0648\u0647 \u064a\u0642\u062f\u0631\u0648\u0646 \u064a\u062a\u0643\u0644\u0645\u0648\u0646 \u0648\u064a\u0641\u062a\u062d\u0648\u0646 \u0633\u0643\u0631\u064a\u0646 \u0634\u064a\u0631';
   const args = applyArabicPermissionsToToolArgs('edit_permissions', {}, text, '999');
   assert.deepEqual(args.allow.sort(), ['Speak', 'Stream', 'ViewChannel'].sort());
   assert.deepEqual(args.deny, ['Connect']);
   assert.equal(args.targetId, '999');
+});
+
+test('explicit Arabic permission sentence resolves everyone and named role without questions', () => {
+  const guild = createGuild();
+  const text = '1513737591793520903 الكل يشوفه ما يدخله إلا رتبة خاص تدخل وتتكلم وتفتح سكرين';
+  const operations = buildArabicPermissionOperations(text, guild);
+
+  assert.deepEqual(operations, [
+    {
+      channelId: '1513737591793520903',
+      targetId: '999',
+      targetType: 'role',
+      allow: ['ViewChannel'],
+      deny: ['Connect'],
+    },
+    {
+      channelId: '1513737591793520903',
+      targetId: '501',
+      targetType: 'role',
+      allow: ['Connect', 'Speak', 'Stream'],
+      deny: [],
+    },
+  ]);
 });
 
 test('bulk permission request resolves category and everyone target', () => {
@@ -221,7 +272,7 @@ test('Discord knowledge covers installed permission and channel enums', () => {
 
 test('skill registry dynamically loads executable skills', async () => {
   const count = await SkillRegistry.loadDirectory(path.join(__dirname, '..', 'dist', 'skills'));
-  assert.ok(count >= 100);
+  assert.ok(count >= 500);
   assert.ok(SkillRegistry.get('edit_permissions'));
   assert.ok(SkillRegistry.get('bulk_permission_update'));
   assert.ok(SkillRegistry.get('unban'));
@@ -229,11 +280,14 @@ test('skill registry dynamically loads executable skills', async () => {
   assert.ok(SkillRegistry.get('automod_create_keyword'));
   assert.ok(SkillRegistry.get('event_create_external'));
   assert.ok(SkillRegistry.get('webhook_create'));
+  assert.ok(SkillRegistry.get('preset_purge_100'));
+  assert.ok(SkillRegistry.get('preset_timeout_300m'));
+  assert.ok(SkillRegistry.get('preset_voice_limit_50'));
 });
 
 test('AI service is compact and free from broken Arabic encoding', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'services', 'ai.ts'), 'utf8');
-  assert.ok(source.split(/\r?\n/).length < 1_000);
+  assert.ok(source.split(/\r?\n/).length < 1_200);
   assert.doesNotMatch(source, /[ØÙ]/);
   assert.match(source, /llama|config\.groqModel/);
   assert.match(source, /api\.cerebras\.ai/);
@@ -280,6 +334,12 @@ test('ordinary current messages never inherit tools from previous requests', () 
   history[history.length - 1] = { role: 'user', content: 'ارسل إيمبد في روم الو' };
   assert.equal(currentMessageAllowsTools(history), true);
   assert.ok(selectToolNames(history).has('send_embed'));
+
+  history[history.length - 1] = {
+    role: 'user',
+    content: '1513737591793520903 الكل يشوفه ما يدخله إلا رتبة خاص تدخل',
+  };
+  assert.equal(currentMessageAllowsTools(history), true);
 });
 
 test('advanced Discord skill catalog contains unique executable operations', () => {

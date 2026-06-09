@@ -105,8 +105,13 @@ import {
 import { ContextAnalyzer } from './intelligence/context_analyzer.js';
 import { ContextEngine } from './intelligence/context_engine.js';
 import { EntityRegistry } from './intelligence/entity_registry.js';
-import { applyArabicPermissionsToToolArgs, detectArabicIntent } from './intelligence/arabic_nlp.js';
+import {
+  applyArabicPermissionsToToolArgs,
+  buildArabicPermissionOperations,
+  detectArabicIntent,
+} from './intelligence/arabic_nlp.js';
 import { WorkflowEngine } from './intelligence/workflow_engine.js';
+import { planCompoundDiscordRequest } from './intelligence/compound_planner.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
 import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.js';
@@ -187,6 +192,11 @@ const client = new Client({
   ],
   partials: [Partials.Message, Partials.Channel, Partials.GuildMember],
 });
+const enableDiscordLogs = require('discord-logs') as (
+  discordClient: Client,
+  options?: { debug?: boolean }
+) => void;
+enableDiscordLogs(client, { debug: false });
 
 function hasAnyPermission(member: GuildMember | null | undefined, permissions: bigint[]): boolean {
   if (!member) return false;
@@ -263,6 +273,13 @@ function validateAIToolPermission(
       const action = String(args?.action ?? '') as AdvancedDiscordAction;
       return {
         allowed: hasAnyPermission(actorMember, [requiredPermissionForAdvancedAction(action)]),
+        message: denied,
+      };
+    }
+    case 'execute_skill': {
+      const skill = SkillRegistry.get(String(args?.skillId ?? ''));
+      return {
+        allowed: Boolean(skill) && hasAnyPermission(actorMember, skill?.requiredPermissions ?? []),
         message: denied,
       };
     }
@@ -401,6 +418,23 @@ async function executeTool(
         args.action as AdvancedDiscordAction,
         args
       );
+
+    case 'execute_skill': {
+      const skill = SkillRegistry.get(String(args.skillId ?? ''));
+      const channel = guild.channels.cache.get(activeChannelId);
+      if (!skill) return { success: false, message: 'المهارة المطلوبة غير موجودة.' };
+      if (!actorMember) return { success: false, message: 'تعذر التحقق من العضو المنفذ.' };
+      if (!channel?.isTextBased()) {
+        return { success: false, message: 'الروم الحالي لا يدعم تنفيذ هذه المهارة.' };
+      }
+      return skill.execute({
+        guild,
+        channel: channel as TextChannel,
+        user: actorMember,
+        args: args.args ?? {},
+        context: ContextEngine.getOrCreate(activeChannelId, guild.id),
+      });
+    }
 
     default:
       throw new Error(`Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© ÙÙŠ Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${name}`);
@@ -1065,6 +1099,34 @@ client.on(Events.MessageCreate, async (message: Message) => {
     return;
   }
 
+  const directPermissionOperations = buildArabicPermissionOperations(
+    cleanedPromptText,
+    message.guild
+  );
+  if (directPermissionOperations.length > 0) {
+    const results: string[] = [];
+    for (const operation of directPermissionOperations) {
+      const result = await executeToolWithAudit(
+        'edit_permissions',
+        operation,
+        message.guild,
+        message.channel.id,
+        message.author.id,
+        message.member
+      );
+      results.push(result?.message ?? (result?.success ? 'تم تحديث الصلاحيات.' : 'تعذر تحديث الصلاحيات.'));
+      const registeredEntities = EntityRegistry.registerToolResult(
+        message.guild,
+        'edit_permissions',
+        operation,
+        result
+      );
+      memoryManager.rememberEntities(message.channel.id, registeredEntities);
+    }
+    await message.reply(results.join('\n')).catch(() => null);
+    return;
+  }
+
   const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
   if (!aiLimit.allowed) {
     const scope = aiLimit.scope === 'guild' ? 'السيرفر وصل حد طلبات الذكاء' : 'وصلت حد طلبات الذكاء';
@@ -1106,6 +1168,33 @@ client.on(Events.MessageCreate, async (message: Message) => {
       cleanedPromptText,
       sessionEntities
     );
+    const referencedAt = Date.now();
+    memoryManager.rememberEntities(message.channel.id, [
+      ...explicitTargets.channelIds.map((id) => ({
+        guildId: message.guild!.id,
+        type: 'channel' as const,
+        id,
+        name: message.guild!.channels.cache.get(id)?.name ?? id,
+        sourceTool: 'user_reference',
+        createdAt: referencedAt,
+      })),
+      ...explicitTargets.categoryIds.map((id) => ({
+        guildId: message.guild!.id,
+        type: 'category' as const,
+        id,
+        name: message.guild!.channels.cache.get(id)?.name ?? id,
+        sourceTool: 'user_reference',
+        createdAt: referencedAt,
+      })),
+      ...explicitTargets.roleIds.map((id) => ({
+        guildId: message.guild!.id,
+        type: 'role' as const,
+        id,
+        name: message.guild!.roles.cache.get(id)?.name ?? id,
+        sourceTool: 'user_reference',
+        createdAt: referencedAt,
+      })),
+    ]);
     const sessionContext = ContextEngine.getOrCreate(message.channel.id, message.guild.id);
     ContextEngine.addTurn(message.channel.id, {
       role: 'user',
@@ -1156,9 +1245,14 @@ client.on(Events.MessageCreate, async (message: Message) => {
     let finalResponseSent = false;
     const completedToolResults: Array<{ name: string; args: any; result: any }> = [];
 
-    let aiResponse = await runAIRequest(message.guild.id, history, { systemPrompt });
+    const deterministicWorkflow = planCompoundDiscordRequest(cleanedPromptText);
+    let aiResponse = deterministicWorkflow.length > 0
+      ? { role: 'assistant' as const, content: null }
+      : await runAIRequest(message.guild.id, history, { systemPrompt });
 
-    const structuredWorkflow = WorkflowEngine.parseFromAIResponse(aiResponse.content);
+    const structuredWorkflow = deterministicWorkflow.length > 0
+      ? deterministicWorkflow
+      : WorkflowEngine.parseFromAIResponse(aiResponse.content);
     if (structuredWorkflow.length > 0) {
       const workflowGuild = message.guild;
       const workflowMember = message.member;
@@ -1168,6 +1262,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
         const skill = SkillRegistry.get(skillId);
         if (!skill) {
           return { success: false, message: `المهارة "${skillId}" غير محملة أو غير مدعومة.` };
+        }
+        if (!hasAnyPermission(workflowMember, skill.requiredPermissions)) {
+          return {
+            success: false,
+            message: 'لا يمكن تنفيذ هذه المهارة قبل التحقق من صلاحيات العضو المنفذ.',
+          };
         }
         let skillArgs = applyArabicPermissionsToToolArgs(
           skillId,

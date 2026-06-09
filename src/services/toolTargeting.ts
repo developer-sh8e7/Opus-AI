@@ -75,6 +75,7 @@ export function resolveExplicitToolTargets(
   sessionEntities: RecentSessionEntity[] = []
 ): ExplicitToolTargets {
   const mentionedIds = [...rawText.matchAll(/<#(\d+)>/g)].map((match) => match[1]);
+  const rawSnowflakeIds = [...rawText.matchAll(/\b(\d{17,20})\b/g)].map((match) => match[1]);
   const mentionedChannelIds = mentionedIds.filter((id) =>
     guild.channels.cache.get(id)?.type !== ChannelType.GuildCategory
   );
@@ -108,8 +109,23 @@ export function resolveExplicitToolTargets(
       .map(({ id, name }) => ({ id, name })),
   ];
 
-  const channelIds = unique([...mentionedChannelIds, ...findNamedMatches(rawText, namedChannels)]);
-  const categoryIds = unique([...mentionedCategoryIds, ...findNamedMatches(rawText, namedCategories)]);
+  const rawChannelIds = rawSnowflakeIds.filter((id) => {
+    const channel = guild.channels.cache.get(id);
+    return channel && channel.type !== ChannelType.GuildCategory;
+  });
+  const rawCategoryIds = rawSnowflakeIds.filter((id) =>
+    guild.channels.cache.get(id)?.type === ChannelType.GuildCategory
+  );
+  const channelIds = unique([
+    ...mentionedChannelIds,
+    ...rawChannelIds,
+    ...findNamedMatches(rawText, namedChannels),
+  ]);
+  const categoryIds = unique([
+    ...mentionedCategoryIds,
+    ...rawCategoryIds,
+    ...findNamedMatches(rawText, namedCategories),
+  ]);
   const excludedChannelIds = unique(findExcludedChannelIds(rawText, namedChannels));
   const requestsBulkChannelDeletion =
     /(?:احذف|تحذف|حذف|امسح|تمسح|ازل|تزيل|شيل|تشيل|delete|remove).*(?:كل|جميع|all).*(?:الرومات|رومات|القنوات|قنوات|الرومز|رومز|channels|rooms)/i.test(

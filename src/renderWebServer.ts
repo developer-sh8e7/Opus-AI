@@ -1,4 +1,4 @@
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { createServer, IncomingMessage, Server, ServerResponse } from 'node:http';
 
 function sendText(req: IncomingMessage, res: ServerResponse, statusCode: number, body: string): void {
   res.writeHead(statusCode, {
@@ -12,7 +12,7 @@ function sendText(req: IncomingMessage, res: ServerResponse, statusCode: number,
   res.end(body);
 }
 
-export function startRenderWebServer(): void {
+export function startRenderWebServer(): Server {
   const port = Number(process.env.PORT || 3000);
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -39,4 +39,5 @@ export function startRenderWebServer(): void {
   server.listen(port, '0.0.0.0', () => {
     console.log(`[Render Web] Health server listening on port ${port}`);
   });
+  return server;
 }

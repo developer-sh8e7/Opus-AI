@@ -19,7 +19,10 @@ export type SkillCategory =
   | 'logging'
   | 'anti_spam'
   | 'voice_management'
-  | 'bot_management';
+  | 'bot_management'
+  | 'leveling'
+  | 'economy'
+  | 'invites';
 
 export interface SkillSchema {
   type: 'object';

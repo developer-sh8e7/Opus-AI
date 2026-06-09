@@ -1,4 +1,4 @@
-import { PermissionFlagsBits } from 'discord.js';
+import { Guild, PermissionFlagsBits } from 'discord.js';
 
 export type ArabicIntent =
   | 'CREATE_CHANNEL'
@@ -33,12 +33,12 @@ const PERMISSION_PHRASES: Array<{
   type: 'allow' | 'deny';
   name: string;
 }> = [
-  { pattern: /(?:الكل\s+)?(?:يشوف(?:ون)?|يقرأ(?:ون)?)(?:\s+الروم)?/i, flag: PermissionFlagsBits.ViewChannel, type: 'allow', name: 'ViewChannel' },
+  { pattern: /(?:الكل\s+)?(?:يشوف(?:ه|ون)?|يقرأ(?:ه|ون)?)(?:\s+الروم)?/i, flag: PermissionFlagsBits.ViewChannel, type: 'allow', name: 'ViewChannel' },
   { pattern: /(?:ما|لا)\s+يشوف(?:ون)?/i, flag: PermissionFlagsBits.ViewChannel, type: 'deny', name: 'ViewChannel' },
   { pattern: /(?:ما|لا|محد)\s+(?:يقدر\s+)?يدخل/i, flag: PermissionFlagsBits.Connect, type: 'deny', name: 'Connect' },
-  { pattern: /(?:يقدر(?:ون)?\s+)?يدخل(?:ون)?/i, flag: PermissionFlagsBits.Connect, type: 'allow', name: 'Connect' },
-  { pattern: /يتكلم(?:ون)?/i, flag: PermissionFlagsBits.Speak, type: 'allow', name: 'Speak' },
-  { pattern: /(?:سكرين\s*شير|بث\s+الشاشة)/i, flag: PermissionFlagsBits.Stream, type: 'allow', name: 'Stream' },
+  { pattern: /(?:يقدر(?:ون)?\s+)?(?:يدخل|تدخل)(?:ون)?/i, flag: PermissionFlagsBits.Connect, type: 'allow', name: 'Connect' },
+  { pattern: /(?:يتكلم|تتكلم)(?:ون)?/i, flag: PermissionFlagsBits.Speak, type: 'allow', name: 'Speak' },
+  { pattern: /(?:سكرين(?:\s*شير)?|بث\s+الشاشة|يفتح(?:ون)?\s+سكرين)/i, flag: PermissionFlagsBits.Stream, type: 'allow', name: 'Stream' },
   { pattern: /(?:ما|لا)\s+يكتب(?:ون)?/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
   { pattern: /يكتب(?:ون)?|يرسل(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.SendMessages, type: 'allow', name: 'SendMessages' },
   { pattern: /(?:منشن|تاق).*(?:@?everyone|@?here)/i, flag: PermissionFlagsBits.MentionEveryone, type: 'deny', name: 'MentionEveryone' },
@@ -49,6 +49,14 @@ export interface ParsedArabicPermission {
   flag: bigint;
   name: string;
   type: 'allow' | 'deny';
+}
+
+export interface ArabicPermissionOperation {
+  channelId: string;
+  targetId: string;
+  targetType: 'role';
+  allow: string[];
+  deny: string[];
 }
 
 export function detectArabicIntent(text: string): ArabicIntent {
@@ -88,6 +96,7 @@ export function applyArabicPermissionsToToolArgs(
     .map((permission) => permission.name);
 
   if (toolName === 'edit_permissions' || toolName === 'bulk_permission_update') {
+    if (Array.isArray(args.allow) && Array.isArray(args.deny)) return args;
     const targetsEveryone = /(?:الكل|الجميع|@?everyone|@?here)/i.test(text);
     return {
       ...args,
@@ -104,4 +113,79 @@ export function applyArabicPermissionsToToolArgs(
     };
   }
   return args;
+}
+
+function permissionNames(text: string): { allow: string[]; deny: string[] } {
+  const permissions = parseArabicPermissions(text);
+  const deny = [...new Set(
+    permissions.filter((permission) => permission.type === 'deny').map((permission) => permission.name)
+  )];
+  const deniedNames = new Set(deny);
+  const allow = [...new Set(
+    permissions
+      .filter((permission) => permission.type === 'allow' && !deniedNames.has(permission.name))
+      .map((permission) => permission.name)
+  )];
+  return { allow, deny };
+}
+
+function normalizeName(value: string): string {
+  return value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ar')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .trim();
+}
+
+export function buildArabicPermissionOperations(
+  text: string,
+  guild: Guild
+): ArabicPermissionOperation[] {
+  const channelId = text.match(/<#(\d{17,20})>/)?.[1]
+    ?? text.match(/\b(\d{17,20})\b/)?.[1];
+  if (!channelId || !guild.channels.cache.has(channelId)) return [];
+
+  const exceptionMatch = text.match(
+    /(?:إلا|الا)\s+(?:رتبة|رول)\s+(.+?)(?=\s+(?:تدخل|تخش|تشوف|ترى|تكتب|تتكلم|تفتح|تقدر|يسمح|$))/i
+  );
+  const exceptionIndex = exceptionMatch?.index ?? -1;
+  const everyoneText = exceptionIndex >= 0 ? text.slice(0, exceptionIndex) : text;
+  const everyonePermissions = permissionNames(everyoneText);
+  const operations: ArabicPermissionOperation[] = [];
+
+  if (
+    /(?:الكل|الجميع|everyone)/i.test(text) &&
+    (everyonePermissions.allow.length > 0 || everyonePermissions.deny.length > 0)
+  ) {
+    operations.push({
+      channelId,
+      targetId: guild.id,
+      targetType: 'role',
+      ...everyonePermissions,
+    });
+  }
+
+  if (exceptionMatch?.[1]) {
+    const requestedRoleName = normalizeName(exceptionMatch[1]);
+    const role = guild.roles.cache.find((candidate) =>
+      candidate.id !== guild.id && normalizeName(candidate.name) === requestedRoleName
+    );
+    if (!role) return [];
+
+    const roleText = text.slice((exceptionMatch.index ?? 0) + exceptionMatch[0].length - exceptionMatch[1].length);
+    const rolePermissions = permissionNames(roleText);
+    if (rolePermissions.allow.length > 0 || rolePermissions.deny.length > 0) {
+      operations.push({
+        channelId,
+        targetId: role.id,
+        targetType: 'role',
+        ...rolePermissions,
+      });
+    }
+  }
+
+  return operations;
 }

@@ -40,8 +40,15 @@ export interface MemoryEntry {
   messages: AIMessage[];
   summary: ConversationSummary;
   entities: SessionEntity[];
+  lastEntityIds: SessionEntityPointers;
   createdAt: number;
   lastAccessed: number;
+}
+
+export interface SessionEntityPointers {
+  last_channel_id?: string;
+  last_role_id?: string;
+  last_category_id?: string;
 }
 
 export interface SessionEntity {
@@ -63,6 +70,7 @@ const SUMMARY_THRESHOLD = 25; // عدد الرسائل قبل التلخيص
 const MUSIC_HISTORY_LIMIT = 25; // الحد الأقصى لتاريخ الموسيقى
 const ERROR_HISTORY_LIMIT = 15; // الحد الأقصى لتاريخ الأخطاء
 const SESSION_ENTITY_LIMIT = 100;
+const SESSION_ENTITY_TTL = 30 * 60 * 1000;
 const CLEANUP_INTERVAL = 20 * 60 * 1000; // تنظيف الذاكرة غير النشطة كل 20 دقيقة
 const MAX_INACTIVE_TIME = 3 * 60 * 60 * 1000; // حذف بعد 3 ساعات خمول
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -115,6 +123,7 @@ export class MemoryManager {
             messages: entry.messages,
             summary: entry.summary,
             entities: entry.entities,
+            lastEntityIds: entry.lastEntityIds,
             createdAt: entry.createdAt,
             lastAccessed: entry.lastAccessed
           }
@@ -150,13 +159,27 @@ export class MemoryManager {
       if (parsed.memories && Array.isArray(parsed.memories)) {
         for (const item of parsed.memories) {
           if (item.channelId && item.entry) {
+            const entities = Array.isArray(item.entry.entities) ? item.entry.entities : [];
+            const lastEntityIds: SessionEntityPointers = item.entry.lastEntityIds ?? {};
+            for (const entity of [...entities].sort(
+              (left, right) => Number(left.createdAt ?? 0) - Number(right.createdAt ?? 0)
+            )) {
+              if (entity.type === 'channel' || entity.type === 'thread') {
+                lastEntityIds.last_channel_id = entity.id;
+              } else if (entity.type === 'role') {
+                lastEntityIds.last_role_id = entity.id;
+              } else if (entity.type === 'category') {
+                lastEntityIds.last_category_id = entity.id;
+              }
+            }
             this.memories.set(item.channelId, {
               messages: item.entry.messages || [],
               summary: item.entry.summary || {
                 topics: [], userPreferences: {}, interactionCount: 0,
                 lastInteraction: Date.now(), musicHistory: [], errorHistory: []
               },
-              entities: Array.isArray(item.entry.entities) ? item.entry.entities : [],
+              entities,
+              lastEntityIds,
               createdAt: item.entry.createdAt || Date.now(),
               lastAccessed: Date.now()
             });
@@ -220,6 +243,7 @@ export class MemoryManager {
           errorHistory: [],
         },
         entities: [],
+        lastEntityIds: {},
         createdAt: Date.now(),
         lastAccessed: Date.now(),
       });
@@ -305,9 +329,17 @@ export class MemoryManager {
           item.id === remembered.id)
       );
       entry.entities.push(remembered);
+      if (remembered.type === 'channel' || remembered.type === 'thread') {
+        entry.lastEntityIds.last_channel_id = remembered.id;
+      } else if (remembered.type === 'role') {
+        entry.lastEntityIds.last_role_id = remembered.id;
+      } else if (remembered.type === 'category') {
+        entry.lastEntityIds.last_category_id = remembered.id;
+      }
     }
 
     entry.entities = entry.entities
+      .filter((entity) => Date.now() - entity.createdAt < SESSION_ENTITY_TTL)
       .sort((left, right) => left.createdAt - right.createdAt)
       .slice(-SESSION_ENTITY_LIMIT);
     entry.lastAccessed = Date.now();
@@ -318,9 +350,29 @@ export class MemoryManager {
     const entry = this.memories.get(channelId);
     if (!entry) return [];
     entry.lastAccessed = Date.now();
+    const now = Date.now();
+    entry.entities = entry.entities.filter((entity) => now - entity.createdAt < SESSION_ENTITY_TTL);
     return entry.entities
       .filter((entity) => !type || entity.type === type)
       .sort((left, right) => right.createdAt - left.createdAt);
+  }
+
+  getLastEntityIds(channelId: string): SessionEntityPointers {
+    const entry = this.memories.get(channelId);
+    if (!entry) return {};
+    this.getRecentEntities(channelId);
+    const activeIds = new Set(entry.entities.map((entity) => entity.id));
+    return {
+      last_channel_id: activeIds.has(entry.lastEntityIds.last_channel_id ?? '')
+        ? entry.lastEntityIds.last_channel_id
+        : undefined,
+      last_role_id: activeIds.has(entry.lastEntityIds.last_role_id ?? '')
+        ? entry.lastEntityIds.last_role_id
+        : undefined,
+      last_category_id: activeIds.has(entry.lastEntityIds.last_category_id ?? '')
+        ? entry.lastEntityIds.last_category_id
+        : undefined,
+    };
   }
 
   resolveEntity(channelId: string, type: EntityType, name?: string): SessionEntity | undefined {
@@ -332,9 +384,13 @@ export class MemoryManager {
 
   buildEntityContext(channelId: string): string {
     const entities = this.getRecentEntities(channelId).slice(0, 20);
+    const pointers = this.getLastEntityIds(channelId);
     if (entities.length === 0) return '[SESSION_ENTITIES]\nnone';
     return [
       '[SESSION_ENTITIES]',
+      `last_channel_id=${pointers.last_channel_id ?? 'none'}`,
+      `last_role_id=${pointers.last_role_id ?? 'none'}`,
+      `last_category_id=${pointers.last_category_id ?? 'none'}`,
       ...entities.map((entity) =>
         `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`
       ),
@@ -530,6 +586,7 @@ export class MemoryManager {
         errorHistory: [],
       },
       entities: [],
+      lastEntityIds: {},
       createdAt: now,
       lastAccessed: now,
     });

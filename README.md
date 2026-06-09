@@ -7,6 +7,7 @@ Discord AI Agent bot for moderation, admin commands, contextual replies, memory/
 - Service Type: Web Service
 - Build Command: `npm install && npm run build`
 - Start Command: `npm start`
+- Blueprint: `render.yaml`
 - Health Check Path: `/healthz`
 - Health Check URLs:
   - `https://YOUR-APP.onrender.com/health`
@@ -42,3 +43,7 @@ Render Free Web Services sleep after 15 minutes without incoming HTTP traffic. U
 https://YOUR-APP.onrender.com/health
 https://YOUR-APP.onrender.com/healthz
 ```
+
+The Blueprint intentionally uses a free Web Service rather than a background worker.
+Render free plans are not available for background workers, and workers cannot expose the
+HTTP health endpoint required by this project.
