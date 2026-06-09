@@ -15,6 +15,10 @@ interface NamedEntity {
   name: string;
 }
 
+interface RecentSessionEntity extends NamedEntity {
+  type: 'channel' | 'role' | 'user' | 'category' | 'thread' | 'webhook';
+}
+
 function normalizeWords(value: string): string[] {
   return value
     .normalize('NFKC')
@@ -65,7 +69,11 @@ function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
 
-export function resolveExplicitToolTargets(guild: Guild, rawText: string): ExplicitToolTargets {
+export function resolveExplicitToolTargets(
+  guild: Guild,
+  rawText: string,
+  sessionEntities: RecentSessionEntity[] = []
+): ExplicitToolTargets {
   const mentionedIds = [...rawText.matchAll(/<#(\d+)>/g)].map((match) => match[1]);
   const mentionedChannelIds = mentionedIds.filter((id) =>
     guild.channels.cache.get(id)?.type !== ChannelType.GuildCategory
@@ -75,15 +83,30 @@ export function resolveExplicitToolTargets(guild: Guild, rawText: string): Expli
   );
   const mentionedRoleIds = [...rawText.matchAll(/<@&(\d+)>/g)].map((match) => match[1]);
 
-  const namedChannels = guild.channels.cache
+  const namedChannels = [
+    ...guild.channels.cache
     .filter((channel) => channel.type !== ChannelType.GuildCategory)
-    .map((channel) => ({ id: channel.id, name: channel.name }));
-  const namedCategories = guild.channels.cache
+    .map((channel) => ({ id: channel.id, name: channel.name })),
+    ...sessionEntities
+      .filter((entity) => entity.type === 'channel' || entity.type === 'thread')
+      .map(({ id, name }) => ({ id, name })),
+  ];
+  const namedCategories = [
+    ...guild.channels.cache
     .filter((channel) => channel.type === ChannelType.GuildCategory)
-    .map((channel) => ({ id: channel.id, name: channel.name }));
-  const namedRoles = guild.roles.cache
+    .map((channel) => ({ id: channel.id, name: channel.name })),
+    ...sessionEntities
+      .filter((entity) => entity.type === 'category')
+      .map(({ id, name }) => ({ id, name })),
+  ];
+  const namedRoles = [
+    ...guild.roles.cache
     .filter((role) => role.id !== guild.id)
-    .map((role) => ({ id: role.id, name: role.name }));
+    .map((role) => ({ id: role.id, name: role.name })),
+    ...sessionEntities
+      .filter((entity) => entity.type === 'role')
+      .map(({ id, name }) => ({ id, name })),
+  ];
 
   const channelIds = unique([...mentionedChannelIds, ...findNamedMatches(rawText, namedChannels)]);
   const categoryIds = unique([...mentionedCategoryIds, ...findNamedMatches(rawText, namedCategories)]);
@@ -99,18 +122,29 @@ export function resolveExplicitToolTargets(guild: Guild, rawText: string): Expli
     : [];
 
   if (channelIds.length === 0 && /(?:الروم|القناة|الشانل|the\s+(?:room|channel))/i.test(rawText)) {
-    const latestChannel = EntityRegistry.getLatest(guild.id, 'channel');
+    const latestChannel = sessionEntities.find((entity) =>
+      entity.type === 'channel' || entity.type === 'thread'
+    ) ?? EntityRegistry.getLatest(guild.id, 'channel');
     if (latestChannel) channelIds.push(latestChannel.id);
   }
   if (categoryIds.length === 0 && /(?:فيها|الكاتقوري|الفئة|the\s+category)/i.test(rawText)) {
-    const latestCategory = EntityRegistry.getLatest(guild.id, 'category');
+    const latestCategory = sessionEntities.find((entity) =>
+      entity.type === 'category'
+    ) ?? EntityRegistry.getLatest(guild.id, 'category');
     if (latestCategory) categoryIds.push(latestCategory.id);
+  }
+  const roleIds = unique([...mentionedRoleIds, ...findNamedMatches(rawText, namedRoles)]);
+  if (roleIds.length === 0 && /(?:الرتبة|الرول|هالرتبة|هالرول|the\s+role)/i.test(rawText)) {
+    const latestRole = sessionEntities.find((entity) =>
+      entity.type === 'role'
+    ) ?? EntityRegistry.getLatest(guild.id, 'role');
+    if (latestRole) roleIds.push(latestRole.id);
   }
 
   return {
     channelIds,
     categoryIds,
-    roleIds: unique([...mentionedRoleIds, ...findNamedMatches(rawText, namedRoles)]),
+    roleIds,
     excludedChannelIds,
     bulkDeleteChannelIds,
     everyoneRoleId: guild.id,

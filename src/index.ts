@@ -1100,7 +1100,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
     );
 
     // Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ§Ù‚ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ø²Ø²Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
-    const explicitTargets = resolveExplicitToolTargets(message.guild, cleanedPromptText);
+    const sessionEntities = memoryManager.getRecentEntities(message.channel.id);
+    const explicitTargets = resolveExplicitToolTargets(
+      message.guild,
+      cleanedPromptText,
+      sessionEntities
+    );
     const sessionContext = ContextEngine.getOrCreate(message.channel.id, message.guild.id);
     ContextEngine.addTurn(message.channel.id, {
       role: 'user',
@@ -1132,6 +1137,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     const explicitTargetsContext = buildExplicitTargetsContext(message.guild, explicitTargets);
     const systemPrompt = [
       ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+      memoryManager.buildEntityContext(message.channel.id),
       SkillRegistry.buildSkillManifestForAI(),
     ].join('\n');
     const enrichedPrompt = [
@@ -1182,7 +1188,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
         const toolResult = skillResult.data && typeof skillResult.data === 'object'
           ? skillResult.data as Record<string, any>
           : skillResult;
-        EntityRegistry.registerToolResult(workflowGuild, skillId, skillArgs, toolResult);
+        const registeredEntities = EntityRegistry.registerToolResult(
+          workflowGuild,
+          skillId,
+          skillArgs,
+          toolResult
+        );
+        memoryManager.rememberEntities(message.channel.id, registeredEntities);
         return skillResult;
       });
       ContextEngine.clearWorkflow(message.channel.id);
@@ -1287,7 +1299,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
         memoryManager.addMessage(message.channel.id, toolMsg);
         history.push(toolMsg);
         completedToolResults.push({ name: toolName, args: toolArgs, result: executionResult });
-        EntityRegistry.registerToolResult(message.guild, toolName, toolArgs, executionResult);
+        const registeredEntities = EntityRegistry.registerToolResult(
+          message.guild,
+          toolName,
+          toolArgs,
+          executionResult
+        );
+        memoryManager.rememberEntities(message.channel.id, registeredEntities);
       }
 
       // ÙØ­Øµ Ø£Ù…Ø§Ù† Ø£Ù† Ø§Ù„Ù‚Ù†Ø§Ø© Ù„Ù… ÙŠØªÙ… Ø­Ø°ÙÙ‡Ø§ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª
@@ -1319,6 +1337,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       aiResponse = await runAIRequest(message.guild.id, history, {
         systemPrompt: [
           ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+          memoryManager.buildEntityContext(message.channel.id),
           SkillRegistry.buildSkillManifestForAI(),
         ].join('\n'),
       });

@@ -5,6 +5,7 @@ const test = require('node:test');
 const { ChannelType, Collection } = require('discord.js');
 const { ContextEngine } = require('../dist/intelligence/context_engine.js');
 const { EntityRegistry } = require('../dist/intelligence/entity_registry.js');
+const { MemoryManager } = require('../dist/intelligence/memory_manager.js');
 const { WorkflowEngine } = require('../dist/intelligence/workflow_engine.js');
 const {
   applyArabicPermissionsToToolArgs,
@@ -17,6 +18,10 @@ const {
 const { SkillRegistry } = require('../dist/skills/skill_registry.js');
 const { AIRequestLimiter } = require('../dist/utils/aiRateLimiter.js');
 const { getConversationReply } = require('../dist/services/conversation.js');
+const {
+  currentMessageAllowsTools,
+  selectToolNames,
+} = require('../dist/services/toolIntent.js');
 const {
   ADVANCED_DISCORD_ACTIONS,
   ADVANCED_ACTION_GROUPS,
@@ -70,6 +75,44 @@ test('recent channel and category resolve implicit Arabic references', () => {
   const categoryTargets = resolveExplicitToolTargets(guild, 'سو فيها روم تكست اسمه vip-chat');
   const call = applyExplicitTargets('create_channels', { type: 'text', names: ['vip-chat'] }, categoryTargets);
   assert.equal(call.args.categoryId, '300');
+});
+
+test('session memory preserves created entity IDs for follow-up requests', () => {
+  const memory = new MemoryManager();
+  const channelId = `entity-memory-${Date.now()}`;
+  memory.rememberEntities(channelId, [
+    {
+      guildId: '999',
+      type: 'category',
+      id: '701',
+      name: 'المتجر',
+      sourceTool: 'create_channels',
+      createdAt: Date.now() - 2,
+    },
+    {
+      guildId: '999',
+      type: 'role',
+      id: '702',
+      name: 'عملاء',
+      sourceTool: 'manage_roles',
+      createdAt: Date.now() - 1,
+    },
+  ]);
+
+  assert.equal(memory.resolveEntity(channelId, 'category', 'المتجر')?.id, '701');
+  assert.equal(memory.resolveEntity(channelId, 'role')?.id, '702');
+  assert.match(memory.buildEntityContext(channelId), /role:عملاء:702/);
+
+  const targets = resolveExplicitToolTargets(
+    createGuild(),
+    'حط الرول في هالكاتقوري',
+    memory.getRecentEntities(channelId)
+  );
+  assert.deepEqual(targets.categoryIds, ['701']);
+  assert.deepEqual(targets.roleIds, ['702']);
+
+  memory.clearHistory(channelId);
+  memory.destroy();
 });
 
 test('Arabic permissions are applied atomically to channel creation', () => {
@@ -202,6 +245,41 @@ test('common Gulf conversation is answered naturally without an AI provider', ()
     'بخير دامك بخير يا شيخ 😄 وش أخبارك أنت؟'
   );
   assert.equal(getConversationReply('ابي تحذف روم العام'), null);
+});
+
+test('ordinary current messages never inherit tools from previous requests', () => {
+  const history = [
+    { role: 'user', content: 'سو إيمبد في روم الو' },
+    {
+      role: 'assistant',
+      content: null,
+      tool_calls: [{
+        id: 'tool-1',
+        type: 'function',
+        function: {
+          name: 'send_embed',
+          arguments: '{"channelId":"400","description":"الحمدلله"}',
+        },
+      }],
+    },
+    { role: 'tool', name: 'send_embed', tool_call_id: 'tool-1', content: '{"success":true}' },
+    { role: 'user', content: 'الحمدلله' },
+  ];
+
+  assert.equal(currentMessageAllowsTools(history), false);
+  assert.deepEqual([...selectToolNames(history)], []);
+
+  history[history.length - 1] = { role: 'user', content: 'المهم اسمع' };
+  assert.equal(currentMessageAllowsTools(history), false);
+  assert.deepEqual([...selectToolNames(history)], []);
+
+  history[history.length - 1] = { role: 'user', content: 'ابي اقولك شيء عن الرومات' };
+  assert.equal(currentMessageAllowsTools(history), false);
+  assert.deepEqual([...selectToolNames(history)], []);
+
+  history[history.length - 1] = { role: 'user', content: 'ارسل إيمبد في روم الو' };
+  assert.equal(currentMessageAllowsTools(history), true);
+  assert.ok(selectToolNames(history).has('send_embed'));
 });
 
 test('advanced Discord skill catalog contains unique executable operations', () => {
