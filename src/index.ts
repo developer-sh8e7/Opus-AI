@@ -36,6 +36,7 @@ import {
 import path from 'node:path';
 import { config } from './config.js';
 import { startRenderWebServer } from './renderWebServer.js';
+import { installLegacyEmbedRepair } from './utils/textEncoding.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
 import { getConversationReply } from './services/conversation.js';
 import {
@@ -452,6 +453,14 @@ async function executeToolWithAudit(
   const startedAt = Date.now();
   try {
     const result = await executeTool(name, args, guild, activeChannelId, userId, actorMember);
+    const registeredEntities = EntityRegistry.registerToolResult(
+      guild,
+      name,
+      args,
+      result,
+      activeChannelId
+    );
+    memoryManager.rememberEntities(activeChannelId, registeredEntities);
     Logger.audit('tool_execution', {
       guild_id: guild.id,
       user_id: userId ?? null,
@@ -2996,6 +3005,7 @@ export const OFFLINE_RESPONDER_GUIDELINES = `
 //  20. Ø¨Ø¯Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Client Login Gateway)
 // ============================================================
 startRenderWebServer();
+installLegacyEmbedRepair();
 
 client.login(config.discordToken).catch((err) => {
   console.error('[Bot Boot Failure] âŒ ÙØ´Ù„ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯:', err);

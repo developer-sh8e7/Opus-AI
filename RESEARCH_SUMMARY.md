@@ -134,7 +134,7 @@ Implementation decisions:
 - Use the Groq fast model for ordinary chat and the smart model for administrative intent.
 - Send only intent-relevant tools instead of the complete tool catalog on every request.
 - Retry bounded transient failures, including HTTP 429, then fall back to Cerebras.
-- Keep each provider request under eight seconds and return one stable Arabic error if both fail.
+- Bound each provider request with the configurable `AI_TIMEOUT_MS` value and return one stable Arabic error if both fail.
 - Remove the corrupted 14,000-line pseudo-training database; static examples inside source code do not train either provider.
 
 ## Architecture Blueprint
@@ -157,7 +157,7 @@ Primary references:
 - https://docs.discord.com/developers/resources/auto-moderation
 - https://docs.discord.com/developers/resources/guild-scheduled-event
 
-The executable registry now exposes 119 skills. The advanced skills are backed by real
+The executable registry now exposes 565 skills. The advanced skills are backed by real
 discord.js operations grouped into channel, thread, message, webhook, role, guild, expression,
 AutoMod, scheduled-event, and analytics executors. They are not placeholder files: every
 registered advanced skill routes to an implemented action and still passes through the central

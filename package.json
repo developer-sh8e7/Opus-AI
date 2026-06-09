@@ -7,7 +7,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "npm run build && node --test test/*.test.js"
+    "test": "npm run build && node --test test/*.test.js && node dist/tests/verify.js",
+    "verify": "npm run build && node dist/tests/verify.js"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -1,5 +1,5 @@
 import { ChannelType, Guild } from 'discord.js';
-import { EntityRegistry } from '../intelligence/entity_registry.js';
+import { EntityRegistry, type EntityType } from '../intelligence/entity_registry.js';
 
 export interface ExplicitToolTargets {
   channelIds: string[];
@@ -16,7 +16,7 @@ interface NamedEntity {
 }
 
 interface RecentSessionEntity extends NamedEntity {
-  type: 'channel' | 'role' | 'user' | 'category' | 'thread' | 'webhook';
+  type: EntityType;
 }
 
 function normalizeWords(value: string): string[] {

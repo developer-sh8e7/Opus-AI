@@ -2,6 +2,15 @@
 
 Discord AI Agent bot for moderation, admin commands, contextual replies, memory/cache, permissions, and music/voice.
 
+## Verification
+
+- Build: `npm run build`
+- Full test suite: `npm test`
+- Critical five-scenario verification: `npm run verify`
+- Architecture notes: `ANALYSIS.md`
+- Research notes: `RESEARCH_RESULTS.md`
+- Feature catalog: `MASTER_FEATURES.md`
+
 ## Render Deployment
 
 - Service Type: Web Service

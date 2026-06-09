@@ -1,4 +1,5 @@
 import type { WorkflowStep } from './context_engine.js';
+import { parseArabicPermissions } from './arabic_nlp.js';
 
 function normalized(value: string): string {
   return value
@@ -21,6 +22,39 @@ function safeChannelName(value: string, suffix: string): string {
 
 export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   const clean = normalized(text);
+  const singleChannel = clean.match(
+    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(?:اسمه|اسمها|باسم)\s+([^\s،,]+)/
+  );
+  if (singleChannel && /(?:الكل|الجميع|كل\s+الناس|everyone)/i.test(clean)) {
+    const parsedPermissions = parseArabicPermissions(clean);
+    if (parsedPermissions.length > 0) {
+      const deny = [...new Set(
+        parsedPermissions
+          .filter((permission) => permission.type === 'deny')
+          .map((permission) => permission.name)
+      )];
+      const denied = new Set(deny);
+      const allow = [...new Set(
+        parsedPermissions
+          .filter((permission) => permission.type === 'allow' && !denied.has(permission.name))
+          .map((permission) => permission.name)
+      )];
+      return [{
+        id: 'create_configured_channel',
+        tool: 'create_channels',
+        args: {
+          type: /(?:فويس|صوتي)/i.test(singleChannel[1]) ? 'voice' : 'text',
+          names: [singleChannel[2]],
+          permissions: [{
+            id: '@everyone',
+            allow,
+            deny,
+          }],
+        },
+      }];
+    }
+  }
+
   const requestsCategory = /(?:سو|سوي|انشئ|اصنع).*(?:كاتقوري|فئه)/i.test(clean);
   const requestsText = /(?:روم|قناه)\s+(?:تكست|نصي)/i.test(clean);
   const requestsVoice = /(?:روم|قناه)\s+(?:فويس|صوتي)/i.test(clean);

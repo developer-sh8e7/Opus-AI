@@ -111,7 +111,7 @@ export class ContextEngine {
       `id=${guild.id}`,
       `members=${guild.memberCount}`,
       `current_channel=${context.channelId}`,
-      EntityRegistry.injectIntoPrompt(guild.id),
+      EntityRegistry.injectIntoPrompt(guild.id, context.channelId),
       buildDiscordKnowledgePrompt(),
       '[CONVERSATION_CONTEXT]',
       this.summarizeForPrompt(context),

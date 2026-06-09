@@ -2,7 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ChannelType, Guild } from 'discord.js';
 
-export type EntityType = 'channel' | 'role' | 'user' | 'category' | 'thread' | 'webhook';
+export type EntityType =
+  | 'channel'
+  | 'role'
+  | 'user'
+  | 'category'
+  | 'thread'
+  | 'webhook'
+  | 'emoji'
+  | 'sticker'
+  | 'invite'
+  | 'scheduled_event'
+  | 'auto_mod_rule';
 
 export interface RegisteredEntity {
   guildId: string;
@@ -13,6 +24,8 @@ export interface RegisteredEntity {
   sourceTool?: string;
   ttl?: number;
   metadata?: Record<string, unknown>;
+  conversationChannelId?: string;
+  modifiedAt?: number;
 }
 
 const ENTITY_TTL_MS = 15 * 60 * 1000;
@@ -28,7 +41,10 @@ export class EntityRegistry {
     if (this.loaded) return;
     this.loaded = true;
     try {
-      if (!fs.existsSync(ENTITY_CACHE_PATH)) return;
+      if (!fs.existsSync(ENTITY_CACHE_PATH)) {
+        console.log('[EntityRegistry] Loaded 0 cached entities.');
+        return;
+      }
       const parsed = JSON.parse(fs.readFileSync(ENTITY_CACHE_PATH, 'utf8'));
       if (!Array.isArray(parsed)) return;
       for (const entity of parsed) {
@@ -38,6 +54,7 @@ export class EntityRegistry {
         this.entities.set(entity.guildId, current);
       }
       this.cleanup();
+      console.log(`[EntityRegistry] Loaded ${[...this.entities.values()].flat().length} cached entities.`);
     } catch (error) {
       console.error('[EntityRegistry] Failed to restore cache:', error);
     }
@@ -60,16 +77,33 @@ export class EntityRegistry {
     return registered;
   }
 
-  static getRecent(guildId: string, type?: EntityType): RegisteredEntity[] {
+  static getRecent(
+    guildId: string,
+    type?: EntityType,
+    conversationChannelId?: string
+  ): RegisteredEntity[] {
     this.initialize();
     this.cleanup();
     return (this.entities.get(guildId) ?? [])
       .filter((entity) => !type || entity.type === type)
-      .sort((left, right) => right.createdAt - left.createdAt);
+      .sort((left, right) => {
+        if (conversationChannelId) {
+          const leftSameConversation = left.conversationChannelId === conversationChannelId ? 1 : 0;
+          const rightSameConversation = right.conversationChannelId === conversationChannelId ? 1 : 0;
+          if (leftSameConversation !== rightSameConversation) {
+            return rightSameConversation - leftSameConversation;
+          }
+        }
+        return right.createdAt - left.createdAt;
+      });
   }
 
-  static getLatest(guildId: string, type?: EntityType): RegisteredEntity | undefined {
-    return this.getRecent(guildId, type)[0];
+  static getLatest(
+    guildId: string,
+    type?: EntityType,
+    conversationChannelId?: string
+  ): RegisteredEntity | undefined {
+    return this.getRecent(guildId, type, conversationChannelId)[0];
   }
 
   static findByName(guildId: string, type: EntityType, name: string): RegisteredEntity | undefined {
@@ -81,18 +115,24 @@ export class EntityRegistry {
     return this.getRecent(guildId).find((entity) => entity.id === id);
   }
 
-  static resolveLastCreated(guildId: string, type?: EntityType): RegisteredEntity | undefined {
-    return this.getLatest(guildId, type);
+  static resolveLastCreated(
+    guildId: string,
+    type?: EntityType,
+    conversationChannelId?: string
+  ): RegisteredEntity | undefined {
+    return this.getLatest(guildId, type, conversationChannelId);
   }
 
-  static injectIntoPrompt(guildId: string): string {
-    const recent = this.getRecent(guildId).slice(0, 12);
+  static injectIntoPrompt(guildId: string, conversationChannelId?: string): string {
+    const recent = this.getRecent(guildId, undefined, conversationChannelId).slice(0, 12);
     if (recent.length === 0) return '[RECENT_ENTITIES]\nnone';
 
     return [
       '[RECENT_ENTITIES]',
       ...recent.map((entity) =>
-        `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`
+        `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}:session=${
+          entity.conversationChannelId === conversationChannelId ? 'current' : 'other'
+        }`
       ),
     ].join('\n');
   }
@@ -101,10 +141,15 @@ export class EntityRegistry {
     guild: Guild,
     toolName: string,
     args: Record<string, any>,
-    result: Record<string, any>
+    result: Record<string, any>,
+    conversationChannelId?: string
   ): RegisteredEntity[] {
     if (!result?.success) return [];
     const registered: RegisteredEntity[] = [];
+    const payload = result.data && typeof result.data === 'object'
+      ? result.data as Record<string, any>
+      : result;
+    const sourceTool = args.action ? `${toolName}:${args.action}` : toolName;
 
     if (toolName === 'create_channels') {
       const createdEntities = Array.isArray(result.createdEntities) ? result.createdEntities : [];
@@ -124,7 +169,8 @@ export class EntityRegistry {
           type,
           id: channel.id,
           name: channel.name,
-          sourceTool: toolName,
+          sourceTool,
+          conversationChannelId,
           metadata: { channelType: args.type, categoryId: channel.parentId },
         }));
       }
@@ -137,7 +183,8 @@ export class EntityRegistry {
         type: 'role',
         id: result.roleId,
         name: role?.name ?? args.roleData?.name ?? result.roleId,
-        sourceTool: toolName,
+        sourceTool,
+        conversationChannelId,
       }));
     }
 
@@ -149,7 +196,8 @@ export class EntityRegistry {
           type: channel.type === ChannelType.GuildCategory ? 'category' : 'channel',
           id: channel.id,
           name: channel.name,
-          sourceTool: toolName,
+          sourceTool,
+          conversationChannelId,
           metadata: { targetId: args.targetId, targetType: args.targetType },
         }));
       }
@@ -164,7 +212,8 @@ export class EntityRegistry {
           type: channel.type === ChannelType.GuildCategory ? 'category' : 'channel',
           id: channel.id,
           name: channel.name,
-          sourceTool: toolName,
+          sourceTool,
+          conversationChannelId,
           metadata: { targetId: args.targetId, targetType: args.targetType },
         }));
       }
@@ -177,8 +226,97 @@ export class EntityRegistry {
         type: 'user',
         id: args.memberId,
         name: member?.displayName ?? args.memberId,
-        sourceTool: toolName,
+        sourceTool,
+        conversationChannelId,
         metadata: { action: args.action },
+      }));
+    }
+
+    if (toolName === 'channel_operations' && args.action === 'channel_clone' && payload.id) {
+      const channel = guild.channels.cache.get(payload.id);
+      registered.push(this.register({
+        guildId: guild.id,
+        type: channel?.type === ChannelType.GuildCategory ? 'category' : 'channel',
+        id: payload.id,
+        name: payload.name ?? channel?.name ?? payload.id,
+        sourceTool,
+        conversationChannelId,
+        metadata: { parentId: payload.parentId ?? channel?.parentId },
+      }));
+    }
+
+    if (toolName === 'thread_operations' && args.action === 'thread_create' && payload.id) {
+      registered.push(this.register({
+        guildId: guild.id,
+        type: 'thread',
+        id: payload.id,
+        name: payload.name ?? args.name ?? payload.id,
+        sourceTool,
+        conversationChannelId,
+        metadata: { parentId: args.channelId },
+      }));
+    }
+
+    if (toolName === 'webhook_operations' && args.action === 'webhook_create' && payload.id) {
+      registered.push(this.register({
+        guildId: guild.id,
+        type: 'webhook',
+        id: payload.id,
+        name: payload.name ?? args.name ?? payload.id,
+        sourceTool,
+        conversationChannelId,
+        metadata: { channelId: args.channelId },
+      }));
+    }
+
+    if (toolName === 'role_operations' && args.action === 'role_clone' && payload.roleId) {
+      const role = guild.roles.cache.get(payload.roleId);
+      registered.push(this.register({
+        guildId: guild.id,
+        type: 'role',
+        id: payload.roleId,
+        name: role?.name ?? args.name ?? payload.roleId,
+        sourceTool,
+        conversationChannelId,
+      }));
+    }
+
+    const genericChannelId = payload.channelId ?? payload.threadId;
+    const genericChannel = genericChannelId
+      ? guild.channels.cache.get(String(genericChannelId))
+      : undefined;
+    if (
+      genericChannel &&
+      !registered.some((entity) => entity.id === genericChannel.id)
+    ) {
+      registered.push(this.register({
+        guildId: guild.id,
+        type: genericChannel.isThread()
+          ? 'thread'
+          : genericChannel.type === ChannelType.GuildCategory
+            ? 'category'
+            : 'channel',
+        id: genericChannel.id,
+        name: payload.name ?? genericChannel.name,
+        sourceTool,
+        conversationChannelId,
+        metadata: { parentId: genericChannel.parentId },
+      }));
+    }
+
+    const genericRoleId = payload.roleId ? String(payload.roleId) : undefined;
+    const genericRole = genericRoleId ? guild.roles.cache.get(genericRoleId) : undefined;
+    if (
+      genericRole &&
+      !registered.some((entity) => entity.id === genericRole.id)
+    ) {
+      registered.push(this.register({
+        guildId: guild.id,
+        type: 'role',
+        id: genericRole.id,
+        name: payload.name ?? genericRole.name,
+        sourceTool,
+        conversationChannelId,
       }));
     }
 

@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { ChannelType, Collection } = require('discord.js');
+const { ChannelType, Collection, EmbedBuilder } = require('discord.js');
 const { ContextEngine } = require('../dist/intelligence/context_engine.js');
 const { EntityRegistry } = require('../dist/intelligence/entity_registry.js');
 const { MemoryManager } = require('../dist/intelligence/memory_manager.js');
@@ -32,6 +32,10 @@ const {
   getChannelTypeReference,
   getPermissionReference,
 } = require('../dist/intelligence/discord_knowledge.js');
+const {
+  installLegacyEmbedRepair,
+  repairLegacyText,
+} = require('../dist/utils/textEncoding.js');
 
 function createGuild() {
   const channels = new Collection([
@@ -70,6 +74,10 @@ test('context switches language based on the latest user message', () => {
     role: 'user', content: 'can you help me?', timestamp: Date.now(), userId: '1',
   });
   assert.equal(ContextEngine.getDominantLanguage(context, '1'), 'en');
+  ContextEngine.addTurn('language-channel', {
+    role: 'user', content: 'ارجع كلمني عربي', timestamp: Date.now(), userId: '1',
+  });
+  assert.equal(ContextEngine.getDominantLanguage(context, '1'), 'ar');
 });
 
 test('recent channel and category resolve implicit Arabic references', () => {
@@ -128,6 +136,25 @@ test('session memory preserves created entity IDs for follow-up requests', () =>
 
   memory.clearHistory(channelId);
   memory.destroy();
+});
+
+test('advanced creation results are registered in the current conversation', () => {
+  const guild = createGuild();
+  EntityRegistry.clearGuild(guild.id);
+  const entities = EntityRegistry.registerToolResult(
+    guild,
+    'thread_operations',
+    { action: 'thread_create', channelId: '100', name: 'support' },
+    { success: true, data: { id: '600', name: 'support' } },
+    'conversation-1'
+  );
+
+  assert.equal(entities[0]?.type, 'thread');
+  assert.equal(entities[0]?.conversationChannelId, 'conversation-1');
+  assert.match(
+    EntityRegistry.injectIntoPrompt(guild.id, 'conversation-1'),
+    /thread:support:600:source=thread_operations:thread_create:session=current/
+  );
 });
 
 test('Arabic permissions are applied atomically to channel creation', () => {
@@ -213,10 +240,50 @@ test('explicit Arabic permission sentence resolves everyone and named role witho
       channelId: '1513737591793520903',
       targetId: '501',
       targetType: 'role',
-      allow: ['Connect', 'Speak', 'Stream'],
+      allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'],
       deny: [],
     },
   ]);
+});
+
+test('Gulf يخش phrasing keeps the room visible and grants the exception role voice access', () => {
+  const guild = createGuild();
+  const text = '1513737591793520903 كل الناس يشوفون الروم بس ما يقدرون يخشونه فقط اللي معه رتبة خاص يقدر يدخله ويتكلم ويفتح سكرين = video';
+  const operations = buildArabicPermissionOperations(text, guild);
+
+  assert.deepEqual(operations, [
+    {
+      channelId: '1513737591793520903',
+      targetId: '999',
+      targetType: 'role',
+      allow: ['ViewChannel'],
+      deny: ['Connect'],
+    },
+    {
+      channelId: '1513737591793520903',
+      targetId: '501',
+      targetType: 'role',
+      allow: ['ViewChannel', 'Connect', 'Speak', 'Stream', 'UseEmbeddedActivities'],
+      deny: [],
+    },
+  ]);
+});
+
+test('single channel create-and-permission request is planned without AI guessing', () => {
+  const steps = planCompoundDiscordRequest(
+    'سو لي روم تكست اسمه rules وحط الكل يشوف بس ما يكتب'
+  );
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].tool, 'create_channels');
+  assert.deepEqual(steps[0].args, {
+    type: 'text',
+    names: ['rules'],
+    permissions: [{
+      id: '@everyone',
+      allow: ['ViewChannel'],
+      deny: ['SendMessages'],
+    }],
+  });
 });
 
 test('bulk permission request resolves category and everyone target', () => {
@@ -348,4 +415,18 @@ test('advanced Discord skill catalog contains unique executable operations', () 
   assert.equal(ADVANCED_DISCORD_ACTIONS.length, groupedCount);
   assert.equal(new Set(ADVANCED_DISCORD_ACTIONS).size, ADVANCED_DISCORD_ACTIONS.length);
   assert.ok(ADVANCED_DISCORD_ACTIONS.length >= 90);
+});
+
+test('legacy Arabic and emoji mojibake is repaired before display', () => {
+  assert.equal(repairLegacyText('Ø§Ù„ÙƒÙ„ ÙŠØ´ÙˆÙ'), 'الكل يشوف');
+  assert.equal(repairLegacyText('ðŸš¨ ØªØ­Ø°ÙŠØ±'), '🚨 تحذير');
+  assert.equal(repairLegacyText('Opus Ai'), 'Opus Ai');
+
+  installLegacyEmbedRepair();
+  const embed = new EmbedBuilder()
+    .setTitle('ðŸš¨ ØªØ­Ø°ÙŠØ±')
+    .addFields({ name: 'Ø§Ù„Ø³Ø¨Ø¨', value: 'Ø§Ø®ØªØ¨Ø§Ø±' })
+    .toJSON();
+  assert.equal(embed.title, '🚨 تحذير');
+  assert.deepEqual(embed.fields, [{ name: 'السبب', value: 'اختبار' }]);
 });

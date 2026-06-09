@@ -8,6 +8,7 @@
 
 import { Client, Events, GuildMember, Message, TextChannel, EmbedBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
 import { generateAIResponse, AIMessage } from '../services/ai.js';
+import { repairLegacyText } from '../utils/textEncoding.js';
 
 // ============================================================
 //  Ù†Ø¸Ø§Ù… Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø© (Warn Database)
@@ -161,10 +162,13 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
     };
 
     const aiMessage = await generateAIResponse(
-      [body.messages[1] as AIMessage],
+      [{
+        ...body.messages[1],
+        content: repairLegacyText(body.messages[1].content),
+      } as AIMessage],
       {
         intent: 'smart',
-        systemPrompt: body.messages[0].content ?? '',
+        systemPrompt: repairLegacyText(body.messages[0].content ?? ''),
         toolsEnabled: false,
         temperature: 0,
         maxTokens: 150,
@@ -174,14 +178,19 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
 
     // Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ø§Ù„Ù€ JSON Ù…Ù† Ø§Ù„Ø±Ø¯
     const jsonMatch = content.match(/\{[^}]+\}/);
-    if (!jsonMatch) throw new Error('Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø±Ø¯ JSON ØµØ§Ù„Ø­');
+    if (!jsonMatch) throw new Error('The moderation provider did not return valid JSON.');
 
     const result = JSON.parse(jsonMatch[0]) as ModerationResult;
     return result;
   } catch (err) {
-    console.error('[AI Moderation Error] Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù„ÙŠÙ„ Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø³Ø§Ù„Ø©:', err);
+    console.error('[AI Moderation] Content analysis failed:', err);
     // ÙÙŠ Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø·Ø£: Ø¥Ø±Ø¬Ø§Ø¹ Ù†ØªÙŠØ¬Ø© Ø¢Ù…Ù†Ø© ØªØ¬Ù†Ø¨Ø§Ù‹ Ù„Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©
-    return { isOffensive: false, category: 'clean', reason: 'ÙØ´Ù„ Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø¨Ø³Ø¨Ø¨ Ø®Ø·Ø£ Ø¨Ø§Ù„Ø´Ø¨ÙƒØ©', suggestedAction: 'none' };
+    return {
+      isOffensive: false,
+      category: 'clean',
+      reason: 'Content analysis was unavailable.',
+      suggestedAction: 'none',
+    };
   }
 }
 
@@ -316,7 +325,7 @@ async function takeModerationAction(
 //  ØªÙ‡ÙŠØ¦Ø© ÙˆØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© Ù„Ù„Ø±Ø³Ø§Ø¦Ù„ ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† (Core Monitor Initialization)
 // ============================================================
 export function startAutonomousMonitor(client: Client): void {
-  console.log('ðŸ¤– [Opus] Ø¨Ø¯Ø¡ ØªØ´ØºÙŠÙ„ Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ§Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© Ø§Ù„Ù…ØªÙ‚Ø¯Ù… Ø¨Ù†Ø¬Ø§Ø­ âœ…');
+  console.log('[Opus Ai] Autonomous moderation monitor started.');
 
   // 1. Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¬Ø¯Ø¯ ÙˆØ§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆÙ…ÙƒØ§ÙØ­Ø© Ø§Ù„ØºØ²Ùˆ (Anti-Raid)
   client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
@@ -324,7 +333,7 @@ export function startAutonomousMonitor(client: Client): void {
     const logChannel = findLogChannel(member.guild);
 
     if (isAttackDetected) {
-      console.warn(`ðŸš¨ [Anti-Raid] ØªÙ… Ø±ØµØ¯ Ù‡Ø¬ÙˆÙ… Ø§Ù†Ø¶Ù…Ø§Ù… Ù…ÙƒØ«Ù Ø¹Ù„Ù‰ Ø§Ù„Ø³ÙŠØ±ÙØ±! ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø­Ù…Ø§ÙŠØ©...`);
+      console.warn('[Anti-Raid] Join burst detected; protection is active.');
       if (logChannel) {
         const raidAlertEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
