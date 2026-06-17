@@ -59,6 +59,48 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   const requestsText = /(?:روم|قناه)\s+(?:تكست|نصي)/i.test(clean);
   const requestsVoice = /(?:روم|قناه)\s+(?:فويس|صوتي)/i.test(clean);
   const requestsRole = /(?:سو|سوي|انشئ|اصنع).*(?:رتبه|رول)/i.test(clean);
+  // Multi-room creation with naming + visibility pattern
+  // e.g., "سو لي 3 رومات كلهم عام الا واحد اسمه خاص ومقفل"
+  const multiRoomPattern = clean.match(
+    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(\d+)\s+(?:رومات?|قنوات?)\s+(.*?)(?:الا|إلا|بس|لكن)\s+(?:واحد|وحده)\s+(?:بس\s+)?(?:يكون\s+)?اسمه\s+([^\s،,]+)(.*)/i
+  );
+  if (multiRoomPattern) {
+    const count = parseInt(multiRoomPattern[1], 10);
+    const names: string[] = [];
+    for (let i = 1; i < count; i++) names.push(`عام-${i}`);
+    names.push(multiRoomPattern[3]); // the named one
+    const rest = multiRoomPattern[4] || '';
+    const hasVisibility = /(?:يشوف|يخش|يدخل|مقفول|مقفل)/i.test(rest);
+    if (hasVisibility) {
+      const permissions = parseArabicPermissions(clean);
+      const allow = [...new Set(permissions.filter((p) => p.type === 'allow').map((p) => p.name))];
+      const deny = [...new Set(permissions.filter((p) => p.type === 'deny').map((p) => p.name))];
+      return [{
+        id: 'create_rooms',
+        tool: 'create_channels',
+        args: { type: 'text', names, permissions: allow.length || deny.length ? [{ id: '@everyone', allow, deny }] : undefined },
+      }];
+    }
+    return [{
+      id: 'create_rooms',
+      tool: 'create_channels',
+      args: { type: 'text', names },
+    }];
+  }
+
+  // Delete + preserve + create pattern
+  // e.g., "احذف كال رومات الموجود بس ابق الو + سو لي متجر بسيط"
+  const deletePreserveCreate = clean.match(
+    /(?:احذف|حذف|امسح).*?(?:ابقي?|ابق|خليني?|خلي|اترك).*?(?:\+|و)\s*(?:سو|سوي|انشئ|أنشئ|اصنع)/i
+  );
+  if (deletePreserveCreate) {
+    return [{
+      id: 'delete_preserve',
+      tool: 'delete_channels',
+      args: { },
+    }];
+  }
+
   if (!requestsCategory || !requestsText || !requestsVoice || !requestsRole) return [];
 
   const categoryName = clean.match(

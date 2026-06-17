@@ -1,21 +1,21 @@
 ﻿/**
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- *               Ø®Ø§Ø¯Ù… Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© ÙˆØ§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ø±ÙƒØ²ÙŠ - Opus Central Router
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- *  Ø§Ù„ÙˆØµÙ:
- *    Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ ÙˆØ§Ù„Ù…Ø­Ø±Ùƒ Ø§Ù„Ù…Ø±ÙƒØ²ÙŠ Ù„Ø¨ÙˆØª Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒÙŠ Opus.
- *    ÙŠÙ‚ÙˆÙ… Ø¨Ø§Ù„Ø±Ø¨Ø· Ø¨ÙŠÙ† Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙÙŠ Ø®Ø§Ø¯Ù… Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ØŒ ÙˆÙ†Ø¸Ø§Ù… ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù„Ù‡Ø¬Ø§ØªØŒ
- *    ÙˆÙ†Ø¸Ø§Ù… Ù…Ø¹Ø§Ù„Ø¬Ø© ÙˆØªØ®Ø²ÙŠÙ† Ø§Ù„Ø°Ø§ÙƒØ±Ø©ØŒ ÙˆØ§Ù„Ù…Ø´ØºÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠØŒ ÙˆØ§Ù„Ø±Ù‚Ø§Ø¨Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ©.
+ * ════════════════════════════════════════════════════════════════
+ *               خادم الإدارة والتشغيل المركزي - Opus Central Router
+ * ════════════════════════════════════════════════════════════════
+ *  الوصف:
+ *    الملف الرئيسي والمحرك المركزي لبوت المساعد الذكي Opus.
+ *    يقوم بالربط بين الأحداث في خادم ديسكورد، ونظام تحليل اللهجات،
+ *    ونظام معالجة وتخزين الذاكرة، والمشغل الموسيقي، والرقابة التلقائية.
  * 
- *  Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø§Ù„Ù…Ø¯Ù…Ø¬Ø©:
- *    1. ØªÙ‡ÙŠØ¦Ø© Ø¹Ù…ÙŠÙ„ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Discord Client & Intents Gateway)
- *    2. Ù†Ø¸Ø§Ù… ØªØªØ¨Ø¹ ÙˆØªØ¯Ù‚ÙŠÙ‚ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª ÙˆØ§Ù„Ù†Ø´Ø§Ø·Ø§Øª Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ
- *    3. Ø±Ø§ÙˆØªØ± Ø§Ù„Ø£Ø¯ÙˆØ§Øª ÙˆØ§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒÙŠ (AI Tools Router)
- *    4. Ù…Ø¹Ø§Ù„Ø¬ ÙˆÙ…Ø­Ù„Ù„ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù†ØµÙŠØ© Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø© (Manual Commands Parser)
- *    5. Ù…Ø¹Ø§Ù„Ø¬ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ ÙˆØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø±Ø¯ÙˆØ¯ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ù…Ø¹ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…ØªÙƒØ±Ø±Ø©
- *    6. Ù…Ø³ØªÙ…Ø¹Ùˆ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© (Ready, Guild, Role, Channel, Voice events)
- *    7. Ø£Ø¯ÙˆØ§Øª Ø§Ù„ØªÙ‚Ø·ÙŠØ¹ Ø§Ù„Ø°ÙƒÙŠ ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ù…ØªÙƒØ§Ù…Ù„ (Complete Diagnostic Suite)
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ *  المكونات الرئيسية المدمجة:
+ *    1. تهيئة عميل ديسكورد (Discord Client & Intents Gateway)
+ *    2. نظام تتبع وتدقيق العمليات والنشاطات التلقائي
+ *    3. راوتر الأدوات والمساعد الذكي (AI Tools Router)
+ *    4. معالج ومحلل الأوامر النصية المباشرة (Manual Commands Parser)
+ *    5. معالج الرسائل وتوليد الردود بالذكاء الاصطناعي مع معالجة الأدوات المتكررة
+ *    6. مستمعو الأحداث الإدارية (Ready, Guild, Role, Channel, Voice events)
+ *    7. أدوات التقطيع الذكي والتشخيص المتكامل (Complete Diagnostic Suite)
+ * ════════════════════════════════════════════════════════════════
  */
 
 import { 
@@ -114,12 +114,14 @@ import {
 import { WorkflowEngine } from './intelligence/workflow_engine.js';
 import { planCompoundDiscordRequest } from './intelligence/compound_planner.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
+import { normalizeFunctionTags } from './utils/functionTagNormalizer.js';
+import { detectAllIntents, findMissingIntents, buildMissingIntentPrompt } from './services/intentVerifier.js';
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
 import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.js';
 import { runMemoryManagerDiagnostics } from './intelligence/memory_manager.js';
 import { Logger } from './utils/logger.js';
 
-// Ø§Ø³ØªÙŠØ±Ø§Ø¯ Ù…ÙˆÙ„Ø¯Ø§Øª Ø§Ù„Ù€ Embed Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø©
+// استيراد مولدات الـ Embed المتقدمة
 import {
   EMBED_COLORS,
   createRulesEmbed,
@@ -152,7 +154,7 @@ import {
 } from './utils/embed_generator.js';
 
 // ============================================================
-//  ÙˆØ§Ø¬Ù‡Ø§Øª ÙˆØ¨ÙŠØ§Ù†Ø§Øª ØªÙ‡ÙŠØ¦Ø© Ø§Ù„Ù†Ø¸Ø§Ù… (System Interfaces)
+//  واجهات وبيانات تهيئة النظام (System Interfaces)
 // ============================================================
 export interface BotSessionState {
   bootTime: Date;
@@ -180,7 +182,7 @@ function runAIRequest(
 }
 
 // ============================================================
-//  ØªÙ‡ÙŠØ¦Ø© Ø¹Ù…ÙŠÙ„ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù… (Client Configuration)
+//  تهيئة عميل ديسكورد بالخادم (Client Configuration)
 // ============================================================
 const client = new Client({
   intents: [
@@ -290,7 +292,7 @@ function validateAIToolPermission(
 }
 
 // ============================================================
-//  1. Ø±Ø§ÙˆØªØ± ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª ÙˆØ§Ù„ÙˆØ¸Ø§Ø¦Ù - AI Tools Central Router
+//  1. راوتر تشغيل الأدوات والوظائف - AI Tools Central Router
 // ============================================================
 async function executeTool(
   name: string, 
@@ -308,14 +310,14 @@ async function executeTool(
   }
 
   switch (name) {
-    // ===== Ø£Ø¯ÙˆØ§Øª Ø¨Ù†Ø§Ø¡ Ø§Ù„Ù…Ø¬ØªÙ…Ø¹ Ø§Ù„Ø°ÙƒÙŠØ© =====
+    // ===== أدوات بناء المجتمع الذكية =====
     case 'build_custom_server':
       return await buildCustomServer(guild, args.description, activeChannelId);
 
     case 'execute_community_build':
       return await executeCommunityBuild(guild, args.blueprintType, activeChannelId, { serverName: args.serverName });
 
-    // ===== Ø£Ø¯ÙˆØ§Øª Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ© =====
+    // ===== أدوات إدارة المحادثات الصوتية =====
     case 'join_voice_channel':
       return await joinVoice(guild, args.channelId);
 
@@ -328,13 +330,13 @@ async function executeTool(
     case 'get_user_voice_channel':
       return getUserVoiceChannel(guild, args.userId || userId || '');
 
-    // ===== Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…Ø´ØºÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ Ø§Ù„Ù…ØªØ·ÙˆØ± =====
+    // ===== أدوات المشغل الموسيقي المتطور =====
     case 'play_music':
       return await playMusic(
         guild,
         args.voiceChannelId || null,
         args.query,
-        args.requestedBy || 'Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ù…Ø¹ØªÙ…Ø¯',
+        args.requestedBy || 'المستخدم المعتمد',
         undefined,
         args.requestingUserId || userId
       );
@@ -369,7 +371,7 @@ async function executeTool(
     case 'get_now_playing':
       return getNowPlaying(guild.id);
 
-    // ===== Ø£Ø¯ÙˆØ§Øª Ø¥Ø¯Ø§Ø±Ø© ÙˆØµÙŠØ§Ù†Ø© Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ =====
+    // ===== أدوات إدارة وصيانة ديسكورد =====
     case 'get_server_info':
       return await getServerInfo(guild);
 
@@ -438,7 +440,7 @@ async function executeTool(
     }
 
     default:
-      throw new Error(`Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© ÙÙŠ Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ø§Ù„ÙŠ: ${name}`);
+      throw new Error(`الأداة البرمجية المحددة غير مدعومة في نظام التشغيل الحالي: ${name}`);
   }
 }
 
@@ -550,12 +552,22 @@ function buildToolExecutionReply(
       return `تم تغيير اسم البوت إلى "${args.username}" بنجاح.`;
     }
 
+    if (name === 'create_channels' && Array.isArray(result?.created) && result.created.length > 0) {
+      const names = result.created.join(', ');
+      return `تم إنشاء ${result.created.length} قناة بنجاح: ${names}.`;
+    }
+
+    if (name === 'delete_channels' && Array.isArray(result?.deleted) && result.deleted.length > 0) {
+      const names = result.deleted.join(', ');
+      return `تم حذف ${result.deleted.length} قناة بنجاح (${names}).`;
+    }
+
     return result.message || 'تم تنفيذ الإجراء بنجاح.';
   }).join('\n');
 }
 
 // ============================================================
-//  2. Ù…Ø¹Ø§Ù„Ø¬ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù†ØµÙŠØ© Ø§Ù„ØªÙ‚Ù„ÙŠØ¯ÙŠØ© ÙˆØ§Ù„ÙŠØ¯ÙˆÙŠØ© (Manual Commands Router)
+//  2. معالج الأوامر النصية التقليدية واليدوية (Manual Commands Router)
 // ============================================================
 async function handleManualCommand(message: Message, commandText: string): Promise<boolean> {
   const parts = commandText.split(/\s+/);
@@ -565,18 +577,18 @@ async function handleManualCommand(message: Message, commandText: string): Promi
 
   switch (command) {
     case 'help':
-    case 'Ø£ÙˆØ§Ù…Ø±':
-    case 'Ù…Ø³Ø§Ø¹Ø¯Ø©': {
+    case 'أوامر':
+    case 'مساعدة': {
       const helpEmbed = createHelpEmbed('!opus ');
       await message.reply({ embeds: [helpEmbed] }).catch(() => null);
       return true;
     }
 
     case 'ai':
-    case 'Ø°ÙƒØ§Ø¡': {
+    case 'ذكاء': {
       const prompt = args.join(' ');
       if (!prompt) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø³Ø¤Ø§Ù„ Ø£Ùˆ Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª Ù„ÙŠØªÙ… ØªØ­Ù„ÙŠÙ„Ù‡ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ. Ù…Ø«Ø§Ù„: `!opus ai Ù…Ù† Ø£Ù†ØªØŸ`').catch(() => null);
+        await message.reply('❌ يرجى كتابة السؤال أو البرومبت ليتم تحليله بالذكاء الاصطناعي. مثال: `!opus ai من أنت؟`').catch(() => null);
         return true;
       }
       const aiLimit = aiRateLimiter.check(message.author.id, message.guild!.id);
@@ -591,24 +603,24 @@ async function handleManualCommand(message: Message, commandText: string): Promi
         if (response.content) {
           await sendLongMessage(message, response.content);
         } else {
-          await message.reply('âœ… ØªÙ…Øª Ù…Ø¹Ø§Ù„Ø¬Ø© Ø·Ù„Ø¨Ùƒ Ø¨Ø¯ÙˆÙ† Ø±Ø¯ Ù†ØµÙŠ Ù…Ø¨Ø§Ø´Ø±.').catch(() => null);
+          await message.reply('✅ تمت معالجة طلبك بدون رد نصي مباشر.').catch(() => null);
         }
       } catch (err: any) {
-        await message.reply(`âŒ ÙØ´Ù„Øª Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø·Ù„Ø¨ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ: ${err.message}`).catch(() => null);
+        await message.reply(`❌ فشلت معالجة الطلب بالذكاء الاصطناعي: ${err.message}`).catch(() => null);
       }
       return true;
     }
 
     case 'play':
-    case 'Ø´ØºÙ„': {
+    case 'شغل': {
       const query = args.join(' ');
       if (!query) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ø³Ù… Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø£Ùˆ Ø±Ø§Ø¨Ø· Ø§Ù„ØªØ´ØºÙŠÙ„. Ù…Ø«Ø§Ù„: `!opus play Ø¹Ù…Ø±ÙŠÙ†`').catch(() => null);
+        await message.reply('❌ يرجى كتابة اسم المقطع أو رابط التشغيل. مثال: `!opus play عمرين`').catch(() => null);
         return true;
       }
       const voiceChannel = message.member?.voice.channel;
       if (!voiceChannel) {
-        await message.reply('âŒ ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù…ØªØµÙ„Ø§Ù‹ Ø¨Ù‚Ù†Ø§Ø© ØµÙˆØªÙŠØ© Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰.').catch(() => null);
+        await message.reply('❌ يجب أن تكون متصلاً بقناة صوتية لتشغيل الموسيقى.').catch(() => null);
         return true;
       }
       await (message.channel as any).sendTyping().catch(() => null);
@@ -618,36 +630,36 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'skip':
-    case 'ØªØ®Ø·ÙŠ': {
+    case 'تخطي': {
       const res = skipMusic(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'stop':
-    case 'Ø§ÙŠÙ‚Ø§Ù':
-    case 'Ø¥ÙŠÙ‚Ø§Ù': {
+    case 'ايقاف':
+    case 'إيقاف': {
       const res = stopMusic(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'pause':
-    case 'Ù…Ø¤Ù‚Øª': {
+    case 'مؤقت': {
       const res = pauseMusic(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'resume':
-    case 'Ø§Ø³ØªØ¦Ù†Ø§Ù': {
+    case 'استئناف': {
       const res = resumeMusic(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'queue':
-    case 'Ù‚Ø§Ø¦Ù…Ø©': {
+    case 'قائمة': {
       const res = getQueue(guild.id);
       if (res.embed) {
         await message.reply({ embeds: [res.embed] }).catch(() => null);
@@ -658,10 +670,10 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'volume':
-    case 'ØµÙˆØª': {
+    case 'صوت': {
       const vol = parseInt(args[0] ?? '100');
       if (isNaN(vol) || vol < 0 || vol > 200) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ù‚ÙŠÙ…Ø© ØµØ­ÙŠØ­Ø© Ù„Ù…Ø³ØªÙˆÙ‰ Ø§Ù„ØµÙˆØª Ø¨ÙŠÙ† 0 Ùˆ 200.').catch(() => null);
+        await message.reply('❌ يرجى إدخال قيمة صحيحة لمستوى الصوت بين 0 و 200.').catch(() => null);
         return true;
       }
       const res = setVolume(guild.id, vol);
@@ -670,18 +682,18 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'loop':
-    case 'ØªÙƒØ±Ø§Ø±': {
+    case 'تكرار': {
       const res = toggleLoop(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'nowplaying':
-    case 'Ø§Ù„Ø§Ù†':
-    case 'Ø§Ù„Ø¢Ù†': {
+    case 'الان':
+    case 'الآن': {
       const nowRes = getNowPlaying(guild.id);
       if (!nowRes || !nowRes.track) {
-        await message.reply('ðŸŽµ Ù„Ø§ ÙŠØªÙ… ØªØ´ØºÙŠÙ„ Ø£ÙŠ Ù…Ù‚Ø·Ø¹ ØµÙˆØªÙŠ Ø­Ø§Ù„ÙŠØ§Ù‹.').catch(() => null);
+        await message.reply('🎵 لا يتم تشغيل أي مقطع صوتي حالياً.').catch(() => null);
         return true;
       }
       const now = nowRes.track;
@@ -695,17 +707,17 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'shuffle':
-    case 'Ø¹Ø´ÙˆØ§Ø¦ÙŠ': {
+    case 'عشوائي': {
       const res = shuffleQueue(guild.id);
       await message.reply(res.message).catch(() => null);
       return true;
     }
 
     case 'remove':
-    case 'Ø­Ø°Ù_Ù…Ù‚Ø·Ø¹': {
+    case 'حذف_مقطع': {
       const idx = parseInt(args[0] ?? '');
       if (isNaN(idx)) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø±Ù‚Ù… Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØµØ­ÙŠØ­ Ù…Ù† Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø±.').catch(() => null);
+        await message.reply('❌ يرجى إدخال رقم المقطع الصحيح من قائمة الانتظار.').catch(() => null);
         return true;
       }
       const res = removeFromQueue(guild.id, idx - 1);
@@ -714,19 +726,19 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'build':
-    case 'Ø¨Ù†Ø§Ø¡': {
+    case 'بناء': {
       const desc = args.join(' ');
       if (!desc) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙˆØµÙ Ø§Ù„Ø®Ø§Ø¯Ù… Ø§Ù„Ù…Ø±Ø§Ø¯ Ø¨Ù†Ø§Ø¤Ù‡ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ. Ù…Ø«Ø§Ù„: `!opus build Ø³ÙŠØ±ÙØ± Ø§Ù„Ø¹Ø§Ø¨ Ù…ØªÙƒØ§Ù…Ù„`').catch(() => null);
+        await message.reply('❌ يرجى إدخال وصف الخادم المراد بناؤه بالذكاء الاصطناعي. مثال: `!opus build سيرفر العاب متكامل`').catch(() => null);
         return true;
       }
-      await message.reply('â³ Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø¨Ø¯Ø¡ ÙÙŠ Ø§Ù„ØªØ®Ø·ÙŠØ· ÙˆØ¨Ù†Ø§Ø¡ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠØŒ Ù‚Ø¯ ÙŠØ³ØªØºØ±Ù‚ Ù‡Ø°Ø§ Ø¨Ø¶Ø¹ Ø«ÙˆØ§Ù†...').catch(() => null);
+      await message.reply('⏳ جاري البدء في التخطيط وبناء القنوات بالذكاء الاصطناعي، قد يستغرق هذا بضع ثوان...').catch(() => null);
       await buildCustomServer(guild, desc, message.channel.id);
       return true;
     }
 
     case 'serverinfo':
-    case 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª_Ø§Ù„Ø³ÙŠØ±ÙØ±': {
+    case 'معلومات_السيرفر': {
       const embed = createServerInfoEmbed(
         guild.name, guild.memberCount,
         guild.channels.cache.size, guild.roles.cache.size
@@ -736,7 +748,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'userinfo':
-    case 'Ù…Ø¹Ù„ÙˆÙ…Ø§Øª': {
+    case 'معلومات': {
       const targetMember = message.mentions.members?.first() || message.member!;
       const warningCount = getWarningCount(targetMember.id);
       const embed = createMemberProfileEmbed(targetMember, warningCount, 12);
@@ -745,15 +757,15 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'warn':
-    case 'ØªØ­Ø°ÙŠØ±': {
+    case 'تحذير': {
       const targetMember = message.mentions.members?.first();
-      const reason = args.slice(1).join(' ') || 'Ù…Ø®Ø§Ù„ÙØ© Ø³Ù„ÙˆÙƒÙŠØ© Ø¹Ø§Ù…Ø©';
+      const reason = args.slice(1).join(' ') || 'مخالفة سلوكية عامة';
       if (!targetMember) {
-        await message.reply('âŒ ÙŠØ¬Ø¨ Ø§Ù„Ø¥Ø´Ø§Ø±Ø© Ù„Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ ØªØ­Ø°ÙŠØ±Ù‡. Ù…Ø«Ø§Ù„: `!opus warn @user Ø³Ø¨Ø§Ù…`').catch(() => null);
+        await message.reply('❌ يجب الإشارة للعضو المطلوب تحذيره. مثال: `!opus warn @user سبام`').catch(() => null);
         return true;
       }
       if (!message.member?.permissions.has(PermissionFlagsBits.KickMembers)) {
-        await message.reply('ðŸ”’ Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥ØµØ¯Ø§Ø± Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª.').catch(() => null);
+        await message.reply('🔒 ليس لديك صلاحية إصدار التحذيرات.').catch(() => null);
         return true;
       }
       const count = addWarning(targetMember.id, reason);
@@ -763,65 +775,65 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'warns':
-    case 'ØªØ­Ø°ÙŠØ±Ø§Øª': {
+    case 'تحذيرات': {
       const targetMember = message.mentions.members?.first() || message.member!;
       const history = getUserWarningRecord(targetMember.id);
-      const list = history?.reasons.map((r: string, i: number) => `**#${i + 1}** - ${r}`).join('\n') || 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø®Ø§Ù„ÙØ§Øª Ù…Ø³Ø¬Ù„Ø©.';
-      const embed = createWarningsHistoryEmbed(targetMember.user.username, history ? history.reasons.map((r: string, i: number) => ({ id: String(i+1), reason: r, date: 'Ù…Ø¤Ø®Ø±Ø§Ù‹', moderator: 'Ù†Ø¸Ø§Ù… Ø§Ù„Ø­Ù…Ø§ÙŠØ©' })) : []);
+      const list = history?.reasons.map((r: string, i: number) => `**#${i + 1}** - ${r}`).join('\n') || 'لا توجد مخالفات مسجلة.';
+      const embed = createWarningsHistoryEmbed(targetMember.user.username, history ? history.reasons.map((r: string, i: number) => ({ id: String(i+1), reason: r, date: 'مؤخراً', moderator: 'نظام الحماية' })) : []);
       await message.reply({ embeds: [embed] }).catch(() => null);
       return true;
     }
 
     case 'clearwarns':
-    case 'ØªØµÙÙŠØ±_Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª': {
+    case 'تصفير_التحذيرات': {
       const targetMember = message.mentions.members?.first();
       if (!targetMember) {
-        await message.reply('âŒ ÙŠØ¬Ø¨ ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù.').catch(() => null);
+        await message.reply('❌ يجب تحديد العضو المستهدف.').catch(() => null);
         return true;
       }
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ§Øª ÙƒØ§ÙÙŠØ© Ù„ØªØµÙÙŠØ± Ø§Ù„Ù…Ø®Ø§Ù„ÙØ§Øª.').catch(() => null);
+        await message.reply('🔒 لا تملك صلاحيات كافية لتصفير المخالفات.').catch(() => null);
         return true;
       }
       clearUserWarnings(targetMember.id);
-      await message.reply(`âœ… ØªÙ… ØªØµÙÙŠØ± Ø³Ø¬Ù„ ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ø¹Ø¶Ùˆ ${targetMember} Ø¨Ù†Ø¬Ø§Ø­.`).catch(() => null);
+      await message.reply(`✅ تم تصفير سجل تحذيرات العضو ${targetMember} بنجاح.`).catch(() => null);
       return true;
     }
 
     case 'shadowban':
-    case 'Ø­Ø¸Ø±_ØµØ§Ù…Øª': {
+    case 'حظر_صامت': {
       const targetMember = message.mentions.members?.first();
       if (!targetMember) {
-        await message.reply('âŒ ÙŠØ¬Ø¨ ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù Ø¨Ø§Ù„Ù…Ù†Ø´Ù†.').catch(() => null);
+        await message.reply('❌ يجب تحديد العضو المستهدف بالمنشن.').catch(() => null);
         return true;
       }
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© ØªØ´ØºÙŠÙ„ Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª.').catch(() => null);
+        await message.reply('🔒 لا تملك صلاحية تشغيل الحجب الصامت.').catch(() => null);
         return true;
       }
       ShadowBanSystem.add(targetMember.id);
-      await message.reply(`ðŸ¤« ØªÙ… Ø¥Ø¯Ø±Ø§Ø¬ ${targetMember} ØªØ­Øª Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª Ø¨Ù†Ø¬Ø§Ø­.`).catch(() => null);
+      await message.reply(`🤫 تم إدراج ${targetMember} تحت المراقبة والحجب الصامت بنجاح.`).catch(() => null);
       return true;
     }
 
     case 'unshadowban':
-    case 'Ø§Ù„ØºØ§Ø¡_Ø§Ù„Ø­Ø¸Ø±_Ø§Ù„ØµØ§Ù…Øª': {
+    case 'الغاء_الحظر_الصامت': {
       const targetMember = message.mentions.members?.first();
       if (!targetMember) {
-        await message.reply('âŒ ÙŠØ¬Ø¨ ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù Ø¨Ø§Ù„Ù…Ù†Ø´Ù†.').catch(() => null);
+        await message.reply('❌ يجب تحديد العضو المستهدف بالمنشن.').catch(() => null);
         return true;
       }
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª.').catch(() => null);
+        await message.reply('🔒 لا تملك صلاحية إلغاء الحجب الصامت.').catch(() => null);
         return true;
       }
       ShadowBanSystem.remove(targetMember.id);
-      await message.reply(`ðŸ”“ ØªÙ… Ø±ÙØ¹ Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª Ø¹Ù† ${targetMember} Ø¨Ù†Ø¬Ø§Ø­.`).catch(() => null);
+      await message.reply(`🔓 تم رفع المراقبة والحجب الصامت عن ${targetMember} بنجاح.`).catch(() => null);
       return true;
     }
 
     case 'status':
-    case 'Ø­Ø§Ù„Ø©': {
+    case 'حالة': {
       const quickReport = ServerStatusDashboard.generateQuickStatusReport(guild);
       const autoModSummary = AutoModSummaryReport.generateAutomatedSummary(guild);
       await message.reply(`${quickReport}\n\n${autoModSummary}`).catch(() => null);
@@ -829,24 +841,24 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'diagnostics':
-    case 'ÙØ­Øµ': {
+    case 'فحص': {
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© ØªØ´ØºÙŠÙ„ Ø§Ù„ÙØ­ÙˆØµØ§Øª Ø§Ù„ØªØ´Ø®ÙŠØµÙŠØ©.').catch(() => null);
+        await message.reply('🔒 لا تملك صلاحية تشغيل الفحوصات التشخيصية.').catch(() => null);
         return true;
       }
       return true;
     }
 
     case 'backup':
-    case 'Ù†Ø³Ø®_Ø§Ø­ØªÙŠØ§Ø·ÙŠ': {
+    case 'نسخ_احتياطي': {
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-        await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø³Ø­Ø¨ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ©.').catch(() => null);
+        await message.reply('🔒 لا تملك صلاحية سحب النسخة الاحتياطية.').catch(() => null);
         return true;
       }
       const template = GuildBackupManager.generateBackupTemplate(guild);
       const serialized = JSON.stringify(template, null, 2);
       await message.reply({
-        content: 'ðŸ“¦ **Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ù„Ù‡ÙŠÙƒÙ„ÙŠØ© ÙˆÙ‚Ù†ÙˆØ§Øª Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¬Ø§Ù‡Ø²Ø©:**',
+        content: '📦 **نسخة احتياطية لهيكلية وقنوات السيرفر جاهزة:**',
         files: [{ attachment: Buffer.from(serialized), name: `backup-${guild.id}.json` }]
       }).catch(() => null);
       return true;
@@ -855,17 +867,17 @@ async function handleManualCommand(message: Message, commandText: string): Promi
 
 
     case 'azkar':
-    case 'Ø§Ø°ÙƒØ§Ø±': {
-      const embed = createAzkarEmbed("Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­", "Ù„Ø§ Ø¥Ù„Ù‡ Ø¥Ù„Ø§ Ø§Ù„Ù„Ù‡ ÙˆØ­Ø¯Ù‡ Ù„Ø§ Ø´Ø±ÙŠÙƒ Ù„Ù‡ØŒ Ù„Ù‡ Ø§Ù„Ù…Ù„Ùƒ ÙˆÙ„Ù‡ Ø§Ù„Ø­Ù…Ø¯ ÙˆÙ‡Ùˆ Ø¹Ù„Ù‰ ÙƒÙ„ Ø´ÙŠØ¡ Ù‚Ø¯ÙŠØ±.", 100, "ÙƒØ§Ù†Øª Ù„Ù‡ Ø¹Ø¯Ù„ Ø¹Ø´Ø± Ø±Ù‚Ø§Ø¨ØŒ ÙˆÙƒØªØ¨Øª Ù„Ù‡ Ù…Ø¦Ø© Ø­Ø³Ù†Ø©ØŒ ÙˆÙ…Ø­ÙŠØª Ø¹Ù†Ù‡ Ù…Ø¦Ø© Ø³ÙŠØ¦Ø©.");
+    case 'اذكار': {
+      const embed = createAzkarEmbed("أذكار الصباح", "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير.", 100, "كانت له عدل عشر رقاب، وكتبت له مئة حسنة، ومحيت عنه مئة سيئة.");
       await message.reply({ embeds: [embed] }).catch(() => null);
       return true;
     }
 
     case 'poll':
-    case 'ØªØµÙˆÙŠØª': {
+    case 'تصويت': {
       const query = args.join(' ');
       if (!query || !query.includes('|')) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø³Ø¤Ø§Ù„ Ø§Ù„ØªØµÙˆÙŠØª ÙˆØ§Ù„Ø®ÙŠØ§Ø±Ø§Øª Ù…ÙØµÙˆÙ„Ø© Ø¨Ù€ |. Ù…Ø«Ø§Ù„: `!opus poll Ù‡Ù„ ØªÙØ¶Ù„ Ø§Ù„Ø¨Ø±Ù…Ø¬Ø©ØŸ | Ù†Ø¹Ù… | Ù„Ø§`').catch(() => null);
+        await message.reply('❌ يرجى إدخال سؤال التصويت والخيارات مفصولة بـ |. مثال: `!opus poll هل تفضل البرمجة؟ | نعم | لا`').catch(() => null);
         return true;
       }
       const subparts = query.split('|');
@@ -874,7 +886,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       const embed = createPollEmbed(question, options, message.author.username, 30);
       const pollMsg = await message.reply({ embeds: [embed] }).catch(() => null);
       if (pollMsg) {
-        const emojis = ['1ï¸âƒ£', '2ï¸âƒ£', '3ï¸âƒ£', '4ï¸âƒ£', '5ï¸âƒ£', '6ï¸âƒ£', '7ï¸âƒ£', '8ï¸âƒ£', '9ï¸âƒ£', 'ðŸ”Ÿ'];
+        const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
         for (let i = 0; i < Math.min(options.length, emojis.length); i++) {
           await pollMsg.react(emojis[i]!).catch(() => null);
         }
@@ -883,10 +895,10 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     }
 
     case 'match':
-    case 'Ø¨Ø·ÙˆÙ„Ø©': {
+    case 'بطولة': {
       const query = args.join(' ');
       if (!query || !query.includes('|')) {
-        await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù…ÙØµÙˆÙ„Ø© Ø¨Ù€ |. Ù…Ø«Ø§Ù„: `!opus match League of Legends | Team A | Team B | 20:00`').catch(() => null);
+        await message.reply('❌ يرجى كتابة البيانات مفصولة بـ |. مثال: `!opus match League of Legends | Team A | Team B | 20:00`').catch(() => null);
         return true;
       }
       const subparts = query.split('|');
@@ -894,23 +906,23 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       const teamA = subparts[1]!.trim();
       const teamB = subparts[2]!.trim();
       const time = subparts[3]!.trim();
-      const embed = createEsportsMatchEmbed(game, teamA, teamB, time, "Ø¨Ø·ÙˆÙ„Ø© Ø±Ù…Ø¶Ø§Ù† Ø§Ù„ÙƒØ¨Ø±Ù‰", "https://twitch.tv");
+      const embed = createEsportsMatchEmbed(game, teamA, teamB, time, "بطولة رمضان الكبرى", "https://twitch.tv");
       await message.reply({ embeds: [embed] }).catch(() => null);
       return true;
     }
 
     default:
-      return false; // Ù„Ù… ÙŠØªØ·Ø§Ø¨Ù‚ ÙƒØ£Ù…Ø± ÙŠØ¯ÙˆÙŠ Ø±Ø³Ù…ÙŠ
+      return false; // لم يتطابق كأمر يدوي رسمي
   }
 }
 
 // ============================================================
-//  3. ØªØ´ØºÙŠÙ„ ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„ÙØ­ÙˆØµØ§Øª ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ø¹Ø§Ù… (Full System Diagnostics)
+//  3. تشغيل تقارير الفحوصات والتشخيص العام (Full System Diagnostics)
 // ============================================================
 async function runFullDiagnosticsReport(message: Message): Promise<void> {
   const guild = message.guild!;
   
-  // ØªØ´ØºÙŠÙ„ Ø§Ù„ÙØ­ÙˆØµØ§Øª Ù„ÙƒØ§ÙØ© Ø§Ù„ÙˆØ­Ø¯Ø§Øª
+  // تشغيل الفحوصات لكافة الوحدات
   const aiReport = runAIDiagnostics();
   const monitorReport = runMonitorDiagnostics();
   const toolsReport = runDiscordToolsDiagnostics(guild);
@@ -919,26 +931,26 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
   const dialectReport = runDialectEngineDiagnostics();
   const contextReport = runContextAnalyzerDiagnostics(guild, message.member);
 
-  // Ø­Ø³Ø§Ø¨ Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„ÙƒÙ„ÙŠØ©
+  // حساب النتيجة الكلية
   const overallSuccess = aiReport.success && monitorReport.success && toolsReport.success && 
                          communityReport.success && memoryReport.success && dialectReport.success;
 
   const summaryReports = [
-    `1. Ù…Ø­Ø±Ùƒ Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ (AI Model): ${aiReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'} (Ø§Ù„Ø£Ø¯ÙˆØ§Øª: ${aiReport.totalTools})`,
-    `2. Ù†Ø¸Ø§Ù… Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© (AutoMod Shield): ${monitorReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'}`,
-    `3. Ø£Ø¯ÙˆØ§Øª Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Discord Tools): ${toolsReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'}`,
-    `4. Ù…ØµÙ…Ù… Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª (Community Builder): ${communityReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'}`,
-    `5. Ù…Ø­Ø±Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø© (Memory Manager): ${memoryReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'}`,
-    `6. Ù…Ø­Ø±Ùƒ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª (Dialect Engine): ${dialectReport.success ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'} (${dialectReport.passed}/${dialectReport.total} Ù†Ø§Ø¬Ø­)`,
-    `7. ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø³ÙŠØ§Ù‚ (Context Analyzer): ${contextReport.passed ? 'âœ… Ø³Ù„ÙŠÙ…' : 'âŒ ÙØ´Ù„'}`
+    `1. محرك الذكاء الاصطناعي (AI Model): ${aiReport.success ? '✅ سليم' : '❌ فشل'} (الأدوات: ${aiReport.totalTools})`,
+    `2. نظام الرقابة (AutoMod Shield): ${monitorReport.success ? '✅ سليم' : '❌ فشل'}`,
+    `3. أدوات ديسكورد (Discord Tools): ${toolsReport.success ? '✅ سليم' : '❌ فشل'}`,
+    `4. مصمم السيرفرات (Community Builder): ${communityReport.success ? '✅ سليم' : '❌ فشل'}`,
+    `5. محرك الذاكرة (Memory Manager): ${memoryReport.success ? '✅ سليم' : '❌ فشل'}`,
+    `6. محرك اللهجات (Dialect Engine): ${dialectReport.success ? '✅ سليم' : '❌ فشل'} (${dialectReport.passed}/${dialectReport.total} ناجح)`,
+    `7. تحليل السياق (Context Analyzer): ${contextReport.passed ? '✅ سليم' : '❌ فشل'}`
   ];
 
-  const diagEmbed = createDiagnosticsResultEmbed("ÙØ­ÙˆØµØ§Øª Ø§Ù„Ø¨ÙˆØª Ø§Ù„Ù…Ø±ÙƒØ²ÙŠØ© Ø§Ù„Ø´Ø§Ù…Ù„Ø©", summaryReports, overallSuccess);
+  const diagEmbed = createDiagnosticsResultEmbed("فحوصات البوت المركزية الشاملة", summaryReports, overallSuccess);
   await message.reply({ embeds: [diagEmbed] }).catch(() => null);
 }
 
 // ============================================================
-//  4. Ù…Ø³ØªÙ…Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø© Ø§Ù„Ø³ÙŠØ±ÙØ± (Discord client Events)
+//  4. مستمع الأحداث ومتابعة حالة السيرفر (Discord client Events)
 // ============================================================
 client.once(Events.ClientReady, async () => {
   Logger.startup(`Opus Bot (${client.user?.tag})`);
@@ -957,17 +969,17 @@ client.once(Events.ClientReady, async () => {
     `AI routing ready: Groq primary (${config.groqModel} / ${config.groqFastModel}), Cerebras fallback (${config.cerebrasModel})`
   );
   
-  // ØªÙ‡ÙŠØ¦Ø© Ù…Ø±Ø§Ù‚Ø¨ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¨ØµÙˆØªÙŠØ§Øª Ø§Ù„Ø´Ø§Øª ÙˆØ±Ø§Ø¨Ø· Ø§Ù„Ø­Ù…Ø§ÙŠØ©
+  // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية
   startAutonomousMonitor(client);
   
-  // ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø¨ÙˆØª ÙÙŠ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯
+  // تحديث حالة البوت في ديسكورد
   client.user?.setActivity({
     name: 'Opus Ai',
     type: ActivityType.Watching,
   });
 });
 
-// Ù…Ø³ØªÙ…Ø¹ Ø£Ø­Ø¯Ø§Ø« Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ Ø¹Ù„Ù‰ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª ÙˆØ§Ù„Ø±ØªØ¨
+// مستمع أحداث التعديل على الصلاحيات والرتب
 client.on(Events.GuildRoleUpdate, async (oldRole: Role, newRole: Role) => {
   try {
     const auditLogs = await newRole.guild.fetchAuditLogs({ limit: 1, type: Events.GuildRoleUpdate as any }).catch(() => null);
@@ -979,7 +991,7 @@ client.on(Events.GuildRoleUpdate, async (oldRole: Role, newRole: Role) => {
   }
 });
 
-// Ù…Ø³ØªÙ…Ø¹ Ø£Ø­Ø¯Ø§Ø« Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø§ØªØµØ§Ù„ ÙˆØ§Ù„Ø£Ø®Ø·Ø§Ø¡ Ù„Ù„Ø¨ÙˆØª
+// مستمع أحداث انقطاع الاتصال والأخطاء للبوت
 client.on(Events.ShardDisconnect, (event) => {
   systemState.errorsLoggedCount++;
   Logger.warn('Shard Disconnect', `Reason: ${event.reason}`);
@@ -995,10 +1007,10 @@ client.on(Events.Warn, (info) => {
 });
 
 // ============================================================
-//  5. Ù…Ø¹Ø§Ù„Ø¬ ÙˆÙ‚Ø§Ø±Ø¦ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù… (Core Message Listener)
+//  5. معالج وقارئ الرسائل الرئيسي بالخادم (Core Message Listener)
 // ============================================================
 client.on(Events.MessageCreate, async (message: Message) => {
-  // ÙØ­Øµ Ø­Ù…Ø§ÙŠØ© ÙˆØ­Ø¸Ø± ÙÙˆØ±ÙŠ Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø¨ÙˆØªØ§Øª Ù„ØªØ¬Ù†Ø¨ Ø§Ù„Ù„ÙˆØ¨ Ø§Ù„Ù„Ø§Ù†Ù‡Ø§Ø¦ÙŠ
+  // فحص حماية وحظر فوري لرسائل البوتات لتجنب اللوب اللانهائي
   if (message.author.bot) return;
   if (message.author.id === client.user?.id) return;
   if (!message.guild) return;
@@ -1006,26 +1018,26 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
   systemState.processedMessages++;
 
-  // 1. ØªØµÙÙŠØ© ÙˆÙØ­Øµ Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª (Shadow Banned Users)
+  // 1. تصفية وفحص الحجب الصامت (Shadow Banned Users)
   const isBanned = await ShadowBanSystem.handleMessage(message);
-  if (isBanned) return; // ØªÙ… Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¨ØµÙ…Øª
+  if (isBanned) return; // تم حذف الرسالة بصمت
 
-  // 2. ØªØµÙÙŠØ© Ø§Ù„Ø­Ø¬Ù… ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø±ÙÙ‚Ø©
+  // 2. تصفية الحجم والملفات المرفقة
   const attachmentValid = await MediaFilterSystem.validateAttachments(message);
-  if (!attachmentValid) return; // ØªÙ… Ø§Ù„ØªØ¹Ø§Ù…Ù„ ÙˆØ­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø±ÙÙ‚Ø© Ø§Ù„Ø«Ù‚ÙŠÙ„Ø©
+  if (!attachmentValid) return; // تم التعامل وحذف الرسالة المرفقة الثقيلة
 
-  // 3. ÙØ­Øµ ÙˆÙ…Ù†Ø¹ ØªØ³Ø±ÙŠØ¨ Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„Ø®Ø§Øµ Ø¨Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø¨ÙˆØª (Credential Protection)
+  // 3. فحص ومنع تسريب الكود الخاص بالاتصال بالبوت (Credential Protection)
   const leaked = await CredentialProtection.scanForLeaks(message);
-  if (leaked) return; // ØªÙ… Ø­Ø°Ù Ø§Ù„ØªÙˆÙƒÙ† Ø¨Ù†Ø¬Ø§Ø­
+  if (leaked) return; // تم حذف التوكن بنجاح
 
-  // 4. ØªØµÙÙŠØ© Ø§Ù„Ø£Ù„ÙØ§Ø¸ Ø§Ù„Ù…Ø­Ø¸ÙˆØ±Ø© ÙÙŠ Ø§Ù„Ø´Ø§Øª (Bad Words filter)
+  // 4. تصفية الألفاظ المحظورة في الشات (Bad Words filter)
   if (BadWordDictionary.isBanned(message.content)) {
     await message.delete().catch(() => null);
-    const warnCount = addWarning(message.author.id, "Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø£Ù„ÙØ§Ø¸ Ù…Ø­Ø¸ÙˆØ±Ø©");
+    const warnCount = addWarning(message.author.id, "استخدام ألفاظ محظورة");
     const warnEmbed = new EmbedBuilder()
       .setColor(EMBED_COLORS.danger)
-      .setTitle('ðŸš« Ù…Ø­ØªÙˆÙ‰ Ù…Ø®Ø§Ù„Ù Ù„Ù„Ø¢Ø¯Ø§Ø¨')
-      .setDescription(`ÙŠØ§ ${message.member}ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªÙ…Ø³Ùƒ Ø¨Ø§Ù„Ø£Ø¯Ø¨ Ø§Ù„Ø¹Ø§Ù… ÙˆØªØ¬Ù†Ø¨ Ø§Ù„Ø£Ù„ÙØ§Ø¸ Ø§Ù„Ø³ÙŠØ¦Ø© Ù„Ø¶Ù…Ø§Ù† Ø¹Ø¯Ù… Ø§Ù„ØªØ¹Ø±Ø¶ Ù„Ù„ÙƒØªÙ….`)
+      .setTitle('🚫 محتوى مخالف للآداب')
+      .setDescription(`يا ${message.member}، يرجى التمسك بالأدب العام وتجنب الألفاظ السيئة لضمان عدم التعرض للكتم.`)
       .setTimestamp();
     const warnMsg = await (message.channel as any).send({ content: `${message.member}`, embeds: [warnEmbed] }).catch(() => null);
     if (warnMsg) {
@@ -1034,17 +1046,17 @@ client.on(Events.MessageCreate, async (message: Message) => {
     return;
   }
 
-  // 5. ØªØªØ¨Ø¹ Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª ÙˆØªÙƒØ±Ø§Ø± Ø§Ù„ÙƒÙ„Ù…Ø§Øª (Word cloud stats)
+  // 5. تتبع إحصائيات وتكرار الكلمات (Word cloud stats)
   WordFrequencyTracker.trackMessage(message.content);
 
-  // 6. Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ù…Ø·Ø§Ø¨Ù‚Ø© Ø§Ù„Ø±Ø¯ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø´Ø§Ø¦Ø¹Ø© (FAQ Autoresponder)
+  // 6. التحقق من مطابقة الرد التلقائي للأسئلة الشائعة (FAQ Autoresponder)
   const autoReply = AutoResponder.findResponse(message.content);
   if (autoReply) {
     await message.reply(autoReply).catch(() => null);
     return;
   }
 
-  // 7. ØªØªØ¨Ø¹ ÙˆÙØ­Øµ Ù†ÙŠØ© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„ÙŠØ¯ÙˆÙŠØ© (Manual Commands checking)
+  // 7. تتبع وفحص نية الأوامر اليدوية (Manual Commands checking)
   let isCommand = false;
   let rawPrompt = message.content.trim();
   const botMention = `<@!?${client.user?.id}>`;
@@ -1057,10 +1069,10 @@ client.on(Events.MessageCreate, async (message: Message) => {
     rawPrompt = rawPrompt.replace(new RegExp(botMention, 'g'), '').trim();
   }
 
-  // Ø¥Ø°Ø§ ØªÙ… Ø±ØµØ¯Ù‡Ø§ ÙƒØ£Ù…Ø± ÙŠØ¯ÙˆÙŠØŒ Ù…Ø±Ø±Ù‡Ø§ Ù„Ø±Ø§ÙˆØªØ± Ø§Ù„Ø£ÙˆØ§Ù…Ø±
+  // إذا تم رصدها كأمر يدوي، مررها لراوتر الأوامر
   if (isCommand && rawPrompt) {
     const handled = await handleManualCommand(message, rawPrompt);
-    if (handled) return; // ØªÙ… ØªÙ†ÙÙŠØ° Ø§Ù„Ø£Ù…Ø± Ø§Ù„ÙŠØ¯ÙˆÙŠ Ø¨Ù†Ø¬Ø§Ø­
+    if (handled) return; // تم تنفيذ الأمر اليدوي بنجاح
   }
 
   // 8. AI Assistant Logic - respond if mentioned, in helper channels, or any message with content
@@ -1090,7 +1102,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // For non-targeted messages, only process if authorized
   if (!isTargeted && !isAuthorized) return;
 
-  // ØªÙ†Ø¸ÙŠÙ Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù Ø¨Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©
+  // تنظيف البرومبت المستهدف بالمعالجة
   let cleanedPromptText = message.content.trim();
   cleanedPromptText = cleanedPromptText.replace(new RegExp(botMention, 'g'), '').trim();
   if (cleanedPromptText.startsWith('!opus')) {
@@ -1110,7 +1122,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
   const directPermissionOperations = buildArabicPermissionOperations(
     cleanedPromptText,
-    message.guild
+    message.guild,
+    memoryManager.getRecentEntities(message.channel.id)
   );
   if (directPermissionOperations.length > 0) {
     const results: string[] = [];
@@ -1143,7 +1156,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     return;
   }
 
-  // Ø¬Ù„Ø¨ Ø³ÙŠØ§Ù‚ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø±Ø¬Ø¹ÙŠØ© ÙÙŠ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø¥Ù† ÙˆØ¬Ø¯
+  // جلب سياق الرسالة المرجعية في ديسكورد إن وجد
   let replyContext: string | undefined;
   if (message.reference?.messageId) {
     try {
@@ -1154,12 +1167,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
     } catch {}
   }
 
-  // Ø¥Ø±Ø³Ø§Ù„ Ø¹Ù„Ø§Ù…Ø© Ø¬Ø§Ø±ÙŠ Ø§Ù„ÙƒØªØ§Ø¨Ø© Ø¨Ø§Ù„Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ù„Ù„Ø¥Ø´Ø§Ø±Ø© Ù„Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©
+  // إرسال علامة جاري الكتابة بالديسكورد للإشارة للمعالجة
   await (message.channel as any).sendTyping().catch(() => null);
   systemState.aiQueriesCount++;
 
   try {
-    // Ø¬Ù„Ø¨ ÙˆØ­ÙØ¸ Ø³ÙŠØ§Ù‚ Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù„Ù‡Ø¬ÙŠ ÙˆØ§Ù„Ù†ÙŠØ©
+    // جلب وحفظ سياق التحليل اللهجي والنية
     const channelName = 'name' in message.channel ? (message.channel as any).name : 'unknown';
     const ctx = ContextAnalyzer.analyze(
       cleanedPromptText,
@@ -1170,7 +1183,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       replyContext
     );
 
-    // Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ§Ù‚ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø¹Ø²Ø²Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
+    // بناء سياق الرسالة المعززة بالذكاء الاصطناعي
     const sessionEntities = memoryManager.getRecentEntities(message.channel.id);
     const explicitTargets = resolveExplicitToolTargets(
       message.guild,
@@ -1248,7 +1261,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     memoryManager.addMessage(message.channel.id, userMessage);
     history.push(userMessage);
 
-    // Ø­Ù„Ù‚Ø© Ù…Ø¹Ø§Ù„Ø¬Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…ÙƒØ±Ø±Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
+    // حلقة معالجة طلبات الأدوات المكررة بالذكاء الاصطناعي
     let loopCount = 0;
     const maxLoops = 6;
     let finalResponseSent = false;
@@ -1319,6 +1332,15 @@ client.on(Events.MessageCreate, async (message: Message) => {
         toolsUsed: workflowResult.steps.map((step) => step.tool),
       });
       return;
+    }
+
+    // Normalize <function> tags to structured tool_calls before the tool loop
+    if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+      const normalized = normalizeFunctionTags(aiResponse.content);
+      if (normalized) {
+        aiResponse.tool_calls = normalized.toolCalls;
+        aiResponse.content = normalized.cleanContent || null;
+      }
     }
 
     while (aiResponse.tool_calls && aiResponse.tool_calls.length > 0 && loopCount < maxLoops) {
@@ -1417,7 +1439,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
         memoryManager.rememberEntities(message.channel.id, registeredEntities);
       }
 
-      // ÙØ­Øµ Ø£Ù…Ø§Ù† Ø£Ù† Ø§Ù„Ù‚Ù†Ø§Ø© Ù„Ù… ÙŠØªÙ… Ø­Ø°ÙÙ‡Ø§ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª
+      // فحص أمان أن القناة لم يتم حذفها أثناء تشغيل الأدوات
       const channelStillExists = message.guild.channels.cache.has(message.channel.id);
       if (!channelStillExists) {
         console.warn('[AI Router] The active channel was deleted during multi-tool execution.');
@@ -1427,19 +1449,66 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
       const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults);
       if (deterministicReply) {
-        await sendLongMessage(message, deterministicReply);
-        const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
-        memoryManager.addMessage(message.channel.id, finalMsg);
-        history.push(finalMsg);
-        ContextEngine.addTurn(message.channel.id, {
-          role: 'assistant',
-          content: deterministicReply,
-          timestamp: Date.now(),
-          userId: client.user!.id,
-          toolsUsed: completedToolResults.map((result) => result.name),
+        // Pass the deterministic reply as system-prompt context for AI natural-language wrapping
+        // (Avoids orphan tool_call_id — injected as prompt context, not as a tool message)
+        await (message.channel as any).sendTyping().catch(() => null);
+        aiResponse = await runAIRequest(message.guild.id, history, {
+          systemPrompt: [
+            ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+            memoryManager.buildEntityContext(message.channel.id),
+            SkillRegistry.buildSkillManifestForAI(),
+            '[TOOL_EXECUTION_COMPLETE]',
+            deterministicReply,
+            '[/TOOL_EXECUTION_COMPLETE]',
+            'Reply naturally in your language. Summarize what happened using names when available. Ask if the user needs anything else.',
+          ].join('\n'),
         });
-        finalResponseSent = true;
-        break;
+
+        // Normalize <function> tags (Slice 1)
+        if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+          const normalized = normalizeFunctionTags(aiResponse.content);
+          if (normalized) {
+            aiResponse.tool_calls = normalized.toolCalls;
+            aiResponse.content = normalized.cleanContent || null;
+          }
+        }
+
+        if (aiResponse.content && (!aiResponse.tool_calls || aiResponse.tool_calls.length === 0)) {
+          // AI wrapped the result naturally — send warm reply and exit loop
+          await sendLongMessage(message, aiResponse.content);
+          const finalMsg: AIMessage = { role: 'assistant', content: aiResponse.content };
+          memoryManager.addMessage(message.channel.id, finalMsg);
+          history.push(finalMsg);
+          ContextEngine.addTurn(message.channel.id, {
+            role: 'assistant',
+            content: aiResponse.content,
+            timestamp: Date.now(),
+            userId: client.user!.id,
+            toolsUsed: completedToolResults.map((r) => r.name),
+          });
+          finalResponseSent = true;
+          break;
+        }
+
+        if (!aiResponse.content && (!aiResponse.tool_calls || aiResponse.tool_calls.length === 0)) {
+          // AI returned nothing — fall back to deterministic reply
+          await sendLongMessage(message, deterministicReply);
+          const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
+          memoryManager.addMessage(message.channel.id, finalMsg);
+          history.push(finalMsg);
+          ContextEngine.addTurn(message.channel.id, {
+            role: 'assistant',
+            content: deterministicReply,
+            timestamp: Date.now(),
+            userId: client.user!.id,
+            toolsUsed: completedToolResults.map((r) => r.name),
+          });
+          finalResponseSent = true;
+          break;
+        }
+
+        // AI returned tool_calls — loop continues naturally; do NOT break
+        continue;
       }
 
       await (message.channel as any).sendTyping().catch(() => null);
@@ -1450,19 +1519,107 @@ client.on(Events.MessageCreate, async (message: Message) => {
           SkillRegistry.buildSkillManifestForAI(),
         ].join('\n'),
       });
+
+      // Normalize <function> tags in every loop iteration too
+      if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+        const normalized = normalizeFunctionTags(aiResponse.content);
+        if (normalized) {
+          aiResponse.tool_calls = normalized.toolCalls;
+          aiResponse.content = normalized.cleanContent || null;
+        }
+      }
     }
 
-    // Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ø¯ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…
-    const channelOk = message.guild.channels.cache.has(message.channel.id);
-    if (channelOk && aiResponse.content) {
-      await sendLongMessage(message, aiResponse.content);
+    // Final safety: strip any remaining <function> tags from final content
+    let finalContent = aiResponse.content ?? '';
+    if (typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+      const lastNormalized = normalizeFunctionTags(aiResponse.content);
+      if (lastNormalized) {
+        if (lastNormalized.toolCalls.length > 0) {
+          console.warn('[AI Router] <function> tags survived all loops — executing as late tool calls.');
+          for (const tc of lastNormalized.toolCalls) {
+            try {
+              const args = JSON.parse(tc.function.arguments);
+              await executeToolWithAudit(tc.function.name, args, message.guild, message.channel.id, message.author.id, message.member);
+            } catch { /* best-effort late execution */ }
+          }
+        }
+        finalContent = lastNormalized.cleanContent || '';
+      }
+    }
 
-      const finalMsg: AIMessage = { role: 'assistant', content: aiResponse.content };
+    // التحقق من اكتمال جميع الخطوات المطلوبة قبل الرد النهائي
+    if (!finalResponseSent) {
+      const allIntents = detectAllIntents(cleanedPromptText);
+      const executedToolNames = completedToolResults.map((r) => r.name);
+      const missingIntents = findMissingIntents(allIntents, executedToolNames);
+
+      if (missingIntents.length > 0) {
+        const missingPrompt = buildMissingIntentPrompt(missingIntents);
+        const verifySystemPrompt = [
+          ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
+          memoryManager.buildEntityContext(message.channel.id),
+          SkillRegistry.buildSkillManifestForAI(),
+          missingPrompt,
+          'Complete the missing steps above. Use get_server_info if you need current channel/role data.',
+        ].join('\n');
+
+        await (message.channel as any).sendTyping().catch(() => null);
+        const verifyResponse = await runAIRequest(message.guild.id, history, { systemPrompt: verifySystemPrompt });
+
+        // Store verify AI's response in history
+        const verifyAssistantMsg: AIMessage = { role: 'assistant', content: verifyResponse.content || null };
+        if (verifyResponse.tool_calls) verifyAssistantMsg.tool_calls = verifyResponse.tool_calls;
+        memoryManager.addMessage(message.channel.id, verifyAssistantMsg);
+        history.push(verifyAssistantMsg);
+
+        if (verifyResponse.tool_calls && verifyResponse.tool_calls.length > 0) {
+          for (const tc of verifyResponse.tool_calls) {
+            let tArgs: any;
+            try { tArgs = JSON.parse(tc.function.arguments); } catch { tArgs = {}; }
+            tArgs = applyArabicPermissionsToToolArgs(tc.function.name, tArgs, cleanedPromptText, message.guild.id);
+            const targetedCall = applyExplicitTargets(tc.function.name, tArgs, explicitTargets);
+            tArgs = targetedCall.args;
+            if (targetedCall.error) {
+              completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: targetedCall.error } });
+              continue;
+            }
+            try {
+              const vr = await executeToolWithAudit(tc.function.name, tArgs, message.guild, message.channel.id, message.author.id, message.member);
+              completedToolResults.push({ name: tc.function.name, args: tArgs, result: vr });
+              const regEntities = EntityRegistry.registerToolResult(message.guild, tc.function.name, tArgs, vr);
+              memoryManager.rememberEntities(message.channel.id, regEntities);
+              const toolResultMsg: AIMessage = {
+                role: 'tool', name: tc.function.name, tool_call_id: tc.id,
+                content: MemoryManager.trimToolResult(JSON.stringify(vr)),
+              };
+              memoryManager.addMessage(message.channel.id, toolResultMsg);
+              history.push(toolResultMsg);
+            } catch (e) {
+              completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: String(e) } });
+            }
+          }
+          const verifyReply = buildToolExecutionReply(message.guild, completedToolResults);
+          if (verifyReply) {
+            finalContent = verifyReply;
+          }
+        } else if (verifyResponse.content) {
+          finalContent = verifyResponse.content;
+        }
+      }
+    }
+
+    // إرسال الرد النهائي للمستخدم
+    const channelOk = message.guild.channels.cache.has(message.channel.id);
+    if (!finalResponseSent && channelOk && finalContent) {
+      await sendLongMessage(message, finalContent);
+
+      const finalMsg: AIMessage = { role: 'assistant', content: finalContent };
       memoryManager.addMessage(message.channel.id, finalMsg);
       history.push(finalMsg);
       ContextEngine.addTurn(message.channel.id, {
         role: 'assistant',
-        content: aiResponse.content,
+        content: finalContent,
         timestamp: Date.now(),
         userId: client.user!.id,
       });
@@ -1485,7 +1642,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   }
 });
 // ============================================================
-//  6. ÙˆØ¸Ø§Ø¦Ù Ø§Ù„ØªÙ‚Ø³ÙŠÙ… ÙˆØ§Ù„Ø¥Ø±Ø³Ø§Ù„ ÙˆØ§Ù„ØªÙ†Ø³ÙŠÙ‚ (Utility Helpers)
+//  6. وظائف التقسيم والإرسال والتنسيق (Utility Helpers)
 // ============================================================
 async function sendLongMessage(message: Message, content: string): Promise<void> {
   if (content.length <= 2000) {
@@ -1502,7 +1659,7 @@ async function sendLongMessage(message: Message, content: string): Promise<void>
         await (message.channel as any).send(chunks[i]!);
       }
     } catch (err) {
-      console.error('[Sender] ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø¬Ø²Ø¡ Ù…Ù† Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ø·ÙˆÙŠÙ„Ø©:', err);
+      console.error('[Sender] فشل إرسال جزء من الرسالة الطويلة:', err);
     }
   }
 }
@@ -1517,14 +1674,14 @@ function smartSplit(text: string, maxLength: number): string[] {
       break;
     }
 
-    // Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ø£Ù‚Ø±Ø¨ Ø³Ø·Ø± Ø¬Ø¯ÙŠØ¯ Ù„Ù„ØªÙ‚Ø³ÙŠÙ… Ø§Ù„Ù†Ø¸ÙŠÙ
+    // البحث عن أقرب سطر جديد للتقسيم النظيف
     let splitAt = remaining.lastIndexOf('\n', maxLength);
     if (splitAt < maxLength * 0.3) {
-      // Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ø£Ù‚Ø±Ø¨ Ù…Ø³Ø§ÙØ© Ù„Ù„ÙƒÙ„Ù…Ø§Øª
+      // البحث عن أقرب مسافة للكلمات
       splitAt = remaining.lastIndexOf(' ', maxLength);
     }
     if (splitAt < maxLength * 0.3) {
-      // Ù‚Ø·Ø¹ Ù…ÙŠÙƒØ§Ù†ÙŠÙƒÙŠ Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø¯
+      // قطع ميكانيكي عند الحد
       splitAt = maxLength;
     }
 
@@ -1564,7 +1721,7 @@ function formatUserError(error: unknown): string {
 }
 
 // ============================================================
-//  7. Ù†Ø¸Ø§Ù… Ù…Ø³ØªÙˆÙŠØ§Øª Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ ÙˆØ¬Ù†ÙŠ Ø§Ù„Ø®Ø¨Ø±Ø© (Leveling & XP System)
+//  7. نظام مستويات الأعضاء وجني الخبرة (Leveling & XP System)
 // ============================================================
 export interface MemberXPData {
   xp: number;
@@ -1574,11 +1731,11 @@ export interface MemberXPData {
 const membersXPMap = new Map<string, MemberXPData>();
 
 export class LevelingSystem {
-  private static XP_COOLDOWN_MS = 60000; // Ø¯Ù‚ÙŠÙ‚Ø© ÙˆØ§Ø­Ø¯Ø© Ø¨ÙŠÙ† ÙƒØ³Ø¨ Ø§Ù„Ø®Ø¨Ø±Ø©
+  private static XP_COOLDOWN_MS = 60000; // دقيقة واحدة بين كسب الخبرة
   private static XP_PER_MESSAGE = 15;
 
   /**
-   * Ù…Ø¹Ø§Ù„Ø¬Ø© ÙƒØ³Ø¨ Ø§Ù„Ù†Ù‚Ø§Ø· Ù„Ù„Ø¹Ø¶Ùˆ Ø¹Ù†Ø¯ Ø¥Ø±Ø³Ø§Ù„ Ø±Ø³Ø§Ù„Ø©
+   * معالجة كسب النقاط للعضو عند إرسال رسالة
    */
   static handleMessageXP(userId: string, memberName: string, channel: any): void {
     const now = Date.now();
@@ -1588,13 +1745,13 @@ export class LevelingSystem {
       data.xp += this.XP_PER_MESSAGE;
       data.lastMessageTimestamp = now;
 
-      // Ø­Ø³Ø§Ø¨ Ø§Ù„Ø®Ø¨Ø±Ø© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© Ù„Ù„Ù…Ø³ØªÙˆÙ‰ Ø§Ù„ØªØ§Ù„ÙŠ
+      // حساب الخبرة المطلوبة للمستوى التالي
       const requiredXP = data.level * 100;
       if (data.xp >= requiredXP) {
         data.level++;
-        data.xp = 0; // ØªØµÙÙŠØ± Ø§Ù„Ù†Ù‚Ø§Ø· ÙˆØ§Ù„Ø¨Ø¯Ø¡ Ù…Ù† Ø¬Ø¯ÙŠØ¯ Ù„Ù„Ù…Ø³ØªÙˆÙ‰ Ø§Ù„ØªØ§Ù„ÙŠ
+        data.xp = 0; // تصفير النقاط والبدء من جديد للمستوى التالي
 
-        // Ø¥Ø±Ø³Ø§Ù„ ØªÙ†Ø¨ÙŠÙ‡ ØªØ±Ù‚ÙŠØ© Ø§Ù„Ù…Ø³ØªÙˆÙ‰
+        // إرسال تنبيه ترقية المستوى
         const levelEmbed = createLevelUpEmbed(memberName, data.level - 1, data.level);
         channel.send({ embeds: [levelEmbed] }).catch(() => null);
       }
@@ -1612,24 +1769,24 @@ export class LevelingSystem {
 }
 
 // ============================================================
-//  8. Ù†Ø¸Ø§Ù… Ø§Ù„Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª ÙˆØ§Ù„Ù…Ø´Ø§Ø±ÙƒØ§Øª Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© (Suggestion Box System)
+//  8. نظام الاقتراحات والمشاركات التفاعلية (Suggestion Box System)
 // ============================================================
 export class SuggestionBox {
   /**
-   * Ø¥Ø±Ø³Ø§Ù„ Ø§Ù‚ØªØ±Ø§Ø­ ÙÙŠ Ù‚Ù†Ø§Ø© Ø§Ù„Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©
+   * إرسال اقتراح في قناة الاقتراحات المحددة
    */
   static async submitSuggestion(message: Message, suggestionText: string): Promise<void> {
     const guild = message.guild!;
     const suggestionChannel = guild.channels.cache.find(
       (ch: any) =>
         ch.isTextBased() &&
-        ['Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª', 'Ø§Ù‚ØªØ±Ø§Ø­', 'suggestions', 'suggest', 'Ø§Ù‚ØªØ±Ø§Ø­-Ø£Ø¹Ø¶Ø§Ø¡'].some(
+        ['اقتراحات', 'اقتراح', 'suggestions', 'suggest', 'اقتراح-أعضاء'].some(
           (name) => (ch.name as string).toLowerCase().includes(name)
         )
     ) as TextChannel | null;
 
     if (!suggestionChannel) {
-      await message.reply('âŒ Ù„Ù… Ø£Ø¬Ø¯ Ù‚Ù†Ø§Ø© Ù…Ø®ØµØµØ© Ù„Ù„Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„Ø³ÙŠØ±ÙØ±.').catch(() => null);
+      await message.reply('❌ لم أجد قناة مخصصة للاقتراحات في هذا السيرفر.').catch(() => null);
       return;
     }
 
@@ -1637,53 +1794,53 @@ export class SuggestionBox {
     const suggestMsg = await suggestionChannel.send({ embeds: [embed] }).catch(() => null);
     
     if (suggestMsg) {
-      await suggestMsg.react('ðŸ‘').catch(() => null);
-      await suggestMsg.react('ðŸ‘Ž').catch(() => null);
-      await message.reply(`âœ… ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø§Ù‚ØªØ±Ø§Ø­Ùƒ Ø¨Ù†Ø¬Ø§Ø­ ÙÙŠ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù…Ø®ØµØµØ©: ${suggestionChannel}`).catch(() => null);
+      await suggestMsg.react('👍').catch(() => null);
+      await suggestMsg.react('👎').catch(() => null);
+      await message.reply(`✅ تم إرسال اقتراحك بنجاح في القناة المخصصة: ${suggestionChannel}`).catch(() => null);
     }
   }
 }
 
 // ============================================================
-//  9. Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ­Ù‚Ù‚ ÙˆØ§Ù„ØªÙˆØ«ÙŠÙ‚ Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠ Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¬Ø¯Ø¯ (Verification Gateway)
+//  9. نظام التحقق والتوثيق التفاعلي للأعضاء الجدد (Verification Gateway)
 // ============================================================
 export class MemberVerificationGateway {
   /**
-   * Ø¥Ø±Ø³Ø§Ù„ Ø±Ø³Ø§Ù„Ø© Ø§Ù„ØªÙˆØ«ÙŠÙ‚ ÙÙŠ Ù‚Ù†Ø§Ø© Ø§Ù„ØªØ­Ù‚Ù‚
+   * إرسال رسالة التوثيق في قناة التحقق
    */
   static async sendGatewayMessage(channel: TextChannel): Promise<void> {
     const embed = createVerificationEmbed(channel.guild.name);
     const message = await channel.send({ embeds: [embed] }).catch(() => null);
     if (message) {
-      await message.react('âœ…').catch(() => null);
+      await message.react('✅').catch(() => null);
     }
   }
 
   /**
-   * Ø§Ù„ØªØ¹Ø§Ù…Ù„ Ù…Ø¹ ØªÙØ§Ø¹Ù„Ø§Øª Ø§Ù„ØªÙˆØ«ÙŠÙ‚ Ù„ØªÙ„Ù‚ÙŠ Ø§Ù„Ø±ØªØ¨Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
+   * التعامل مع تفاعلات التوثيق لتلقي الرتبة تلقائياً
    */
   static async handleReaction(reaction: any, user: any): Promise<void> {
     if (user.bot) return;
-    if (reaction.emoji.name !== 'âœ…') return;
+    if (reaction.emoji.name !== '✅') return;
 
     const member = await reaction.message.guild?.members.fetch(user.id).catch(() => null);
     if (!member) return;
 
-    // Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ø±ØªØ¨Ø© Ø§Ù„ØªÙˆØ«ÙŠÙ‚ (Ø¹Ø¶ÙˆØŒ Ù…ÙˆØ«Ù‚ØŒ Verified)
+    // البحث عن رتبة التوثيق (عضو، موثق، Verified)
     const verifiedRole = reaction.message.guild.roles.cache.find(
-      (r: any) => ['Ø¹Ø¶Ùˆ', 'Ù…ÙˆØ«Ù‚', 'verified', 'Verified', 'Ø£Ø¹Ø¶Ø§Ø¡'].some(name => r.name.toLowerCase().includes(name))
+      (r: any) => ['عضو', 'موثق', 'verified', 'Verified', 'أعضاء'].some(name => r.name.toLowerCase().includes(name))
     );
 
     if (verifiedRole) {
       await member.roles.add(verifiedRole).catch(() => null);
-      // Ø¥Ø±Ø³Ø§Ù„ Ø±Ø³Ø§Ù„Ø© ØªØ±Ø­ÙŠØ¨ÙŠØ© Ø®Ø§ØµØ© Ø¨ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„ÙˆØ§Ø±Ø¯ Ø§Ù„Ø®Ø§Øµ Ø¨Ø§Ù„Ø¹Ø¶Ùˆ
-      await user.send(`ðŸŽ‰ Ù…Ø±Ø­Ø¨Ø§Ù‹ Ø¨Ùƒ ÙŠØ§ **${user.username}**! ØªÙ… ØªÙˆØ«ÙŠÙ‚ Ø­Ø³Ø§Ø¨Ùƒ ÙÙŠ Ø³ÙŠØ±ÙØ± **${reaction.message.guild.name}** Ø¨Ù†Ø¬Ø§Ø­.`).catch(() => null);
+      // إرسال رسالة ترحيبية خاصة بصندوق الوارد الخاص بالعضو
+      await user.send(`🎉 مرحباً بك يا **${user.username}**! تم توثيق حسابك في سيرفر **${reaction.message.guild.name}** بنجاح.`).catch(() => null);
     }
   }
 }
 
 // ============================================================
-//  10. Ù…Ø³ØªÙ…Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© Ù„Ù„Ø£Ø²Ø±Ø§Ø± ÙˆØ§Ù„Ù‚ÙˆØ§Ø¦Ù… (Interaction Listener)
+//  10. مستمع الأحداث التفاعلية للأزرار والقوائم (Interaction Listener)
 // ============================================================
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
@@ -1696,7 +1853,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // Interaction handled
 
-  // 1. Ø§Ù„ØªÙØ§Ø¹Ù„ Ù…Ø¹ Ø£Ø²Ø±Ø§Ø± Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ ÙˆØ§Ù„ØªØ°Ø§ÙƒØ±
+  // 1. التفاعل مع أزرار الدعم الفني والتذاكر
   if (interaction.customId === 'create_ticket') {
     await interaction.deferReply({ ephemeral: true }).catch(() => null);
     try {
@@ -1720,32 +1877,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
       });
 
       const ticketEmbed = createTicketEmbed();
-      await ticketChannel.send({ content: `${interaction.user} | Ø·Ø§Ù‚Ù… Ø§Ù„Ø¯Ø¹Ù…`, embeds: [ticketEmbed] }).catch(() => null);
-      await interaction.editReply({ content: `âœ… ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ ØªØ°ÙƒØ±ØªÙƒ Ø¨Ù†Ø¬Ø§Ø­ ÙÙŠ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„ØªØ§Ù„ÙŠØ©: ${ticketChannel}` }).catch(() => null);
+      await ticketChannel.send({ content: `${interaction.user} | طاقم الدعم`, embeds: [ticketEmbed] }).catch(() => null);
+      await interaction.editReply({ content: `✅ تم إنشاء تذكرتك بنجاح في القناة التالية: ${ticketChannel}` }).catch(() => null);
     } catch (err: any) {
-      await interaction.editReply({ content: `âŒ ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªØ°ÙƒØ±Ø©: ${err.message}` }).catch(() => null);
+      await interaction.editReply({ content: `❌ تعذر إنشاء التذكرة: ${err.message}` }).catch(() => null);
     }
   }
 
-  // 2. Ø§Ù„ØªÙØ§Ø¹Ù„ Ù…Ø¹ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Ø± Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© (Role Selection Menu)
+  // 2. التفاعل مع قائمة الأدوار التفاعلية (Role Selection Menu)
   if (interaction.isStringSelectMenu() && interaction.customId === 'select_custom_roles') {
     await interaction.deferReply({ ephemeral: true }).catch(() => null);
     const selectedRoleIds = interaction.values;
     
     try {
-      // Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø£Ø¯ÙˆØ§Ø± ØºÙŠØ± Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© ÙˆØ¥Ø¶Ø§ÙØ© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø© Ù…Ù†Ù‡Ø§
+      // إزالة الأدوار غير المحددة وإضافة المحددة منها
       for (const value of selectedRoleIds) {
-        // ÙØ­Øµ ÙˆØ¥Ø³Ù†Ø§Ø¯ Ø§Ù„Ø£Ø¯ÙˆØ§Ø± Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¨ØµÙˆØ±Ø© Ø¢Ù…Ù†Ø©
+        // فحص وإسناد الأدوار للمستخدم بصورة آمنة
       }
-      await interaction.editReply({ content: 'âœ… ØªÙ… ØªØ­Ø¯ÙŠØ« Ø£Ø¯ÙˆØ§Ø±Ùƒ Ø§Ù„Ø¥Ø¶Ø§ÙÙŠØ© Ø§Ù„Ù…ÙØ¶Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­!' }).catch(() => null);
+      await interaction.editReply({ content: '✅ تم تحديث أدوارك الإضافية المفضلة بنجاح!' }).catch(() => null);
     } catch (err: any) {
-      await interaction.editReply({ content: `âŒ Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ø¯ÙŠØ« Ø£Ø¯ÙˆØ§Ø±Ùƒ: ${err.message}` }).catch(() => null);
+      await interaction.editReply({ content: `❌ حدث خطأ أثناء تحديث أدوارك: ${err.message}` }).catch(() => null);
     }
   }
 });
 
 // ============================================================
-//  11. Ø§Ù„Ø³Ø¬Ù„Ø§Øª Ø§Ù„ØªÙØµÙŠÙ„ÙŠØ© Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…Ø³Ø¬Ù„Ø© Ù„Ù„Ø¨ÙˆØª (Commands Database)
+//  11. السجلات التفصيلية لقائمة الأوامر المسجلة للبوت (Commands Database)
 // ============================================================
 export interface CommandMetadata {
   name: string;
@@ -1759,287 +1916,287 @@ export interface CommandMetadata {
 export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
   {
     name: 'help',
-    aliases: ['Ø£ÙˆØ§Ù…Ø±', 'Ù…Ø³Ø§Ø¹Ø¯Ø©'],
-    description: 'Ø¹Ø±Ø¶ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ØªØ§Ø­Ø© Ù„Ù„Ø¨ÙˆØª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ ÙˆØ§Ù„Ù…Ø´ØºÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ.',
+    aliases: ['أوامر', 'مساعدة'],
+    description: 'عرض قائمة الأوامر المتاحة للبوت الإداري والمشغل الموسيقي.',
     usage: '!opus help',
     category: 'general',
     permissionRequired: 'NONE'
   },
   {
     name: 'ai',
-    aliases: ['Ø°ÙƒØ§Ø¡'],
-    description: 'Ø¥Ø¬Ø±Ø§Ø¡ Ø­ÙˆØ§Ø± Ù…Ø¨Ø§Ø´Ø± Ù…Ø¹ Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ù„ØºÙˆÙŠ Opus ÙˆØªØ¬Ø§Ù‡Ù„ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª.',
-    usage: '!opus ai <Ø³Ø¤Ø§Ù„Ùƒ Ù‡Ù†Ø§>',
+    aliases: ['ذكاء'],
+    description: 'إجراء حوار مباشر مع المساعد اللغوي Opus وتجاهل اللهجات.',
+    usage: '!opus ai <سؤالك هنا>',
     category: 'general',
     permissionRequired: 'AUTHORIZED_ROLE'
   },
   {
     name: 'play',
-    aliases: ['Ø´ØºÙ„'],
-    description: 'ØªØ´ØºÙŠÙ„ Ù…Ù‚Ø·Ø¹ ØµÙˆØªÙŠ ÙÙŠ Ù‚Ù†Ø§Ø© Ø§Ù„ØµÙˆØª Ø§Ù„Ø­Ø§Ù„ÙŠØ©.',
-    usage: '!opus play <Ø±Ø§Ø¨Ø· Ø£Ùˆ Ø§Ø³Ù… Ø§Ù„Ù…Ù‚Ø·Ø¹>',
+    aliases: ['شغل'],
+    description: 'تشغيل مقطع صوتي في قناة الصوت الحالية.',
+    usage: '!opus play <رابط أو اسم المقطع>',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'skip',
-    aliases: ['ØªØ®Ø·ÙŠ'],
-    description: 'ØªØ®Ø·ÙŠ Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ ÙˆØ§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ù„Ù„Ø°ÙŠ ÙŠÙ„ÙŠÙ‡.',
+    aliases: ['تخطي'],
+    description: 'تخطي المقطع الصوتي الحالي والانتقال للذي يليه.',
     usage: '!opus skip',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'stop',
-    aliases: ['Ø§ÙŠÙ‚Ø§Ù', 'Ø¥ÙŠÙ‚Ø§Ù'],
-    description: 'Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ù…Ø´ØºÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ ÙˆÙ…ØºØ§Ø¯Ø±Ø© Ø§Ù„Ø¨ÙˆØª Ù„Ù‚Ù†Ø§Ø© Ø§Ù„ØµÙˆØª.',
+    aliases: ['ايقاف', 'إيقاف'],
+    description: 'إيقاف المشغل الموسيقي ومغادرة البوت لقناة الصوت.',
     usage: '!opus stop',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'pause',
-    aliases: ['Ù…Ø¤Ù‚Øª'],
-    description: 'Ø¥ÙŠÙ‚Ø§Ù Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ Ù…Ø¤Ù‚ØªØ§Ù‹.',
+    aliases: ['مؤقت'],
+    description: 'إيقاف المقطع الصوتي الحالي مؤقتاً.',
     usage: '!opus pause',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'resume',
-    aliases: ['Ø§Ø³ØªØ¦Ù†Ø§Ù'],
-    description: 'Ø§Ø³ØªØ¦Ù†Ø§Ù ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„Ù…ÙˆÙ‚ÙˆÙ Ù…Ø¤Ù‚ØªØ§Ù‹.',
+    aliases: ['استئناف'],
+    description: 'استئناف تشغيل المقطع الموقوف مؤقتاً.',
     usage: '!opus resume',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'queue',
-    aliases: ['Ù‚Ø§Ø¦Ù…Ø©'],
-    description: 'Ø¹Ø±Ø¶ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ù…Ù‚Ø§Ø·Ø¹ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠØ© Ø§Ù„Ù…Ø¬Ø¯ÙˆÙ„Ø© Ù„Ù„ØªØ´ØºÙŠÙ„.',
+    aliases: ['قائمة'],
+    description: 'عرض قائمة المقاطع الموسيقية المجدولة للتشغيل.',
     usage: '!opus queue',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'volume',
-    aliases: ['ØµÙˆØª'],
-    description: 'ØªØ¹Ø¯ÙŠÙ„ Ù…Ø³ØªÙˆÙ‰ ØµÙˆØª Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ (Ø¨ÙŠÙ† 0 Ùˆ 200).',
-    usage: '!opus volume <Ø§Ù„Ù‚ÙŠÙ…Ø©>',
+    aliases: ['صوت'],
+    description: 'تعديل مستوى صوت الموسيقى (بين 0 و 200).',
+    usage: '!opus volume <القيمة>',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'loop',
-    aliases: ['ØªÙƒØ±Ø§Ø±'],
-    description: 'ØªÙØ¹ÙŠÙ„ Ø£Ùˆ Ø¥Ù„ØºØ§Ø¡ ØªÙƒØ±Ø§Ø± Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠ Ø§Ù„Ø­Ø§Ù„ÙŠ Ø¨Ø´ÙƒÙ„ Ù…ØªÙƒØ±Ø±.',
+    aliases: ['تكرار'],
+    description: 'تفعيل أو إلغاء تكرار المقطع الصوتي الحالي بشكل متكرر.',
     usage: '!opus loop',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'nowplaying',
-    aliases: ['Ø§Ù„Ø§Ù†', 'Ø§Ù„Ø¢Ù†'],
-    description: 'Ø¹Ø±Ø¶ Ø¨ÙŠØ§Ù†Ø§Øª ÙˆØªÙØ§ØµÙŠÙ„ Ø§Ù„Ù…Ù‚Ø·Ø¹ Ø§Ù„ØµÙˆØªÙŠ Ø§Ù„Ø°ÙŠ ÙŠØ¹Ù…Ù„ Ø­Ø§Ù„ÙŠØ§Ù‹.',
+    aliases: ['الان', 'الآن'],
+    description: 'عرض بيانات وتفاصيل المقطع الصوتي الذي يعمل حالياً.',
     usage: '!opus nowplaying',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'shuffle',
-    aliases: ['Ø¹Ø´ÙˆØ§Ø¦ÙŠ'],
-    description: 'Ø®Ù„Ø· ÙˆØªØ±ØªÙŠØ¨ Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ø¹Ø´ÙˆØ§Ø¦ÙŠØ§Ù‹.',
+    aliases: ['عشوائي'],
+    description: 'خلط وترتيب قائمة الانتظار الحالية عشوائياً.',
     usage: '!opus shuffle',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'remove',
-    aliases: ['Ø­Ø°Ù_Ù…Ù‚Ø·Ø¹'],
-    description: 'Ø­Ø°Ù Ù…Ù‚Ø·Ø¹ Ù…Ø­Ø¯Ø¯ Ù…Ù† Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø§Ù†ØªØ¸Ø§Ø± Ø¹Ø¨Ø± Ù…ÙˆÙ‚Ø¹Ù‡ Ø§Ù„Ø±Ù‚Ù…ÙŠ.',
-    usage: '!opus remove <ØªØ±ØªÙŠØ¨ Ø§Ù„Ù…Ù‚Ø·Ø¹>',
+    aliases: ['حذف_مقطع'],
+    description: 'حذف مقطع محدد من قائمة الانتظار عبر موقعه الرقمي.',
+    usage: '!opus remove <ترتيب المقطع>',
     category: 'music',
     permissionRequired: 'NONE'
   },
   {
     name: 'build',
-    aliases: ['Ø¨Ù†Ø§Ø¡'],
-    description: 'Ø¨Ù†Ø§Ø¡ ÙˆÙ‡ÙŠÙƒÙ„Ø© Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØ¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØºØ±Ù ÙˆØ§Ù„Ù‚Ù†ÙˆØ§Øª Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ.',
-    usage: '!opus build <ÙˆØµÙ Ù‡ÙŠÙƒÙ„ÙŠØ© Ø®Ø§Ø¯Ù…Ùƒ>',
+    aliases: ['بناء'],
+    description: 'بناء وهيكلة السيرفر وإنشاء الغرف والقنوات بالذكاء الاصطناعي.',
+    usage: '!opus build <وصف هيكلية خادمك>',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'serverinfo',
-    aliases: ['Ù…Ø¹Ù„ÙˆÙ…Ø§Øª_Ø§Ù„Ø³ÙŠØ±ÙØ±'],
-    description: 'Ø¹Ø±Ø¶ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªÙ‚Ù†ÙŠØ© ÙˆØ§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ© Ù„Ø®Ø§Ø¯Ù… Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø§Ù„Ø­Ø§Ù„ÙŠ.',
+    aliases: ['معلومات_السيرفر'],
+    description: 'عرض البيانات التقنية والإحصائية لخادم ديسكورد الحالي.',
     usage: '!opus serverinfo',
     category: 'general',
     permissionRequired: 'NONE'
   },
   {
     name: 'userinfo',
-    aliases: ['Ù…Ø¹Ù„ÙˆÙ…Ø§Øª'],
-    description: 'Ø¹Ø±Ø¶ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙˆØ§Ù„ØªØ±Ù‚ÙŠØ§Øª Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ø³ÙŠØ±ÙØ±.',
-    usage: '!opus userinfo [@Ø¹Ø¶Ùˆ]',
+    aliases: ['معلومات'],
+    description: 'عرض بيانات الحساب والتحذيرات والترقيات لعضو السيرفر.',
+    usage: '!opus userinfo [@عضو]',
     category: 'general',
     permissionRequired: 'NONE'
   },
   {
     name: 'warn',
-    aliases: ['ØªØ­Ø°ÙŠØ±'],
-    description: 'ØªÙˆØ¬ÙŠÙ‡ ØªØ­Ø°ÙŠØ± Ø±Ø³Ù…ÙŠ Ù„Ù„Ø¹Ø¶Ùˆ ÙˆØªØ³Ø¬ÙŠÙ„Ù‡ ÙÙŠ Ø¨Ù†Ùƒ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.',
-    usage: '!opus warn [@Ø¹Ø¶Ùˆ] <Ø§Ù„Ø³Ø¨Ø¨>',
+    aliases: ['تحذير'],
+    description: 'توجيه تحذير رسمي للعضو وتسجيله في بنك البيانات.',
+    usage: '!opus warn [@عضو] <السبب>',
     category: 'moderation',
     permissionRequired: 'KICK_MEMBERS'
   },
   {
     name: 'warns',
-    aliases: ['ØªØ­Ø°ÙŠØ±Ø§Øª'],
-    description: 'Ø§Ø³ØªØ¹Ø±Ø§Ø¶ ØªØ§Ø±ÙŠØ® ÙˆØ³Ø¬Ù„ Ù…Ø®Ø§Ù„ÙØ§Øª Ø§Ù„Ø¹Ø¶Ùˆ ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±.',
-    usage: '!opus warns [@Ø¹Ø¶Ùˆ]',
+    aliases: ['تحذيرات'],
+    description: 'استعراض تاريخ وسجل مخالفات العضو في السيرفر.',
+    usage: '!opus warns [@عضو]',
     category: 'moderation',
     permissionRequired: 'NONE'
   },
   {
     name: 'clearwarns',
-    aliases: ['ØªØµÙÙŠØ±_Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª'],
-    description: 'Ù…Ø³Ø­ ÙˆØ¥Ù„ØºØ§Ø¡ ÙƒØ§ÙØ© Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ù…Ø³Ø¬Ù„Ø© Ø¹Ù„Ù‰ Ø¹Ø¶Ùˆ Ù…Ø­Ø¯Ø¯.',
-    usage: '!opus clearwarns [@Ø¹Ø¶Ùˆ]',
+    aliases: ['تصفير_التحذيرات'],
+    description: 'مسح وإلغاء كافة التحذيرات المسجلة على عضو محدد.',
+    usage: '!opus clearwarns [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'shadowban',
-    aliases: ['Ø­Ø¸Ø±_ØµØ§Ù…Øª'],
-    description: 'ÙØ±Ø¶ Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª ÙˆØ­Ø°Ù Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø¹Ø¶Ùˆ ÙÙˆØ±Ø§Ù‹ Ø¨Ø¯ÙˆÙ† ØªÙ†Ø¨ÙŠÙ‡Ù‡.',
-    usage: '!opus shadowban [@Ø¹Ø¶Ùˆ]',
+    aliases: ['حظر_صامت'],
+    description: 'فرض الحجب الصامت وحذف رسائل العضو فوراً بدون تنبيهه.',
+    usage: '!opus shadowban [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'unshadowban',
-    aliases: ['Ø§Ù„ØºØ§Ø¡_Ø§Ù„Ø­Ø¸Ø±_Ø§Ù„ØµØ§Ù…Øª'],
-    description: 'Ø¥Ù„ØºØ§Ø¡ ÙˆØ¶Ø¹ Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª ÙˆØ¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø¹Ø¶Ùˆ Ù„ÙˆØ¶Ø¹Ù‡ Ø§Ù„Ø·Ø¨ÙŠØ¹ÙŠ.',
-    usage: '!opus unshadowban [@Ø¹Ø¶Ùˆ]',
+    aliases: ['الغاء_الحظر_الصامت'],
+    description: 'إلغاء وضع الحجب الصامت وإرجاع العضو لوضعه الطبيعي.',
+    usage: '!opus unshadowban [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'status',
-    aliases: ['Ø­Ø§Ù„Ø©'],
-    description: 'Ø¹Ø±Ø¶ ØªÙ‚Ø±ÙŠØ± Ø§Ù„ØµØ­Ø© Ø§Ù„ØªÙ‚Ù†ÙŠØ© Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ø¨ÙˆØª ÙˆØ­Ø§Ù„Ø© Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø±.',
+    aliases: ['حالة'],
+    description: 'عرض تقرير الصحة التقنية لنظام البوت وحالة معالجة الأوامر.',
     usage: '!opus status',
     category: 'general',
     permissionRequired: 'NONE'
   },
   {
     name: 'diagnostics',
-    aliases: ['ÙØ­Øµ'],
-    description: 'ØªØ´ØºÙŠÙ„ ÙØ­ÙˆØµØ§Øª ÙÙ†ÙŠØ© Ù„ÙƒØ§Ù…Ù„ Ù…Ù„ÙØ§Øª ÙˆÙ…Ø­Ø±ÙƒØ§Øª Ø§Ù„Ø¨ÙˆØª ÙˆÙ…Ù‚Ø§Ø±Ù†ØªÙ‡Ø§.',
+    aliases: ['فحص'],
+    description: 'تشغيل فحوصات فنية لكامل ملفات ومحركات البوت ومقارنتها.',
     usage: '!opus diagnostics',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'backup',
-    aliases: ['Ù†Ø³Ø®_Ø§Ø­ØªÙŠØ§Ø·ÙŠ'],
-    description: 'Ø³Ø­Ø¨ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© Ù…Ù† Ù‡ÙŠÙƒÙ„ÙŠØ© Ø§Ù„Ø³ÙŠØ±ÙØ± Ù„Ù…Ù„Ù JSON.',
+    aliases: ['نسخ_احتياطي'],
+    description: 'سحب نسخة احتياطية إلكترونية من هيكلية السيرفر لملف JSON.',
     usage: '!opus backup',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
   {
     name: 'quran',
-    aliases: ['Ù‚Ø±Ø§Ù†'],
-    description: 'Ø¹Ø±Ø¶ Ø¢ÙŠØ© Ù‚Ø±Ø¢Ù†ÙŠØ© ÙƒØ±ÙŠÙ…Ø© Ù…Ø¹ ØªØ±Ø¬Ù…ØªÙ‡Ø§ Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©.',
+    aliases: ['قران'],
+    description: 'عرض آية قرآنية كريمة مع ترجمتها باللغة الإنجليزية.',
     usage: '!opus quran',
     category: 'fun',
     permissionRequired: 'NONE'
   },
   {
     name: 'azkar',
-    aliases: ['Ø§Ø°ÙƒØ§Ø±'],
-    description: 'Ø¹Ø±Ø¶ Ø°ÙƒØ± Ø¥Ø³Ù„Ø§Ù…ÙŠ Ù…Ù† Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­ ÙˆØ§Ù„Ù…Ø³Ø§Ø¡ ÙˆØ§Ù„ÙŠÙˆÙ…ÙŠØ©.',
+    aliases: ['اذكار'],
+    description: 'عرض ذكر إسلامي من أذكار الصباح والمساء واليومية.',
     usage: '!opus azkar',
     category: 'fun',
     permissionRequired: 'NONE'
   },
   {
     name: 'poll',
-    aliases: ['ØªØµÙˆÙŠØª'],
-    description: 'Ø·Ø±Ø­ ØªØµÙˆÙŠØª ØªÙØ§Ø¹Ù„ÙŠ Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ù…Ø¹ Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø±Ù…ÙˆØ² Ù„Ù„ØªÙØ§Ø¹Ù„ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.',
-    usage: '!opus poll <Ø§Ù„Ø³Ø¤Ø§Ù„> | <Ø§Ù„Ø®ÙŠØ§Ø±1> | <Ø§Ù„Ø®ÙŠØ§Ø±2>',
+    aliases: ['تصويت'],
+    description: 'طرح تصويت تفاعلي للأعضاء مع إضافة الرموز للتفاعل تلقائياً.',
+    usage: '!opus poll <السؤال> | <الخيار1> | <الخيار2>',
     category: 'utility',
     permissionRequired: 'NONE'
   },
   {
     name: 'match',
-    aliases: ['Ø¨Ø·ÙˆÙ„Ø©'],
-    description: 'ØªÙˆÙ„ÙŠØ¯ Ø¥Ø¹Ù„Ø§Ù† Ù…Ø¨Ø§Ø±Ø§Ø© Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© ØªÙØ§Ø¹Ù„ÙŠØ© Ù…Ø¹ Ø®Ø§Ø¯Ù… Ø§Ù„Ø¨Ø« Ø§Ù„Ù…Ø¨Ø§Ø´Ø±.',
-    usage: '!opus match <Ø§Ù„Ù„Ø¹Ø¨Ø©> | <Ø§Ù„ÙØ±ÙŠÙ‚ Ø§Ù„Ø£ÙˆÙ„> | <Ø§Ù„ÙØ±ÙŠÙ‚ Ø§Ù„Ø«Ø§Ù†ÙŠ> | <Ø§Ù„ØªÙˆÙ‚ÙŠØª>',
+    aliases: ['بطولة'],
+    description: 'توليد إعلان مباراة إلكترونية تفاعلية مع خادم البث المباشر.',
+    usage: '!opus match <اللعبة> | <الفريق الأول> | <الفريق الثاني> | <التوقيت>',
     category: 'utility',
     permissionRequired: 'NONE'
   }
 ];
 
 // ============================================================
-//  12. Ù‚ÙˆØ§Ù…ÙŠØ³ ÙˆÙ…Ø±Ø¬Ø¹ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª Ù„Ù„ØªØ´Ø®ÙŠØµ (Dialects reference dictionary)
+//  12. قواميس ومرجع اللهجات للتشخيص (Dialects reference dictionary)
 // ============================================================
 export const DIALECT_GLOSSARY_GUIDE = [
-  { dialect: 'najdi', keywords: ['ÙˆØ´Ù„ÙˆÙ†Ùƒ', 'Ø´Ø®Ø¨Ø§Ø±Ùƒ', 'Ø§Ø±Ø­Ø¨', 'Ø§Ø¨Ùƒ', 'ÙŠØ§ ÙˆØ§Ø¯', 'ØªÙƒÙÙ‰'] },
-  { dialect: 'hijazi', keywords: ['ÙŠØ§ Ø³ÙŠØ¯ÙŠ', 'Ø§ÙŠØ´ Ø¨Ùƒ', 'Ø§Ø´Ø¨Ùƒ', 'Ø¯Ø­ÙŠÙ†', 'Ø§ØµÙ‡', 'Ø¨Ù„ÙƒÙ†'] },
-  { dialect: 'egyptian', keywords: ['Ø§Ø²ÙŠÙƒ', 'Ø¹Ø§Ù…Ù„ Ø§ÙŠÙ‡', 'Ø¬Ø¯Ø¹', 'ÙŠØ§ Ø¨Ø§Ø´Ø§', 'Ø§ÙŠÙ‡ Ø§Ù„Ø§Ø®Ø¨Ø§Ø±', 'Ø¯Ù„ÙˆÙ‚ØªÙŠ'] },
-  { dialect: 'syrian', keywords: ['Ø´Ù„ÙˆÙ†Ùƒ', 'Ø´Ùˆ Ø§Ø®Ø¨Ø§Ø±Ùƒ', 'Ø´Ùˆ Ø¨Ø¯Ùƒ', 'Ù‡ÙˆÙ†', 'Ù‡Ù„Ù‚', 'ØªÙ‚Ø¨Ø±Ù†ÙŠ'] },
-  { dialect: 'moroccan', keywords: ['Ù„Ø§Ø¨Ø§Ø³', 'ÙƒÙŠ Ø¯Ø§ÙŠØ±', 'Ø¨Ø²Ø§Ù', 'Ø§Ù„Ø¯Ø±Ø§Ø±ÙŠ', 'ÙˆØ§Ø®Ø§', 'Ø¯Ø§Ø¨Ø§'] }
+  { dialect: 'najdi', keywords: ['وشلونك', 'شخبارك', 'ارحب', 'ابك', 'يا واد', 'تكفى'] },
+  { dialect: 'hijazi', keywords: ['يا سيدي', 'ايش بك', 'اشبك', 'دحين', 'اصه', 'بلكن'] },
+  { dialect: 'egyptian', keywords: ['ازيك', 'عامل ايه', 'جدع', 'يا باشا', 'ايه الاخبار', 'دلوقتي'] },
+  { dialect: 'syrian', keywords: ['شلونك', 'شو اخبارك', 'شو بدك', 'هون', 'هلق', 'تقبرني'] },
+  { dialect: 'moroccan', keywords: ['لاباس', 'كي داير', 'بزاف', 'الدراري', 'واخا', 'دابا'] }
 ];
 
 // ============================================================
-//  13. Ø´Ø±Ø­ ÙƒØ§Ù…Ù„ Ù„Ù‡ÙŠÙƒÙ„ÙŠØ© Ø¹Ù…Ù„ Ø§Ù„Ø£Ø¯ÙˆØ§Øª ÙˆØ§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ (Developer Guide)
+//  13. شرح كامل لهيكلية عمل الأدوات والذكاء الاصطناعي (Developer Guide)
 // ============================================================
 export const DEVELOPER_SYSTEM_GUIDE = `
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+────────────────────────────────────────────────────────────────
         Opus AI Assistant & Moderation Engine - Developer Guide
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-1. Ø¯ÙˆØ±Ø© Ø­ÙŠØ§Ø© Ø§Ù„Ø·Ù„Ø¨ (Request Lifecycle):
-   Ù…Ø³ØªÙ‚Ø¨Ù„ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ (index.ts) -> ÙØ­Øµ Ø§Ù„Ø£Ù…Ø§Ù† (Credential/Bad words) -> ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø³ÙŠØ§Ù‚ 
-   (ContextAnalyzer.ts) -> Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ù…Ø­Ø±Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…ØªÙ‚Ø§Ø±Ø¨Ø© (MemoryManager.ts) -> 
-   Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù†Ø¸Ø§Ù… Groq/Cerebras (ai.ts) -> ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†ÙŠØ© ÙˆØªØ­Ø¯ÙŠØ¯ ÙˆØ¬ÙˆØ¯ Ø£Ø¯Ø§Ø© Ø¨Ø±Ù…Ø¬ÙŠØ© 
-   -> ÙÙŠ Ø­Ø§Ù„ ÙˆØ¬ÙˆØ¯ Ø£Ø¯Ø§Ø©ØŒ ÙŠØªÙ… ØªÙ†ÙÙŠØ°Ù‡Ø§ ÙÙŠ (index.ts:executeTool) ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù†ØªÙŠØ¬Ø© Ù„Ù€ AI 
-   Ù„ØµÙŠØ§ØºØ© Ø±Ø¯ Ù…Ù†Ø§Ø³Ø¨ -> Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ø¯ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù….
+────────────────────────────────────────────────────────────────
+1. دورة حياة الطلب (Request Lifecycle):
+   مستقبل الرسائل (index.ts) -> فحص الأمان (Credential/Bad words) -> تحليل السياق 
+   (ContextAnalyzer.ts) -> استدعاء محرك الذاكرة المتقاربة (MemoryManager.ts) -> 
+   الاتصال بنظام Groq/Cerebras (ai.ts) -> تحليل النية وتحديد وجود أداة برمجية 
+   -> في حال وجود أداة، يتم تنفيذها في (index.ts:executeTool) وإعادة النتيجة لـ AI 
+   لصياغة رد مناسب -> إرسال الرد النهائي للمستخدم.
 
-2. Ø§Ù„Ù…Ø´ØºÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚ÙŠ (Voice Stream System):
-   ÙŠØ¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ø§Ù„ØªØ¬Ù…ÙŠØ¹ Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠ Ù„Ù…ÙƒÙˆÙ†Ø§Øª VoiceConnection ÙˆØ­Ù‚Ù† Ø§Ù„Ø¨Ø« Ø§Ù„ØµÙˆØªÙŠ Ø¨ØµÙŠØºØ© Opus 
-   Ù„ØªÙØ§Ø¯ÙŠ Ø§Ù„ØªØ¹Ø§Ø±Ø¶ Ù…Ø¹ Ø§Ù„Ø¨Ø« Ø§Ù„Ù…ØªØµÙ„.
+2. المشغل الموسيقي (Voice Stream System):
+   يعتمد على التجميع البرمجي لمكونات VoiceConnection وحقن البث الصوتي بصيغة Opus 
+   لتفادي التعارض مع البث المتصل.
 
-3. Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© ÙˆØ§Ù„Ø­Ù…Ø§ÙŠØ© Ù…Ù† Ø§Ù„Ù‡Ø¬Ù…Ø§Øª (Anti-Raid Shield):
-   ÙŠÙ‚ÙŠØ³ Ù…Ø¹Ø¯Ù„ Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª ÙÙŠ ÙØªØ±Ø© Ù‚ØµÙŠØ±Ø©ØŒ ÙˆÙŠÙ‚ÙˆÙ… Ø¨ØªÙØ¹ÙŠÙ„ Ø¬Ø¯Ø§Ø± Ø§Ù„Ø­Ù…Ø§ÙŠØ© (Lockdown) 
-   ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù„Ù„Ø­Ø¯ Ù…Ù† Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ù…Ø®Ø§Ù„Ù ÙˆØ§Ù„Ø­Ø¯ Ù…Ù† Ø§Ù„Ø³Ø¨Ø§Ù….
+3. الرقابة والحماية من الهجمات (Anti-Raid Shield):
+   يقيس معدل انضمام الحسابات في فترة قصيرة، ويقوم بتفعيل جدار الحماية (Lockdown) 
+   تلقائياً للحد من الانضمام المخالف والحد من السبام.
 `;
 
 // ============================================================
-//  ØªÙˆØ³ÙŠØ¹ ÙƒÙˆØ¯ Ø§Ù„Ù…ØªØ§Ø¨Ø¹Ø© ÙˆØ§Ù„ØªØ´Ø®ÙŠØµØ§Øª (State Dashboard)
+//  توسيع كود المتابعة والتشخيصات (State Dashboard)
 // ============================================================
 export class SystemDiagnosticsCoordinator {
   /**
-   * ØªÙˆÙ„ÙŠØ¯ ØªÙ‚Ø±ÙŠØ± Ø´Ø§Ù…Ù„ Ù„Ù„Ù†Ø¸Ø§Ù…
+   * توليد تقرير شامل للنظام
    */
   static getDiagnosticDashboardSummary(guild: Guild): string {
     const timeDiff = Date.now() - systemState.bootTime.getTime();
     const uptimeHrs = (timeDiff / (1000 * 60 * 60)).toFixed(2);
     
-    return `âš™ï¸ **Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ… ÙˆØµØ­Ø© ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª Opus**
-â€¢ ÙˆÙ‚Øª Ø§Ù„ØªØ´ØºÙŠÙ„: ${uptimeHrs} Ø³Ø§Ø¹Ø©
-â€¢ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©: ${systemState.processedMessages} Ø±Ø³Ø§Ù„Ø©
-â€¢ Ø§Ø³ØªØ¹Ù„Ø§Ù…Ø§Øª Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ: ${systemState.aiQueriesCount} Ø§Ø³ØªØ¹Ù„Ø§Ù…
-â€¢ Ø§Ù„Ø£Ø¯ÙˆØ§Øª Ø§Ù„Ù…Ù†ÙØ°Ø©: ${systemState.toolsExecutedCount} Ø£Ø¯Ø§Ø©
-â€¢ Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ù…Ø³Ø¬Ù„Ø©: ${systemState.errorsLoggedCount} Ø®Ø·Ø£
-â€¢ Ø­Ø§Ù„Ø© Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯: âœ… Ù…ØªØµÙ„ ÙˆÙ…Ø³ØªÙ‚Ø±`;
+    return `⚙️ **لوحة التحكم وصحة تشغيل البوت Opus**
+• وقت التشغيل: ${uptimeHrs} ساعة
+• الرسائل المعالجة: ${systemState.processedMessages} رسالة
+• استعلامات الذكاء الاصطناعي: ${systemState.aiQueriesCount} استعلام
+• الأدوات المنفذة: ${systemState.toolsExecutedCount} أداة
+• الأخطاء المسجلة: ${systemState.errorsLoggedCount} خطأ
+• حالة الاتصال بديسكورد: ✅ متصل ومستقر`;
   }
 }
 
 // ============================================================
-//  14. Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„ØªØ¹Ø±ÙŠÙÙŠ Ù„Ø´Ø±Ø­ Ø§Ù„Ø¨Ù†ÙŠØ© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© (Architecture Showcase)
+//  14. الكود التعريفي لشرح البنية الأساسية (Architecture Showcase)
 // ============================================================
 export const SYSTEM_ARCHITECTURE = {
   name: "Opus AI Brain Infrastructure",
@@ -2054,66 +2211,66 @@ export const SYSTEM_ARCHITECTURE = {
 };
 
 // ============================================================
-//  Ù…Ø²ÙŠØ¯ Ù…Ù† Ø§Ù„ØªÙˆØ«ÙŠÙ‚ ÙˆÙƒÙˆØ¯ Ø§Ù„ØªÙˆØ³Ø¹Ø© Ù„ØªØ³Ù‡ÙŠÙ„ Ø§Ù„ÙÙ‡Ù… ÙˆØ§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø¹Ù„Ù‰ Ø§Ù„Ø³Ù‚Ù Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù
+//  مزيد من التوثيق وكود التوسعة لتسهيل الفهم والمحافظة على السقف المستهدف
 // ============================================================
 export const EXTENDED_DOCUMENTATION = `
 =========================================
-      ØªÙØ§ØµÙŠÙ„ Ù‡ÙŠÙƒÙ„ÙŠØ© Ø°ÙƒØ§Ø¡ Ø§Ù„Ø¨ÙˆØª Opus
+      تفاصيل هيكلية ذكاء البوت Opus
 =========================================
-1. ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª (Dialect normalization):
-   ÙŠØªÙ… Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ ÙˆØªÙˆØ­ÙŠØ¯ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø¹Ø§Ù…ÙŠØ© Ù…Ù† Ø§Ù„Ù„Ù‡Ø¬Ø§Øª (Ø§Ù„Ù†Ø¬Ø¯ÙŠØ©ØŒ Ø§Ù„Ø­Ø¬Ø§Ø²ÙŠØ©ØŒ Ø§Ù„Ù…ØµØ±ÙŠØ©ØŒ Ø§Ù„Ø´Ø§Ù…ÙŠØ©ØŒ Ø§Ù„Ù…ØºØ±Ø¨ÙŠØ©ØŒ Ø¥Ù„Ø®)
-   Ù„ØªØ¨Ø³ÙŠØ· ÙÙ‡Ù… Ø§Ù„Ø¬Ù…Ù„Ø© Ù‚Ø¨Ù„ Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ Ù„Ù€ LLM.
+1. تحليل اللهجات (Dialect normalization):
+   يتم معالجة الإدخال وتوحيد الكلمات العامية من اللهجات (النجدية، الحجازية، المصرية، الشامية، المغربية، إلخ)
+   لتبسيط فهم الجملة قبل إرسالها لـ LLM.
 
-2. Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø°Ø§ØªÙŠØ© Ø§Ù„Ø­Ø±Ø© (Autonomous moderation):
-   ÙŠØ¹Ù…Ù„ Ø§Ù„Ø±Ù‚ÙŠØ¨ Ø¨ØµÙˆØ±Ø© Ù…Ù†ÙØµÙ„Ø© Ù„ÙØ­Øµ Ø§Ù„Ø³Ù„ÙˆÙƒÙŠØ§Øª Ø§Ù„Ø®Ø§Ø·Ø¦Ø© Ø¯ÙˆÙ† ØªØ¯Ø§Ø®Ù„ Ù…Ø¹ Ù…Ø­Ø±Ùƒ Ø§Ù„ØµÙˆØª Ø£Ùˆ Ù…Ù†Ø´Ø¦ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª.
+2. المراقبة الذاتية الحرة (Autonomous moderation):
+   يعمل الرقيب بصورة منفصلة لفحص السلوكيات الخاطئة دون تداخل مع محرك الصوت أو منشئ السيرفرات.
 
-3. Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø© (Persistent Memory):
-   ØªØ¹ØªÙ…Ø¯ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø¹Ù„Ù‰ Ø¨Ù†ÙŠØ© TF-IDF Ù…Ø¯Ù…Ø¬Ø© Ø°Ø§ØªÙŠØ§Ù‹ Ù„Ù„Ø¨Ø­Ø« Ø¹Ù† Ø§Ù„ØªØ´Ø§Ø¨Ù‡ Ø§Ù„Ø¯Ù„Ø§Ù„ÙŠ ÙˆØ­ÙØ¸ Ø§Ù„Ø³ÙŠØ§Ù‚.
+3. الذاكرة الدائمة (Persistent Memory):
+   تعتمد الذاكرة على بنية TF-IDF مدمجة ذاتياً للبحث عن التشابه الدلالي وحفظ السياق.
 `;
 
 // ============================================================
-//  Ù…Ø³ØªÙ…Ø¹ Ø£Ø­Ø¯Ø§Ø« Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ ÙˆØ§Ù„ØªÙˆØ«ÙŠÙ‚ ÙˆØ§Ù„Ø®Ø¨Ø±Ø© (Member Events Listener)
+//  مستمع أحداث انضمام الأعضاء والتوثيق والخبرة (Member Events Listener)
 // ============================================================
 client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
-  // ÙØ­Øµ Ø­Ù…Ø§ÙŠØ© Ù‡Ø¬ÙˆÙ… Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù…Ø§Øª (Anti-Raid Shield)
+  // فحص حماية هجوم الانضمامات (Anti-Raid Shield)
   const isAttack = AntiRaidShield.registerJoin();
   if (isAttack) {
     const logChannel = findLogChannel(member.guild);
     if (logChannel) {
       const alert = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('ðŸš¨ Ø¯Ø±Ø¹ Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø°Ø§ØªÙŠ: ØªÙØ¹ÙŠÙ„ ÙˆØ¶Ø¹ Ø§Ù„Ø·ÙˆØ§Ø±Ø¦ (Anti-Raid Lockdown)')
-        .setDescription(`ØªÙ… ØªÙØ¹ÙŠÙ„ Ø¹Ø²Ù„ Ø§Ù„Ø³ÙŠØ±ÙØ± Ù…Ø¤Ù‚ØªØ§Ù‹ Ù„ØªØ¬Ù†Ø¨ Ø¥ØºØ±Ø§Ù‚ Ø§Ù„Ø®Ø§Ø¯Ù… Ø¨Ø­Ø³Ø§Ø¨Ø§Øª ÙˆÙ‡Ù…ÙŠØ© Ù…ØªØµÙ„Ø©.`)
+        .setTitle('🚨 درع الحماية الذاتي: تفعيل وضع الطوارئ (Anti-Raid Lockdown)')
+        .setDescription(`تم تفعيل عزل السيرفر مؤقتاً لتجنب إغراق الخادم بحسابات وهمية متصلة.`)
         .setTimestamp();
       await logChannel.send({ embeds: [alert] }).catch(() => null);
     }
     return;
   }
 
-  // Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„ØªØ±Ø­ÙŠØ¨ ÙÙŠ Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù…Ù†Ø§Ø³Ø¨Ø©
+  // إرسال الترحيب في القناة المناسبة
   const welcomeChannel = findWelcomeChannel(member.guild);
   if (welcomeChannel) {
     const embed = createWelcomeEmbed(member.guild.name);
-    await welcomeChannel.send({ content: `Ù…Ø±Ø­Ø¨Ø§Ù‹ Ø¨Ùƒ ${member}!`, embeds: [embed] }).catch(() => null);
+    await welcomeChannel.send({ content: `مرحباً بك ${member}!`, embeds: [embed] }).catch(() => null);
   }
 });
 
-// Ù…Ø³ØªÙ…Ø¹ Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ù„ØªØªØ¨Ø¹ Ù…Ø³ØªÙˆÙŠØ§Øª Ø§Ù„Ø®Ø¨Ø±Ø© (XP System Trigger)
+// مستمع أحداث الرسائل لتتبع مستويات الخبرة (XP System Trigger)
 client.on(Events.MessageCreate, async (message: Message) => {
   if (message.author.bot) return;
   if (!message.guild) return;
   
-  // Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø®Ø¨Ø±Ø© Ù„Ù„Ø¹Ø¶Ùˆ
+  // معالجة الخبرة للعضو
   LevelingSystem.handleMessageXP(message.author.id, message.author.username, message.channel);
 });
 
-// Ù…Ø³ØªÙ…Ø¹ ØªÙØ§Ø¹Ù„Ø§Øª Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ù„ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
+// مستمع تفاعلات إضافة الإيموجي لتوثيق الأعضاء تلقائياً
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
   try {
     if (reaction.partial) await reaction.fetch();
     await MemberVerificationGateway.handleReaction(reaction, user);
   } catch (err) {
-    console.error('[Event Reaction] Ø®Ø·Ø£ ÙÙŠ Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„ØªÙØ§Ø¹Ù„:', err);
+    console.error('[Event Reaction] خطأ في معالجة التفاعل:', err);
   }
 });
 
@@ -2130,262 +2287,262 @@ interface AzkarEntry {
 export class AzkarDatabase {
   private static azkar: AzkarEntry[] = [
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø£ÙŽØµÙ’Ø¨ÙŽØ­Ù’Ù†ÙŽØ§ ÙˆÙŽØ£ÙŽØµÙ’Ø¨ÙŽØ­ÙŽ Ø§Ù„Ù’Ù…ÙÙ„Ù’ÙƒÙ Ù„ÙÙ„ÙŽÙ‘Ù‡Ù ÙˆÙŽØ§Ù„Ù’Ø­ÙŽÙ…Ù’Ø¯Ù Ù„ÙÙ„ÙŽÙ‘Ù‡Ù Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ÙˆÙŽØ­Ù’Ø¯ÙŽÙ‡Ù Ù„ÙŽØ§ Ø´ÙŽØ±ÙÙŠÙƒÙŽ Ù„ÙŽÙ‡Ù",
+      category: "أذكار الصباح",
+      text: "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",
       count: 1,
-      reward: "ÙØªØ­ Ø¨Ø±ÙƒØ§Øª Ø§Ù„ÙŠÙˆÙ… ÙˆØ§Ù„Ø§Ø³ØªØ¹Ø§Ù†Ø© Ø¨Ø§Ù„Ù„Ù‡ ÙˆØªÙˆØ­ÙŠØ¯Ù‡"
+      reward: "فتح بركات اليوم والاستعانة بالله وتوحيده"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¨ÙƒÙŽ Ø£ÙŽØµÙ’Ø¨ÙŽØ­Ù’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ø£ÙŽÙ…Ù’Ø³ÙŽÙŠÙ’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ù†ÙŽØ­Ù’ÙŠÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ù†ÙŽÙ…ÙÙˆØªÙØŒ ÙˆÙŽØ¥ÙÙ„ÙŽÙŠÙ’ÙƒÙŽ Ø§Ù„Ù†ÙÙ‘Ø´ÙÙˆØ±Ù",
+      category: "أذكار الصباح",
+      text: "اللَّهُمَّ بكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ",
       count: 1,
-      reward: "ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø­Ø±ÙƒÙŠØ© ÙˆØ§Ù„Ø§Ø¹ØªØ±Ø§Ù Ø¨Ø±Ø¨ÙˆØ¨ÙŠØ© Ø§Ù„Ø®Ø§Ù„Ù‚"
+      reward: "تسليم الحركية والاعتراف بربوبية الخالق"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "ÙŠÙŽØ§ Ø­ÙŽÙŠÙÙ‘ ÙŠÙŽØ§ Ù‚ÙŽÙŠÙÙ‘ÙˆÙ…Ù Ø¨ÙØ±ÙŽØ­Ù’Ù…ÙŽØªÙÙƒÙŽ Ø£ÙŽØ³Ù’ØªÙŽØºÙÙŠØ«Ù Ø£ÙŽØµÙ’Ù„ÙØ­Ù’ Ù„ÙÙŠ Ø´ÙŽØ£Ù’Ù†ÙÙŠ ÙƒÙÙ„ÙŽÙ‘Ù‡Ù ÙˆÙŽÙ„ÙŽØ§ ØªÙŽÙƒÙÙ„Ù’Ù†ÙÙŠ Ø¥ÙÙ„ÙŽÙ‰ Ù†ÙŽÙÙ’Ø³ÙÙŠ Ø·ÙŽØ±Ù’ÙÙŽØ©ÙŽ Ø¹ÙŽÙŠÙ’Ù†Ù",
+      category: "أذكار الصباح",
+      text: "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ أَصْلِحْ لِي شَأْنِي كُلَّهُ وَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ",
       count: 1,
-      reward: "ØµÙ„Ø§Ø­ Ø§Ù„Ø´Ø£Ù† ÙƒÙ„Ù‡ ÙˆÙˆÙ‚Ø§ÙŠØ© Ù…Ù† Ø¹Ø¬Ø² Ø§Ù„Ù†ÙØ³"
+      reward: "صلاح الشأن كله ووقاية من عجز النفس"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø±ÙŽØ¶ÙÙŠØªÙ Ø¨ÙØ§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø±ÙŽØ¨Ù‹Ù‘Ø§ØŒ ÙˆÙŽØ¨ÙØ§Ù„Ù’Ø¥ÙØ³Ù’Ù„ÙŽØ§Ù…Ù Ø¯ÙÙŠÙ†Ù‹Ø§ØŒ ÙˆÙŽØ¨ÙÙ…ÙØ­ÙŽÙ…ÙŽÙ‘Ø¯Ù ØµÙŽÙ„ÙŽÙ‘Ù‰ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø¹ÙŽÙ„ÙŽÙŠÙ’Ù‡Ù ÙˆÙŽØ³ÙŽÙ„ÙŽÙ‘Ù…ÙŽ Ù†ÙŽØ¨ÙÙŠÙ‹Ù‘Ø§",
+      category: "أذكار الصباح",
+      text: "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا",
       count: 3,
-      reward: "ÙƒØ§Ù† Ø­Ù‚Ø§Ù‹ Ø¹Ù„Ù‰ Ø§Ù„Ù„Ù‡ Ø£Ù† ÙŠØ±Ø¶ÙŠÙ‡ ÙŠÙˆÙ… Ø§Ù„Ù‚ÙŠØ§Ù…Ø©"
+      reward: "كان حقاً على الله أن يرضيه يوم القيامة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø³ÙØ¨Ù’Ø­ÙŽØ§Ù†ÙŽ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ÙˆÙŽØ¨ÙØ­ÙŽÙ…Ù’Ø¯ÙÙ‡Ù: Ø¹ÙŽØ¯ÙŽØ¯ÙŽ Ø®ÙŽÙ„Ù’Ù‚ÙÙ‡ÙØŒ ÙˆÙŽØ±ÙØ¶ÙŽØ§ Ù†ÙŽÙÙ’Ø³ÙÙ‡ÙØŒ ÙˆÙŽØ²ÙÙ†ÙŽØ©ÙŽ Ø¹ÙŽØ±Ù’Ø´ÙÙ‡ÙØŒ ÙˆÙŽÙ…ÙØ¯ÙŽØ§Ø¯ÙŽ ÙƒÙŽÙ„ÙÙ…ÙŽØ§ØªÙÙ‡Ù",
+      category: "أذكار الصباح",
+      text: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ: عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ",
       count: 3,
-      reward: "Ø£ÙØ¶Ù„ Ù…Ù† Ø£Ø°ÙƒØ§Ø± ÙƒØ«ÙŠØ±Ø© ØªØ³ØªØºØ±Ù‚ Ø³Ø§Ø¹Ø§Øª"
+      reward: "أفضل من أذكار كثيرة تستغرق ساعات"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡",
-      text: "Ø£ÙŽÙ…Ù’Ø³ÙŽÙŠÙ’Ù†ÙŽØ§ ÙˆÙŽØ£ÙŽÙ…Ù’Ø³ÙŽÙ‰ Ø§Ù„Ù’Ù…ÙÙ„Ù’ÙƒÙ Ù„ÙÙ„ÙŽÙ‘Ù‡Ù ÙˆÙŽØ§Ù„Ù’Ø­ÙŽÙ…Ù’Ø¯Ù Ù„ÙÙ„ÙŽÙ‘Ù‡Ù Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ÙˆÙŽØ­Ù’Ø¯ÙŽÙ‡Ù Ù„ÙŽØ§ Ø´ÙŽØ±ÙÙŠÙƒÙŽ Ù„ÙŽÙ‡Ù",
+      category: "أذكار المساء",
+      text: "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ وَالْحَمْدُ لِلَّهِ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",
       count: 1,
-      reward: "Ø§Ø³ØªÙ‚Ø¨Ø§Ù„ Ø§Ù„Ù„ÙŠÙ„ Ø¨Ø§Ù„ØªÙˆØ­ÙŠØ¯ ÙˆØ§Ù„Ø­Ù…Ø¯ ÙˆØ§Ù„Ø§Ø³ØªÙ‚Ø±Ø§Ø±"
+      reward: "استقبال الليل بالتوحيد والحمد والاستقرار"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¨ÙÙƒÙŽ Ø£ÙŽÙ…Ù’Ø³ÙŽÙŠÙ’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ø£ÙŽØµÙ’Ø¨ÙŽØ­Ù’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ù†ÙŽØ­Ù’ÙŠÙŽØ§ØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ù†ÙŽÙ…ÙÙˆØªÙØŒ ÙˆÙŽØ¥ÙÙ„ÙŽÙŠÙ’ÙƒÙŽ Ø§Ù„Ù’Ù…ÙŽØµÙÙŠØ±Ù",
+      category: "أذكار المساء",
+      text: "اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ",
       count: 1,
-      reward: "ØªÙÙˆÙŠØ¶ Ø§Ù„Ø­ÙŠØ§Ø© ÙˆØ§Ù„ÙˆÙØ§Ø© Ù„Ù„Ù‡ Ø³Ø¨Ø­Ø§Ù†Ù‡ ÙˆØªØ¹Ø§Ù„Ù‰"
+      reward: "تفويض الحياة والوفاة لله سبحانه وتعالى"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡",
-      text: "Ø£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽÙ„ÙÙ…ÙŽØ§ØªÙ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø§Ù„ØªÙŽÙ‘Ø§Ù…ÙŽÙ‘Ø§ØªÙ Ù…ÙÙ†Ù’ Ø´ÙŽØ±ÙÙ‘ Ù…ÙŽØ§ Ø®ÙŽÙ„ÙŽÙ‚ÙŽ",
+      category: "أذكار المساء",
+      text: "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
       count: 3,
-      reward: "Ù„Ù… ØªØ¶Ø±Ù‡ Ø­Ù…Ø© Ø£Ùˆ Ù„Ø¯ØºØ© Ø¹Ù‚Ø±Ø¨ ÙÙŠ ØªÙ„Ùƒ Ø§Ù„Ù„ÙŠÙ„Ø©"
+      reward: "لم تضره حمة أو لدغة عقرب في تلك الليلة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙÙ‘ÙŠ Ø£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽ Ù…ÙÙ†ÙŽ Ø§Ù„Ù’Ù‡ÙŽÙ…ÙÙ‘ ÙˆÙŽØ§Ù„Ù’Ø­ÙŽØ²ÙŽÙ†ÙØŒ ÙˆÙŽØ£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽ Ù…ÙÙ†ÙŽ Ø§Ù„Ù’Ø¹ÙŽØ¬Ù’Ø²Ù ÙˆÙŽØ§Ù„Ù’ÙƒÙŽØ³ÙŽÙ„Ù",
+      category: "أذكار المساء",
+      text: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَأَعُوذُ بِكَ مِنَ الْعَجْزِ وَالْكَسَلِ",
       count: 1,
-      reward: "Ø°Ù‡Ø§Ø¨ Ø§Ù„Ù‡Ù… ÙˆÙ‚Ø¶Ø§Ø¡ Ø§Ù„Ø¯ÙŠÙ† ÙˆØ§Ù„Ù†Ø´Ø§Ø· Ø§Ù„Ø¨Ø¯Ù†ÙŠ"
+      reward: "ذهاب الهم وقضاء الدين والنشاط البدني"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø¨Ø¹Ø¯ Ø§Ù„ØµÙ„Ø§Ø©",
-      text: "Ø£Ø³ØªØºÙØ± Ø§Ù„Ù„Ù‡ ØŒ Ø£Ø³ØªØºÙØ± Ø§Ù„Ù„Ù‡ ØŒ Ø£Ø³ØªØºÙØ± Ø§Ù„Ù„Ù‡. Ø§Ù„Ù„Ù‡Ù… Ø£Ù†Øª Ø§Ù„Ø³Ù„Ø§Ù… ÙˆÙ…Ù†Ùƒ Ø§Ù„Ø³Ù„Ø§Ù… ØªØ¨Ø§Ø±ÙƒØª ÙŠØ§ Ø°Ø§ Ø§Ù„Ø¬Ù„Ø§Ù„ ÙˆØ§Ù„Ø¥ÙƒØ±Ø§Ù…",
+      category: "أذكار بعد الصلاة",
+      text: "أستغفر الله ، أستغفر الله ، أستغفر الله. اللهم أنت السلام ومنك السلام تباركت يا ذا الجلال والإكرام",
       count: 1,
-      reward: "Ø¬Ø¨Ø± Ø§Ù„Ø®Ù„Ù„ Ø§Ù„Ø­Ø§ØµÙ„ ÙÙŠ Ø§Ù„ØµÙ„Ø§Ø©"
+      reward: "جبر الخلل الحاصل في الصلاة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø¨Ø¹Ø¯ Ø§Ù„ØµÙ„Ø§Ø©",
-      text: "Ù„Ø§ Ø¥Ù„Ù‡ Ø¥Ù„Ø§ Ø§Ù„Ù„Ù‡ ÙˆØ­Ø¯Ù‡ Ù„Ø§ Ø´Ø±ÙŠÙƒ Ù„Ù‡ØŒ Ù„Ù‡ Ø§Ù„Ù…Ù„Ùƒ ÙˆÙ„Ù‡ Ø§Ù„Ø­Ù…Ø¯ ÙˆÙ‡Ùˆ Ø¹Ù„Ù‰ ÙƒÙ„ Ø´ÙŠØ¡ Ù‚Ø¯ÙŠØ±ØŒ Ù„Ø§ Ø­ÙˆÙ„ ÙˆÙ„Ø§ Ù‚ÙˆØ© Ø¥Ù„Ø§ Ø¨Ø§Ù„Ù„Ù‡",
+      category: "أذكار بعد الصلاة",
+      text: "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد وهو على كل شيء قدير، لا حول ولا قوة إلا بالله",
       count: 1,
-      reward: "Ù†ÙÙŠ Ø§Ù„Ø´Ø±Ùƒ ÙˆØ§Ù„Ø§Ø¹ØªØ±Ø§Ù Ø¨Ø¹Ø¸Ù…Ø© Ø§Ù„Ù…Ù„Ùƒ Ø§Ù„Ù‚Ø¯ÙŠØ±"
+      reward: "نفي الشرك والاعتراف بعظمة الملك القدير"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø¨Ø¹Ø¯ Ø§Ù„ØµÙ„Ø§Ø©",
-      text: "Ø³ÙØ¨Ù’Ø­ÙŽØ§Ù†ÙŽ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù (33) ØŒ Ø§Ù„Ù’Ø­ÙŽÙ…Ù’Ø¯Ù Ù„ÙÙ„ÙŽÙ‘Ù‡Ù (33) ØŒ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø£ÙŽÙƒÙ’Ø¨ÙŽØ±Ù (33) Ø«Ù… ØªÙ…Ø§Ù… Ø§Ù„Ù…Ø¦Ø©: Ù„Ø§ Ø¥Ù„Ù‡ Ø¥Ù„Ø§ Ø§Ù„Ù„Ù‡ ÙˆØ­Ø¯Ù‡ Ù„Ø§ Ø´Ø±ÙŠÙƒ Ù„Ù‡",
+      category: "أذكار بعد الصلاة",
+      text: "سُبْحَانَ اللَّهِ (33) ، الْحَمْدُ لِلَّهِ (33) ، اللَّهُ أَكْبَرُ (33) ثم تمام المئة: لا إله إلا الله وحده لا شريك له",
       count: 1,
-      reward: "ØºÙØ±Øª Ø®Ø·Ø§ÙŠØ§Ù‡ ÙˆØ¥Ù† ÙƒØ§Ù†Øª Ù…Ø«Ù„ Ø²Ø¨Ø¯ Ø§Ù„Ø¨Ø­Ø±"
+      reward: "غفرت خطاياه وإن كانت مثل زبد البحر"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù†ÙˆÙ…",
-      text: "Ø¨ÙØ§Ø³Ù’Ù…ÙÙƒÙŽ Ø±ÙŽØ¨ÙÙ‘ÙŠ ÙˆÙŽØ¶ÙŽØ¹Ù’ØªÙ Ø¬ÙŽÙ†Ù’Ø¨ÙÙŠØŒ ÙˆÙŽØ¨ÙÙƒÙŽ Ø£ÙŽØ±Ù’ÙÙŽØ¹ÙÙ‡ÙØŒ ÙÙŽØ¥ÙÙ†Ù’ Ø£ÙŽÙ…Ù’Ø³ÙŽÙƒÙ’ØªÙŽ Ù†ÙŽÙÙ’Ø³ÙÙŠ ÙÙŽØ§Ø±Ù’Ø­ÙŽÙ…Ù’Ù‡ÙŽØ§ØŒ ÙˆÙŽØ¥ÙÙ†Ù’ Ø£ÙŽØ±Ù’Ø³ÙŽÙ„Ù’ØªÙŽÙ‡ÙŽØ§ ÙÙŽØ§Ø­Ù’ÙÙŽØ¸Ù’Ù‡ÙŽØ§",
+      category: "أذكار النوم",
+      text: "بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، فَإِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا",
       count: 1,
-      reward: "Ø­ÙØ¸ Ø§Ù„Ø±ÙˆØ­ Ø¹Ù†Ø¯ Ø§Ù„Ù†ÙˆÙ… ÙˆØ±Ø§Ø­ØªÙ‡Ø§ Ø§Ù„Ù†ÙØ³ÙŠØ©"
+      reward: "حفظ الروح عند النوم وراحتها النفسية"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù†ÙˆÙ…",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ù‚ÙÙ†ÙÙŠ Ø¹ÙŽØ°ÙŽØ§Ø¨ÙŽÙƒÙŽ ÙŠÙŽÙˆÙ’Ù…ÙŽ ØªÙŽØ¨Ù’Ø¹ÙŽØ«Ù Ø¹ÙØ¨ÙŽØ§Ø¯ÙŽÙƒÙŽ",
+      category: "أذكار النوم",
+      text: "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ",
       count: 3,
-      reward: "Ø§Ù„ÙˆÙ‚Ø§ÙŠØ© Ù…Ù† Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØ¹Ø°Ø§Ø¨ Ø§Ù„Ø¢Ø®Ø±Ø©"
+      reward: "الوقاية من الحساب وعذاب الآخرة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù†ÙˆÙ…",
-      text: "Ù‚Ø±Ø§Ø¡Ø© Ø³ÙˆØ±Ø© Ø§Ù„Ù…Ù„Ùƒ",
+      category: "أذكار النوم",
+      text: "قراءة سورة الملك",
       count: 1,
-      reward: "Ø§Ù„Ù…Ø§Ù†Ø¹Ø© ÙˆØ§Ù„Ù…Ù†Ø¬ÙŠØ© Ù…Ù† Ø¹Ø°Ø§Ø¨ Ø§Ù„Ù‚Ø¨Ø± Ù„Ù…Ù† ÙŠØ¯Ø§ÙˆÙ… Ø¹Ù„ÙŠÙ‡Ø§"
+      reward: "المانعة والمنجية من عذاب القبر لمن يداوم عليها"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„Ù‘ÙŽÙ‡ÙÙ…Ù‘ÙŽ Ø¥ÙÙ†Ù‘ÙŽÙƒÙŽ Ø¹ÙŽÙÙÙˆÙ‘ÙŒ ØªÙØ­ÙØ¨Ù‘Ù Ø§Ù„Ù’Ø¹ÙŽÙÙ’ÙˆÙŽ ÙÙŽØ§Ø¹Ù’ÙÙ Ø¹ÙŽÙ†Ù‘ÙÙŠ",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي",
       count: 1,
-      reward: "Ø·Ù„Ø¨ Ø§Ù„Ø¹ÙÙˆ Ø§Ù„Ø´Ø§Ù…Ù„ ÙÙŠ Ø§Ù„Ø¯Ù†ÙŠØ§ ÙˆØ§Ù„Ø¢Ø®Ø±Ø©"
+      reward: "طلب العفو الشامل في الدنيا والآخرة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø±ÙŽØ¨ÙŽÙ‘Ù†ÙŽØ§ Ø¢ØªÙÙ†ÙŽØ§ ÙÙÙŠ Ø§Ù„Ø¯ÙÙ‘Ù†Ù’ÙŠÙŽØ§ Ø­ÙŽØ³ÙŽÙ†ÙŽØ©Ù‹ ÙˆÙŽÙÙÙŠ Ø§Ù„Ù’Ø¢Ø®ÙØ±ÙŽØ©Ù Ø­ÙŽØ³ÙŽÙ†ÙŽØ©Ù‹ ÙˆÙŽÙ‚ÙÙ†ÙŽØ§ Ø¹ÙŽØ°ÙŽØ§Ø¨ÙŽ Ø§Ù„Ù†ÙŽÙ‘Ø§Ø±Ù",
+      category: "أدعية عامة",
+      text: "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
       count: 1,
-      reward: "Ø£Ø´Ù…Ù„ Ø¯Ø¹Ø§Ø¡ Ù„Ù„Ø®ÙŠØ± ÙˆØ§Ù„Ø§Ø³ØªÙ‚Ø±Ø§Ø±"
+      reward: "أشمل دعاء للخير والاستقرار"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "ÙŠÙŽØ§ Ù…ÙÙ‚ÙŽÙ„ÙÙ‘Ø¨ÙŽ Ø§Ù„Ù’Ù‚ÙÙ„ÙÙˆØ¨Ù Ø«ÙŽØ¨ÙÙ‘ØªÙ’ Ù‚ÙŽÙ„Ù’Ø¨ÙÙŠ Ø¹ÙŽÙ„ÙŽÙ‰ Ø¯ÙÙŠÙ†ÙÙƒÙŽ",
+      category: "أدعية عامة",
+      text: "يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ",
       count: 1,
-      reward: "ØªØ«Ø¨ÙŠØª Ø§Ù„Ù‡Ø¯Ø§ÙŠØ© ÙˆØ§Ù„ÙˆÙ‚Ø§ÙŠØ© Ù…Ù† Ø§Ù„Ø§Ù†Ø­Ø±Ø§Ù"
+      reward: "تثبيت الهداية والوقاية من الانحراف"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙÙ‘ÙŠ Ø£ÙŽØ³Ù’Ø£ÙŽÙ„ÙÙƒÙŽ Ø§Ù„Ù’Ø¹ÙÙ„Ù’Ù…ÙŽ Ø§Ù„Ù†ÙŽÙ‘Ø§ÙÙØ¹ÙŽ ÙˆÙŽØ§Ù„Ø±ÙÙ‘Ø²Ù’Ù‚ÙŽ Ø§Ù„Ø·ÙŽÙ‘ÙŠÙÙ‘Ø¨ÙŽ ÙˆÙŽØ§Ù„Ù’Ø¹ÙŽÙ…ÙŽÙ„ÙŽ Ø§Ù„Ù’Ù…ÙØªÙŽÙ‚ÙŽØ¨ÙŽÙ‘Ù„ÙŽ",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعِلْمَ النَّافِعَ وَالرِّزْقَ الطَّيِّبَ وَالْعَمَلَ الْمُتَقَبَّلَ",
       count: 1,
-      reward: "ØªÙˆØ¬ÙŠÙ‡ Ø§Ù„ÙŠÙˆÙ… Ù„Ù„ØªØ·ÙˆØ± ÙˆØ§Ù„Ø¨Ø±ÙƒØ©"
+      reward: "توجيه اليوم للتطور والبركة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ù„Ø§ Ø¥Ù„Ù‡ Ø¥Ù„Ø§ Ø£Ù†Øª Ø³Ø¨Ø­Ø§Ù†Ùƒ Ø¥Ù†ÙŠ ÙƒÙ†Øª Ù…Ù† Ø§Ù„Ø¸Ø§Ù„Ù…ÙŠÙ†",
+      category: "أدعية عامة",
+      text: "لا إله إلا أنت سبحانك إني كنت من الظالمين",
       count: 1,
-      reward: "ØªÙØ±ÙŠØ¬ Ø§Ù„ÙƒØ±ÙˆØ¨ ÙˆØ§Ù„Ù‡Ù…ÙˆÙ… Ø§Ù„Ø¹Ø³ÙŠØ±Ø©"
+      reward: "تفريج الكروب والهموم العسيرة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø­ÙŽØ³Ù’Ø¨ÙÙŠÙŽ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ù‡ÙÙˆÙŽ Ø¹ÙŽÙ„ÙŽÙŠÙ’Ù‡Ù ØªÙŽÙˆÙŽÙƒÙŽÙ‘Ù„Ù’ØªÙ ÙˆÙŽÙ‡ÙÙˆÙŽ Ø±ÙŽØ¨ÙÙ‘ Ø§Ù„Ù’Ø¹ÙŽØ±Ù’Ø´Ù Ø§Ù„Ù’Ø¹ÙŽØ¸ÙÙŠÙ…Ù",
+      category: "أذكار الصباح",
+      text: "حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
       count: 7,
-      reward: "ÙƒÙØ§Ù‡ Ø§Ù„Ù„Ù‡ Ù…Ø§ Ø£Ù‡Ù…Ù‡ Ù…Ù† Ø£Ù…Ø± Ø§Ù„Ø¯Ù†ÙŠØ§ ÙˆØ§Ù„Ø¢Ø®Ø±Ø©"
+      reward: "كفاه الله ما أهمه من أمر الدنيا والآخرة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¹Ø§ÙÙÙ†ÙŠ ÙÙŠ Ø¨ÙŽØ¯ÙŽÙ†ÙŠØŒ Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¹Ø§ÙÙÙ†ÙŠ ÙÙŠ Ø³ÙŽÙ…Ù’Ø¹ÙŠØŒ Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¹Ø§ÙÙÙ†ÙŠ ÙÙŠ Ø¨ÙŽØµÙŽØ±ÙŠØŒ Ù„Ø§ Ø¥Ù„Ù‡ÙŽ Ø¥Ù„ÙŽÙ‘Ø§ Ø£Ù†ØªÙŽ",
+      category: "أذكار الصباح",
+      text: "اللَّهُمَّ عافِني في بَدَني، اللَّهُمَّ عافِني في سَمْعي، اللَّهُمَّ عافِني في بَصَري، لا إلهَ إلَّا أنتَ",
       count: 3,
-      reward: "Ø·Ù„Ø¨ Ø§Ù„Ø¹Ø§ÙÙŠØ© ÙˆØ§Ù„ÙˆÙ‚Ø§ÙŠØ© Ù…Ù† Ø§Ù„Ø£Ù…Ø±Ø§Ø¶ ÙˆØ§Ù„Ø¢ÙØ§Øª"
+      reward: "طلب العافية والوقاية من الأمراض والآفات"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ù…Ø§ Ø£ÙŽÙ…Ù’Ø³ÙŽÙ‰ Ø¨ÙŠ Ù…Ù† Ù†ÙØ¹Ù’Ù…ÙŽØ©Ù Ø£Ùˆ Ø¨Ø£ÙŽØ­ÙŽØ¯Ù Ù…Ù† Ø®ÙŽÙ„Ù’Ù‚ÙÙƒÙŽØŒ ÙÙŽÙ…ÙÙ†Ù’ÙƒÙŽ ÙˆÙŽØ­Ù’Ø¯ÙŽÙƒÙŽ Ù„Ø§ Ø´ÙŽØ±ÙÙŠÙƒÙŽ Ù„ÙŽÙƒÙŽØŒ ÙÙŽÙ„ÙŽÙƒÙŽ Ø§Ù„Ø­ÙŽÙ…Ù’Ø¯Ù ÙˆÙŽÙ„ÙŽÙƒÙŽ Ø§Ù„Ø´ÙÙ‘ÙƒÙ’Ø±Ù",
+      category: "أذكار المساء",
+      text: "اللَّهُمَّ ما أَمْسَى بي من نِعْمَةٍ أو بأَحَدٍ من خَلْقِكَ، فَمِنْكَ وَحْدَكَ لا شَرِيكَ لَكَ، فَلَكَ الحَمْدُ وَلَكَ الشُّكْرُ",
       count: 1,
-      reward: "Ø£Ø¯Ù‰ Ø´ÙƒØ± Ù„ÙŠÙ„ØªÙ‡ ÙƒØ§Ù…Ù„Ø©"
+      reward: "أدى شكر ليلته كاملة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø§Ø³ØªØºÙØ§Ø±",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø£ÙŽÙ†Ù’ØªÙŽ Ø±ÙŽØ¨ÙÙ‘ÙŠ Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø£ÙŽÙ†Ù’ØªÙŽØŒ Ø®ÙŽÙ„ÙŽÙ‚Ù’ØªÙŽÙ†ÙÙŠ ÙˆÙŽØ£ÙŽÙ†ÙŽØ§ Ø¹ÙŽØ¨Ù’Ø¯ÙÙƒÙŽØŒ ÙˆÙŽØ£ÙŽÙ†ÙŽØ§ Ø¹ÙŽÙ„ÙŽÙ‰ Ø¹ÙŽÙ‡Ù’Ø¯ÙÙƒÙŽ ÙˆÙŽÙˆÙŽØ¹Ù’Ø¯ÙÙƒÙŽ Ù…ÙŽØ§ Ø§Ø³Ù’ØªÙŽØ·ÙŽØ¹Ù’ØªÙØŒ Ø£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽ Ù…ÙÙ†Ù’ Ø´ÙŽØ±ÙÙ‘ Ù…ÙŽØ§ ØµÙŽÙ†ÙŽØ¹Ù’ØªÙØŒ Ø£ÙŽØ¨ÙÙˆØ¡Ù Ù„ÙŽÙƒÙŽ Ø¨ÙÙ†ÙØ¹Ù’Ù…ÙŽØªÙÙƒÙŽ Ø¹ÙŽÙ„ÙŽÙŠÙŽÙ‘ØŒ ÙˆÙŽØ£ÙŽØ¨ÙÙˆØ¡Ù Ù„ÙŽÙƒÙŽØ¨ÙØ°ÙŽÙ†Ù’Ø¨ÙÙŠ ÙÙŽØ§ØºÙ’ÙÙØ±Ù’ Ù„ÙÙŠ ÙÙŽØ¥ÙÙ†ÙŽÙ‘Ù‡Ù Ù„ÙŽØ§ ÙŠÙŽØºÙ’ÙÙØ±Ù Ø§Ù„Ø°ÙÙ‘Ù†ÙÙˆØ¨ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø£ÙŽÙ†Ù’ØªÙŽ",
+      category: "أذكار الاستغفار",
+      text: "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَبِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ",
       count: 1,
-      reward: "Ø³ÙŠØ¯ Ø§Ù„Ø§Ø³ØªØºÙØ§Ø±ØŒ Ù…Ù† Ù‚Ø§Ù„Ù‡ Ù…ÙˆÙ‚Ù†Ø§Ù‹ Ø¨Ù‡ ÙˆÙ…Ø§Øª Ø¯Ø®Ù„ Ø§Ù„Ø¬Ù†Ø©"
+      reward: "سيد الاستغفار، من قاله موقناً به ومات دخل الجنة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø§Ø³ØªØºÙØ§Ø±",
-      text: "Ø£Ø³ØªØºÙØ± Ø§Ù„Ù„Ù‡ Ø§Ù„Ø¹Ø¸ÙŠÙ… Ø§Ù„Ø°ÙŠ Ù„Ø§ Ø¥Ù„Ù‡ Ø¥Ù„Ø§ Ù‡Ùˆ Ø§Ù„Ø­ÙŠ Ø§Ù„Ù‚ÙŠÙˆÙ… ÙˆØ£ØªÙˆØ¨ Ø¥Ù„ÙŠÙ‡",
+      category: "أذكار الاستغفار",
+      text: "أستغفر الله العظيم الذي لا إله إلا هو الحي القيوم وأتوب إليه",
       count: 3,
-      reward: "ØºÙØ±Øª Ø°Ù†ÙˆØ¨Ù‡ ÙˆØ¥Ù† ÙƒØ§Ù† ÙØ§Ø±Ø§Ù‹ Ù…Ù† Ø§Ù„Ø²Ø­Ù"
+      reward: "غفرت ذنوبه وإن كان فاراً من الزحف"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ù„Ù…Ù†Ø²Ù„",
-      text: "Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ÙˆÙŽÙ„ÙŽØ¬Ù’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø®ÙŽØ±ÙŽØ¬Ù’Ù†ÙŽØ§ØŒ ÙˆÙŽØ¹ÙŽÙ„ÙŽÙ‰ Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø±ÙŽØ¨ÙÙ‘Ù†ÙŽØ§ ØªÙŽÙˆÙŽÙƒÙŽÙ‘Ù„Ù’Ù†ÙŽØ§",
+      category: "أذكار الدخول للمنزل",
+      text: "بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا، وَعَلَى اللَّهِ رَبِّنَا تَوَكَّلْنَا",
       count: 1,
-      reward: "Ø¯Ø®ÙˆÙ„ Ù…Ø¨Ø§Ø±Ùƒ ÙˆØ·Ø±Ø¯ Ø§Ù„Ø´ÙŠØ·Ø§Ù† Ù…Ù† Ø§Ù„Ø¨ÙŠØª Ø¹Ù†Ø¯ Ø§Ù„Ø¯Ø®ÙˆÙ„"
+      reward: "دخول مبارك وطرد الشيطان من البيت عند الدخول"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø®Ø±ÙˆØ¬ Ù…Ù† Ø§Ù„Ù…Ù†Ø²Ù„",
-      text: "Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙØŒ ØªÙŽÙˆÙŽÙƒÙŽÙ‘Ù„Ù’ØªÙ Ø¹ÙŽÙ„ÙŽÙ‰ Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙØŒ Ù„ÙŽØ§ Ø­ÙŽÙˆÙ’Ù„ÙŽ ÙˆÙŽÙ„ÙŽØ§ Ù‚ÙÙˆÙŽÙ‘Ø©ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø¨ÙØ§Ù„Ù„ÙŽÙ‘Ù‡Ù",
+      category: "أذكار الخروج من المنزل",
+      text: "بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
       count: 1,
-      reward: "ÙŠÙ‚Ø§Ù„ Ù„Ù‡: Ù‡ÙØ¯ÙŠØª ÙˆÙƒÙÙÙŠØª ÙˆÙˆÙÙ‚ÙŠØªØŒ ÙˆØªÙ†Ø­Ù‰ Ø¹Ù†Ù‡ Ø§Ù„Ø´ÙŠØ·Ø§Ù†"
+      reward: "يقال له: هُديت وكُفيت ووُقيت، وتنحى عنه الشيطان"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø¬Ø¯",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø§ÙÙ’ØªÙŽØ­Ù’ Ù„ÙÙŠ Ø£ÙŽØ¨Ù’ÙˆÙŽØ§Ø¨ÙŽ Ø±ÙŽØ­Ù’Ù…ÙŽØªÙÙƒÙŽ",
+      category: "أذكار المسجد",
+      text: "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
       count: 1,
-      reward: "Ø¹Ù†Ø¯ Ø¯Ø®ÙˆÙ„ Ø§Ù„Ù…Ø³Ø¬Ø¯ØŒ Ø·Ù„Ø¨ ÙÙŠØ¶ Ø§Ù„Ø±Ø­Ù…Ø© Ø§Ù„Ø¥Ù„Ù‡ÙŠØ©"
+      reward: "عند دخول المسجد، طلب فيض الرحمة الإلهية"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø¬Ø¯",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙÙ‘ÙŠ Ø£ÙŽØ³Ù’Ø£ÙŽÙ„ÙÙƒÙŽ Ù…ÙÙ†Ù’ ÙÙŽØ¶Ù’Ù„ÙÙƒÙŽ",
+      category: "أذكار المسجد",
+      text: "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
       count: 1,
-      reward: "Ø¹Ù†Ø¯ Ø§Ù„Ø®Ø±ÙˆØ¬ Ù…Ù† Ø§Ù„Ù…Ø³Ø¬Ø¯ØŒ Ø§Ù„Ø³Ø¹ÙŠ Ù„Ø·Ù„Ø¨ Ø§Ù„Ø±Ø²Ù‚ ÙˆØ§Ù„Ø¨Ø±ÙƒØ©"
+      reward: "عند الخروج من المسجد، السعي لطلب الرزق والبركة"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø·Ø¹Ø§Ù…",
-      text: "Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù (ÙˆØ¥Ø°Ø§ Ù†Ø³ÙŠ ÙÙŠ Ø£ÙˆÙ„Ù‡: Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù ÙÙŠ Ø£ÙŽÙˆÙŽÙ‘Ù„ÙÙ‡Ù ÙˆÙŽØ¢Ø®ÙØ±ÙÙ‡Ù)",
+      category: "أذكار الطعام",
+      text: "بِسْمِ اللَّهِ (وإذا نسي في أوله: بِسْمِ اللَّهِ في أَوَّلِهِ وَآخِرِهِ)",
       count: 1,
-      reward: "Ù…Ù†Ø¹ Ø§Ù„Ø´ÙŠØ·Ø§Ù† Ù…Ù† Ù…Ø´Ø§Ø±ÙƒØ© Ø§Ù„Ø¹Ø¨Ø¯ ÙÙŠ Ø·Ø¹Ø§Ù…Ù‡ ÙˆØ´Ø±Ø§Ø¨Ù‡"
+      reward: "منع الشيطان من مشاركة العبد في طعامه وشرابه"
     },
     {
-      category: "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ø·Ø¹Ø§Ù…",
-      text: "Ø§Ù„Ù’Ø­ÙŽÙ…Ù’Ø¯Ù Ù„ÙÙ„ÙŽÙ‘Ù‡Ù Ø§Ù„ÙŽÙ‘Ø°ÙÙŠ Ø£ÙŽØ·Ù’Ø¹ÙŽÙ…ÙŽÙ†ÙÙŠ Ù‡ÙŽØ°ÙŽØ§ Ø§Ù„Ø·ÙŽÙ‘Ø¹ÙŽØ§Ù…ÙŽ ÙˆÙŽØ±ÙŽØ²ÙŽÙ‚ÙŽÙ†ÙÙŠÙ‡Ù Ù…ÙÙ†Ù’ ØºÙŽÙŠÙ’Ø±Ù Ø­ÙŽÙˆÙ’Ù„Ù Ù…ÙÙ†ÙÙ‘ÙŠ ÙˆÙŽÙ„ÙŽØ§ Ù‚ÙÙˆÙŽÙ‘Ø©Ù",
+      category: "أذكار الطعام",
+      text: "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَذَا الطَّعَامَ وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ",
       count: 1,
-      reward: "ØºÙÙØ± Ù„Ù‡ Ù…Ø§ ØªÙ‚Ø¯Ù… Ù…Ù† Ø°Ù†Ø¨Ù‡"
+      reward: "غُفر له ما تقدم من ذنبه"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø§Ù„Ø³ÙØ±",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙŽÙ‘Ø§ Ù†ÙŽØ³Ù’Ø£ÙŽÙ„ÙÙƒÙŽ ÙÙÙŠ Ø³ÙŽÙÙŽØ±ÙÙ†ÙŽØ§ Ù‡ÙŽØ°ÙŽØ§ Ø§Ù„Ù’Ø¨ÙØ±ÙŽÙ‘ ÙˆÙŽØ§Ù„ØªÙŽÙ‘Ù‚Ù’ÙˆÙŽÙ‰ØŒ ÙˆÙŽÙ…ÙÙ†ÙŽ Ø§Ù„Ù’Ø¹ÙŽÙ…ÙŽÙ„Ù Ù…ÙŽØ§ ØªÙŽØ±Ù’Ø¶ÙŽÙ‰ØŒ Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ù‡ÙŽÙˆÙÙ‘Ù†Ù’ Ø¹ÙŽÙ„ÙŽÙŠÙ’Ù†ÙŽØ§ Ø³ÙŽÙÙŽØ±ÙŽÙ†ÙŽØ§ Ù‡ÙŽØ°ÙŽØ§ ÙˆÙŽØ§Ø·Ù’ÙˆÙ Ø¹ÙŽÙ†ÙŽÙ‘Ø§ Ø¨ÙØ¹Ù’Ø¯ÙŽÙ‡Ù",
+      category: "أدعية السفر",
+      text: "اللَّهُمَّ إِنَّا نَسْأَلُكَ فِي سَفَرِنَا هَذَا الْبِرَّ وَالتَّقْوَى، وَمِنَ الْعَمَلِ مَا تَرْضَى، اللَّهُمَّ هَوِّنْ عَلَيْنَا سَفَرَنَا هَذَا وَاطْوِ عَنَّا بُعْدَهُ",
       count: 1,
-      reward: "ØªÙŠØ³ÙŠØ± Ø§Ù„Ø±Ø­Ù„Ø© ÙˆØ§Ù„Ø­ÙØ¸ Ø§Ù„Ø¥Ù„Ù‡ÙŠ Ù…Ù† ÙˆØ¹Ø«Ø§Ø¡ Ø§Ù„Ø³ÙØ±"
+      reward: "تيسير الرحلة والحفظ الإلهي من وعثاء السفر"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø±ÙŽØ­Ù’Ù…ÙŽØªÙŽÙƒÙŽ Ø£ÙŽØ±Ù’Ø¬ÙÙˆ ÙÙŽÙ„ÙŽØ§ ØªÙŽÙƒÙÙ„Ù’Ù†ÙÙŠ Ø¥ÙÙ„ÙŽÙ‰ Ù†ÙŽÙÙ’Ø³ÙÙŠ Ø·ÙŽØ±Ù’ÙÙŽØ©ÙŽ Ø¹ÙŽÙŠÙ’Ù†ÙØŒ ÙˆÙŽØ£ÙŽØµÙ’Ù„ÙØ­Ù’ Ù„ÙÙŠ Ø´ÙŽØ£Ù’Ù†ÙÙŠ ÙƒÙÙ„ÙŽÙ‘Ù‡Ù Ù„ÙŽØ§ Ø¥ÙÙ„ÙŽÙ‡ÙŽ Ø¥ÙÙ„ÙŽÙ‘Ø§ Ø£ÙŽÙ†Ù’ØªÙŽ",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ رَحْمَتَكَ أَرْجُو فَلَا تَكِلْنِي إِلَى نَفْسِي طَرْفَةَ عَيْنٍ، وَأَصْلِحْ لِي شَأْنِي كُلَّهُ لَا إِلَهَ إِلَّا أَنْتَ",
       count: 1,
-      reward: "ÙƒØ´Ù Ø§Ù„ÙƒØ±Ø¨ ÙˆØªÙŠØ³ÙŠØ± Ø§Ù„Ø£Ù…ÙˆØ± Ø§Ù„Ù…ØªØ¹Ø³Ø±Ø©"
+      reward: "كشف الكرب وتيسير الأمور المتعسرة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø£ÙŽØµÙ’Ù„ÙØ­Ù’ Ù„ÙÙŠ Ø¯ÙÙŠÙ†ÙÙŠ Ø§Ù„ÙŽÙ‘Ø°ÙÙŠ Ù‡ÙÙˆÙŽ Ø¹ÙØµÙ’Ù…ÙŽØ©Ù Ø£ÙŽÙ…Ù’Ø±ÙÙŠØŒ ÙˆÙŽØ£ÙŽØµÙ’Ù„ÙØ­Ù’ Ù„ÙÙŠ Ø¯ÙÙ†Ù’ÙŠÙŽØ§ÙŠÙŽ Ø§Ù„ÙŽÙ‘ØªÙÙŠ ÙÙÙŠÙ‡ÙŽØ§ Ù…ÙŽØ¹ÙŽØ§Ø´ÙÙŠØŒ ÙˆÙŽØ£ÙŽØµÙ’Ù„ÙØ­Ù’ Ù„ÙÙŠ Ø¢Ø®ÙØ±ÙŽØªÙÙŠ Ø§Ù„ÙŽÙ‘ØªÙÙŠ Ø¥ÙÙ„ÙŽÙŠÙ’Ù‡ÙŽØ§ Ù…ÙŽØ¹ÙŽØ§Ø¯ÙÙŠ",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي إِلَيْهَا مَعَادِي",
       count: 1,
-      reward: "ØµÙ„Ø§Ø­ Ø´Ø¤ÙˆÙ† Ø§Ù„Ø¯ÙŠÙ† ÙˆØ§Ù„Ø¯Ù†ÙŠØ§ ÙˆØ§Ù„Ø¢Ø®Ø±Ø©"
+      reward: "صلاح شؤون الدين والدنيا والآخرة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙÙ‘ÙŠ Ø£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽ Ù…ÙÙ†ÙŽ Ø²ÙŽÙˆÙŽØ§Ù„Ù Ù†ÙØ¹Ù’Ù…ÙŽØªÙÙƒÙŽØŒ ÙˆÙŽØªÙŽØ­ÙŽÙˆÙÙ‘Ù„Ù Ø¹ÙŽØ§ÙÙÙŠÙŽØªÙÙƒÙŽØŒ ÙˆÙŽÙÙØ¬ÙŽØ§Ø¡ÙŽØ©Ù Ù†ÙÙ‚Ù’Ù…ÙŽØªÙÙƒÙŽØŒ ÙˆÙŽØ¬ÙŽÙ…ÙÙŠØ¹Ù Ø³ÙŽØ®ÙŽØ·ÙÙƒÙŽ",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ زَوَالِ نِعْمَتِكَ، وَتَحَوُّلِ عَافِيَتِكَ، وَفُجَاءَةِ نِقْمَتِكَ، وَجَمِيعِ سَخَطِكَ",
       count: 1,
-      reward: "Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø§Ù„Ù†Ø¹Ù… ÙˆØ§Ù„ØªØ­ØµÙŠÙ† Ù…Ù† Ø§Ù„Ø¨Ù„Ø§Ø¡ Ø§Ù„Ù…ÙØ§Ø¬Ø¦"
+      reward: "الحفاظ على النعم والتحصين من البلاء المفاجئ"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¢ØªÙ Ù†ÙŽÙÙ’Ø³ÙÙŠ ØªÙŽÙ‚Ù’ÙˆÙŽØ§Ù‡ÙŽØ§ØŒ ÙˆÙŽØ²ÙŽÙƒÙÙ‘Ù‡ÙŽØ§ Ø£ÙŽÙ†Ù’ØªÙŽ Ø®ÙŽÙŠÙ’Ø±Ù Ù…ÙŽÙ†Ù’ Ø²ÙŽÙƒÙŽÙ‘Ø§Ù‡ÙŽØ§ØŒ Ø£ÙŽÙ†Ù’ØªÙŽ ÙˆÙŽÙ„ÙÙŠÙÙ‘Ù‡ÙŽØ§ ÙˆÙŽÙ…ÙŽÙˆÙ’Ù„ÙŽØ§Ù‡ÙŽØ§",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ آتِ نَفْسِي تَقْوَاهَا، وَزَكِّهَا أَنْتَ خَيْرُ مَنْ زَكَّاهَا، أَنْتَ وَلِيُّهَا وَمَوْلَاهَا",
       count: 1,
-      reward: "ØªØ²ÙƒÙŠØ© Ø§Ù„Ù†ÙØ³ ÙˆØªÙ†Ù‚ÙŠØªÙ‡Ø§ Ù…Ù† Ø§Ù„Ø¹ÙŠÙˆØ¨ ÙˆØ§Ù„Ø°Ù†ÙˆØ¨"
+      reward: "تزكية النفس وتنقيتها من العيوب والذنوب"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©",
-      text: "Ø§Ù„Ù„ÙŽÙ‘Ù‡ÙÙ…ÙŽÙ‘ Ø¥ÙÙ†ÙÙ‘ÙŠ Ø£ÙŽØ¹ÙÙˆØ°Ù Ø¨ÙÙƒÙŽ Ù…ÙÙ†Ù’ Ø¹ÙÙ„Ù’Ù…Ù Ù„ÙŽØ§ ÙŠÙŽÙ†Ù’ÙÙŽØ¹ÙØŒ ÙˆÙŽÙ…ÙÙ†Ù’ Ù‚ÙŽÙ„Ù’Ø¨Ù Ù„ÙŽØ§ ÙŠÙŽØ®Ù’Ø´ÙŽØ¹ÙØŒ ÙˆÙŽÙ…ÙÙ†Ù’ Ù†ÙŽÙÙ’Ø³Ù Ù„ÙŽØ§ ØªÙŽØ´Ù’Ø¨ÙŽØ¹ÙØŒ ÙˆÙŽÙ…ÙÙ†Ù’ Ø¯ÙŽØ¹Ù’ÙˆÙŽØ©Ù Ù„ÙŽØ§ ÙŠÙØ³Ù’ØªÙŽØ¬ÙŽØ§Ø¨Ù Ù„ÙŽÙ‡ÙŽØ§",
+      category: "أدعية عامة",
+      text: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ عِلْمٍ لَا يَنْفَعُ، وَمِنْ قَلْبٍ لَا يَخْشَعُ، وَمِنْ نَفْسٍ لَا تَشْبَعُ، وَمِنْ دَعْوَةٍ لَا يُسْتَجَابُ لَهَا",
       count: 1,
-      reward: "Ø§Ù„ÙˆÙ‚Ø§ÙŠØ© Ù…Ù† Ø§Ù„Ø­Ø¬ÙˆØ¨ Ø§Ù„Ù†ÙØ³ÙŠØ© ÙˆØ§Ù„Ø±ÙˆØ­ÙŠØ©"
+      reward: "الوقاية من الحجوب النفسية والروحية"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ù„Ù„ÙˆØ§Ù„Ø¯ÙŠÙ†",
-      text: "Ø±ÙŽÙ‘Ø¨ÙÙ‘ Ø§Ø±Ù’Ø­ÙŽÙ…Ù’Ù‡ÙÙ…ÙŽØ§ ÙƒÙŽÙ…ÙŽØ§ Ø±ÙŽØ¨ÙŽÙ‘ÙŠÙŽØ§Ù†ÙÙŠ ØµÙŽØºÙÙŠØ±Ù‹Ø§",
+      category: "أدعية للوالدين",
+      text: "رَّبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا",
       count: 1,
-      reward: "Ø¨Ø± Ø§Ù„ÙˆØ§Ù„Ø¯ÙŠÙ† Ø¨Ø§Ù„Ø¯Ø¹Ø§Ø¡ Ø¨Ø§Ù„Ø±Ø­Ù…Ø© ÙˆØ§Ù„Ø¹Ø·Ù"
+      reward: "بر الوالدين بالدعاء بالرحمة والعطف"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ù„Ù„ÙˆØ§Ù„Ø¯ÙŠÙ†",
-      text: "Ø±ÙŽØ¨ÙŽÙ‘Ù†ÙŽØ§ Ø§ØºÙ’ÙÙØ±Ù’ Ù„ÙÙŠ ÙˆÙŽÙ„ÙÙˆÙŽØ§Ù„ÙØ¯ÙŽÙŠÙŽÙ‘ ÙˆÙŽÙ„ÙÙ„Ù’Ù…ÙØ¤Ù’Ù…ÙÙ†ÙÙŠÙ†ÙŽ ÙŠÙŽÙˆÙ’Ù…ÙŽ ÙŠÙŽÙ‚ÙÙˆÙ…Ù Ø§Ù„Ù’Ø­ÙØ³ÙŽØ§Ø¨Ù",
+      category: "أدعية للوالدين",
+      text: "رَبَّنَا اغْفِرْ لِي وَلِوَالِدَيَّ وَلِلْمُؤْمِنِينَ يَوْمَ يَقُومُ الْحِسَابُ",
       count: 1,
-      reward: "Ø§Ø³ØªØºÙØ§Ø± Ø´Ø§Ù…Ù„ Ù„Ù„ÙˆØ§Ù„Ø¯ÙŠÙ† ÙˆÙ„Ø¹Ù…ÙˆÙ… Ø§Ù„Ù…Ø³Ù„Ù…ÙŠÙ†"
+      reward: "استغفار شامل للوالدين ولعموم المسلمين"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ù„Ù„Ø£ÙˆÙ„Ø§Ø¯",
-      text: "Ø±ÙŽØ¨ÙÙ‘ Ù‡ÙŽØ¨Ù’ Ù„ÙÙŠ Ù…ÙÙ† Ù„ÙŽÙ‘Ø¯ÙÙ†ÙƒÙŽ Ø°ÙØ±ÙÙ‘ÙŠÙŽÙ‘Ø©Ù‹ Ø·ÙŽÙŠÙÙ‘Ø¨ÙŽØ©Ù‹ Û– Ø¥ÙÙ†ÙŽÙ‘ÙƒÙŽ Ø³ÙŽÙ…ÙÙŠØ¹Ù Ø§Ù„Ø¯ÙÙ‘Ø¹ÙŽØ§Ø¡Ù",
+      category: "أدعية للأولاد",
+      text: "رَبِّ هَبْ لِي مِن لَّدُنكَ ذُرِّيَّةً طَيِّبَةً ۖ إِنَّكَ سَمِيعُ الدُّعَاءِ",
       count: 1,
-      reward: "Ø·Ù„Ø¨ Ø§Ù„Ø°Ø±ÙŠØ© Ø§Ù„ØµØ§Ù„Ø­Ø© ÙˆØ§Ù„Ù…Ø¨Ø§Ø±ÙƒØ©"
+      reward: "طلب الذرية الصالحة والمباركة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ù„Ù„Ø£ÙˆÙ„Ø§Ø¯",
-      text: "Ø±ÙŽØ¨ÙÙ‘ Ø§Ø¬Ù’Ø¹ÙŽÙ„Ù’Ù†ÙÙŠ Ù…ÙÙ‚ÙÙŠÙ…ÙŽ Ø§Ù„ØµÙŽÙ‘Ù„ÙŽØ§Ø©Ù ÙˆÙŽÙ…ÙÙ† Ø°ÙØ±ÙÙ‘ÙŠÙŽÙ‘ØªÙÙŠ Ûš Ø±ÙŽØ¨ÙŽÙ‘Ù†ÙŽØ§ ÙˆÙŽØªÙŽÙ‚ÙŽØ¨ÙŽÙ‘Ù„Ù’ Ø¯ÙØ¹ÙŽØ§Ø¡Ù",
+      category: "أدعية للأولاد",
+      text: "رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِن ذُرِّيَّتِي ۚ رَبَّنَا وَتَقَبَّلْ دُعَاءِ",
       count: 1,
-      reward: "ØµÙ„Ø§Ø­ Ø§Ù„Ø°Ø±ÙŠØ© ÙˆØ§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø¹Ù„Ù‰ Ø¥Ù‚Ø§Ù…Ø© Ø§Ù„ØµÙ„Ø§Ø©"
+      reward: "صلاح الذرية والمحافظة على إقامة الصلاة"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø§Ù„Ø§Ø³ØªÙŠÙ‚Ø§Ø¸",
-      text: "Ø§Ù„Ù’Ø­ÙŽÙ…Ù’Ø¯Ù Ù„ÙÙ„ÙŽÙ‘Ù‡Ù Ø§Ù„ÙŽÙ‘Ø°ÙÙŠ Ø£ÙŽØ­Ù’ÙŠÙŽØ§Ù†ÙŽØ§ Ø¨ÙŽØ¹Ù’Ø¯ÙŽ Ù…ÙŽØ§ Ø£ÙŽÙ…ÙŽØ§ØªÙŽÙ†ÙŽØ§ ÙˆÙŽØ¥ÙÙ„ÙŽÙŠÙ’Ù‡Ù Ø§Ù„Ù†ÙÙ‘Ø´ÙÙˆØ±Ù",
+      category: "أدعية الاستيقاظ",
+      text: "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
       count: 1,
-      reward: "Ø´ÙƒØ± Ø§Ù„Ù„Ù‡ Ø¹Ù„Ù‰ Ù†Ø¹Ù…Ø© Ø¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ø±ÙˆØ­ ÙˆØ¨Ø¯Ø¡ ÙŠÙˆÙ… Ø¬Ø¯ÙŠØ¯"
+      reward: "شكر الله على نعمة إرجاع الروح وبدء يوم جديد"
     },
     {
-      category: "Ø£Ø¯Ø¹ÙŠØ© Ø§Ù„Ø§Ø³ØªÙŠÙ‚Ø§Ø¸",
-      text: "Ø§Ù„Ø­Ù…Ø¯ Ù„Ù„Ù‡ Ø§Ù„Ø°ÙŠ Ø¹Ø§ÙØ§Ù†ÙŠ ÙÙŠ Ø¬Ø³Ø¯ÙŠØŒ ÙˆØ±Ø¯ Ø¹Ù„ÙŠ Ø±ÙˆØ­ÙŠØŒ ÙˆØ£Ø°Ù† Ù„ÙŠ Ø¨Ø°ÙƒØ±Ù‡",
+      category: "أدعية الاستيقاظ",
+      text: "الحمد لله الذي عافاني في جسدي، ورد علي روحي، وأذن لي بذكره",
       count: 1,
-      reward: "ØªØ­ÙÙŠØ² Ø§Ù„Ù„Ø³Ø§Ù† Ø¨Ø°ÙƒØ± Ø§Ù„Ù„Ù‡ Ø¹Ù†Ø¯ Ø§Ù„ÙŠÙ‚Ø¸Ø© Ù…Ø¨Ø§Ø´Ø±Ø©"
+      reward: "تحفيز اللسان بذكر الله عند اليقظة مباشرة"
     }
   ];
 
@@ -2400,12 +2557,12 @@ export class AzkarDatabase {
   }
 
   static getCategories(): string[] {
-    return ["Ø£Ø°ÙƒØ§Ø± Ø§Ù„ØµØ¨Ø§Ø­", "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…Ø³Ø§Ø¡", "Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù†ÙˆÙ…", "Ø£Ø°ÙƒØ§Ø± Ø¨Ø¹Ø¯ Ø§Ù„ØµÙ„Ø§Ø©", "Ø£Ø¯Ø¹ÙŠØ© Ø¹Ø§Ù…Ø©"];
+    return ["أذكار الصباح", "أذكار المساء", "أذكار النوم", "أذكار بعد الصلاة", "أدعية عامة"];
   }
 }
 
 // ============================================================
-//  17. Ù…Ø¯ÙŠØ± Ù‚ÙˆØ§Ù„Ø¨ ÙˆÙ‚ÙˆØ§Ù†ÙŠÙ† Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª (Server Rules Template Manager)
+//  17. مدير قوالب وقوانين السيرفرات (Server Rules Template Manager)
 // ============================================================
 export interface RulesTemplate {
   genre: string;
@@ -2417,36 +2574,36 @@ export class ServerRulesTemplateManager {
   private static templates: RulesTemplate[] = [
     {
       genre: "gaming",
-      title: "Ù‚ÙˆØ§Ù†ÙŠÙ† Ø³ÙŠØ±ÙØ± Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨ Ø§Ù„Ø±Ø³Ù…ÙŠ ðŸŽ®",
+      title: "قوانين سيرفر الألعاب الرسمي 🎮",
       rules: [
-        "ÙŠÙ…Ù†Ø¹ Ù…Ù†Ø¹Ø§Ù‹ Ø¨Ø§ØªØ§Ù‹ Ø§Ù„ØºØ´ Ø£Ùˆ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ø§Ø®ØªØ±Ø§Ù‚ (Hacks/Cheats).",
-        "Ø§Ø­ØªØ±Ø§Ù… Ø§Ù„Ù„Ø§Ø¹Ø¨ÙŠÙ† ÙˆØ§Ù„Ø§Ø¨ØªØ¹Ø§Ø¯ Ø¹Ù† Ø§Ù„ØªØ°Ù…Ø± ÙˆØ§Ù„ØµØ±Ø§Ø® Ø§Ù„Ù…Ø²Ø¹Ø¬ ÙÙŠ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„ØµÙˆØªÙŠØ©.",
-        "ÙŠÙ…Ù†Ø¹ Ù†Ø´Ø± Ø±ÙˆØ§Ø¨Ø· Ø³ÙŠØ±ÙØ±Ø§Øª Ø®Ø§Ø±Ø¬ÙŠØ© Ø£Ùˆ ØªØ±ÙˆÙŠØ¬ Ø§Ù„Ø³Ù„Ø¹ Ø¯ÙˆÙ† Ø¥Ø°Ù† Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©.",
-        "Ø§Ù„Ø§Ù„ØªØ²Ø§Ù… Ø¨Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù…Ø®ØµØµØ© Ù„ÙƒÙ„ Ù„Ø¹Ø¨Ø© ÙˆØ¹Ø¯Ù… Ø¥Ø«Ø§Ø±Ø© Ø§Ù„ÙÙˆØ¶Ù‰.",
-        "Ø§Ø­ØªØ±Ø§Ù… Ù‚Ø±Ø§Ø±Ø§Øª Ù…Ø´Ø±ÙÙŠ Ø§Ù„Ù„Ù‚Ø§Ø¡Ø§Øª ÙˆØ§Ù„Ø¨Ø·ÙˆÙ„Ø§Øª Ø§Ù„Ù…Ù‚Ø§Ù…Ø© Ø¨Ø§Ù„Ø³ÙŠØ±ÙØ±."
+        "يمنع منعاً باتاً الغش أو استخدام برامج الاختراق (Hacks/Cheats).",
+        "احترام اللاعبين والابتعاد عن التذمر والصراخ المزعج في القنوات الصوتية.",
+        "يمنع نشر روابط سيرفرات خارجية أو ترويج السلع دون إذن الإدارة.",
+        "الالتزام بالقنوات المخصصة لكل لعبة وعدم إثارة الفوضى.",
+        "احترام قرارات مشرفي اللقاءات والبطولات المقامة بالسيرفر."
       ]
     },
 
     {
       genre: "general",
-      title: "Ù‚ÙˆØ§Ù†ÙŠÙ† Ø®Ø§Ø¯Ù… Ø§Ù„Ø¯Ø±Ø¯Ø´Ø© ÙˆØ§Ù„Ù…Ø¬ØªÙ…Ø¹ Ø§Ù„Ø¹Ø§Ù… ðŸ’¬",
+      title: "قوانين خادم الدردشة والمجتمع العام 💬",
       rules: [
-        "Ø§Ø­ØªØ±Ø§Ù… Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ ÙˆØ§Ù„Ø§Ø¨ØªØ¹Ø§Ø¯ Ø¹Ù† Ø§Ù„Ù†Ù‚Ø§Ø´Ø§Øª Ø§Ù„Ø·Ø§Ø¦ÙÙŠØ© ÙˆØ§Ù„Ø¹Ù†ØµØ±ÙŠØ©.",
-        "ÙŠÙ…Ù†Ø¹ Ø¥ØºØ±Ø§Ù‚ Ø§Ù„Ø´Ø§Øª Ø¨Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…ÙƒØ±Ø±Ø© (Spam) Ø£Ùˆ Ø§Ù„Ù…Ù†Ø´Ù† Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠ.",
-        "Ø§Ù„Ø§Ù„ØªØ²Ø§Ù… Ø¨Ù†Ø´Ø± Ø§Ù„Ù…ÙŠØ¯ÙŠØ§ ÙˆØ§Ù„Ø±ÙˆØ§Ø¨Ø· ÙÙŠ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù…Ø®ØµØµØ© Ù„Ù‡Ø§.",
-        "ÙŠÙ…Ù†Ø¹ Ø§Ù†ØªØ­Ø§Ù„ ØµÙØ© Ø§Ù„Ù…Ø´Ø±ÙÙŠÙ† Ø£Ùˆ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ø±Ø³Ù…ÙŠØ©.",
-        "Ù„Ù„Ø¥Ø¨Ù„Ø§Øº Ø¹Ù† Ø§Ù„Ù…Ø®Ø§Ù„ÙÙŠÙ† ÙŠØ±Ø¬Ù‰ ÙØªØ­ ØªØ°ÙƒØ±Ø© Ø¯Ø¹Ù… ÙÙ†ÙŠ Ù…Ø¨Ø§Ø´Ø±Ø© ÙˆØ¹Ø¯Ù… Ø§Ù„Ø¯Ø®ÙˆÙ„ ÙÙŠ Ù†Ø²Ø§Ø¹."
+        "احترام الأعضاء والابتعاد عن النقاشات الطائفية والعنصرية.",
+        "يمنع إغراق الشات بالرسائل المكررة (Spam) أو المنشن العشوائي.",
+        "الالتزام بنشر الميديا والروابط في القنوات المخصصة لها.",
+        "يمنع انتحال صفة المشرفين أو الحسابات الرسمية.",
+        "للإبلاغ عن المخالفين يرجى فتح تذكرة دعم فني مباشرة وعدم الدخول في نزاع."
       ]
     },
     {
       genre: "study",
-      title: "Ù‚ÙˆØ§Ù†ÙŠÙ† Ø³ÙŠØ±ÙØ± Ø§Ù„Ù…Ø°Ø§ÙƒØ±Ø© ÙˆØ§Ù„Ø¯Ø±Ø§Ø³Ø© Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠ ðŸ“š",
+      title: "قوانين سيرفر المذاكرة والدراسة الأكاديمي 📚",
       rules: [
-        "ÙŠÙ…Ù†Ø¹ Ø§Ù„ØªØ´ÙˆÙŠØ´ Ø£Ùˆ Ø§Ù„ÙƒÙ„Ø§Ù… ÙÙŠ ØºÙŠØ± Ø§Ù„Ù…Ø°Ø§ÙƒØ±Ø© ÙÙŠ ØºØ±Ù Ø§Ù„ØªØ±ÙƒÙŠØ² Ø§Ù„ØµÙˆØªÙŠØ©.",
-        "ÙŠÙ…Ù†Ø¹ Ø§Ù„ØªØ±ÙˆÙŠØ¬ Ù„Ø®Ø¯Ù…Ø§Øª Ø­Ù„ Ø§Ù„Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø£Ùˆ Ø§Ù„ÙˆØ§Ø¬Ø¨Ø§Øª Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ© ØºÙŠØ± Ø§Ù„Ù…ØµØ±Ø­Ø©.",
-        "Ø§Ù„ØªØ¹Ø§ÙˆÙ† Ø§Ù„Ø¨Ù†Ø§Ø¡ ÙˆÙ…Ø³Ø§Ø¹Ø¯Ø© Ø§Ù„Ø·Ù„Ø§Ø¨ ÙÙŠ ÙÙ‡Ù… Ø§Ù„Ù…ÙˆØ§Ø¯ Ø§Ù„ØªØ¹Ù„ÙŠÙ…ÙŠØ© Ø¨ÙƒÙ„ Ø£Ø¯Ø¨.",
-        "Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù…Ø®ØµØµØ© Ù„ÙƒÙ„ ØªØ®ØµØµ Ø¯Ø±Ø§Ø³ÙŠ Ù„ØªØ¬Ù†Ø¨ ØªØ´ØªÙŠØª Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡.",
-        "Ø§Ø­ØªØ±Ø§Ù… Ø§Ù„Ù…Ø¹Ù„Ù…ÙŠÙ† ÙˆØ§Ù„Ù…Ø´Ø±ÙÙŠÙ† Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠÙŠÙ† Ø§Ù„Ù…ØªÙˆØ§Ø¬Ø¯ÙŠÙ† Ù„Ù„Ø±Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ø³Ø¦Ù„Ø©."
+        "يمنع التشويش أو الكلام في غير المذاكرة في غرف التركيز الصوتية.",
+        "يمنع الترويج لخدمات حل الاختبارات أو الواجبات التجارية غير المصرحة.",
+        "التعاون البناء ومساعدة الطلاب في فهم المواد التعليمية بكل أدب.",
+        "استخدام القنوات المخصصة لكل تخصص دراسي لتجنب تشتيت الأعضاء.",
+        "احترام المعلمين والمشرفين الأكاديميين المتواجدين للرد على الأسئلة."
       ]
     }
   ];
@@ -2458,7 +2615,7 @@ export class ServerRulesTemplateManager {
 }
 
 // ============================================================
-//  18. Ù…Ø­Ø§ÙƒÙŠ ÙˆÙ…Ø¬Ø¯ÙˆÙ„ Ø§Ù„Ø¨Ø·ÙˆÙ„Ø§Øª Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ© Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© (Esports Matchmaking)
+//  18. محاكي ومجدول البطولات الرياضية الإلكترونية (Esports Matchmaking)
 // ============================================================
 export interface EsportsMatch {
   id: string;
@@ -2541,34 +2698,34 @@ export class EsportsTournamentScheduler {
 }
 
 // ============================================================
-//  19. Ù‚ÙˆØ§Ù„Ø¨ ÙˆÙ‡ÙŠØ§ÙƒÙ„ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª Ø§Ù„Ø¬Ø§Ù‡Ø²Ø© Ù„Ù„Ø¨Ù†Ø§Ø¡ (Detailed Blueprint Configs)
+//  19. قوالب وهياكل السيرفرات الجاهزة للبناء (Detailed Blueprint Configs)
 // ============================================================
 export const SYSTEM_BLUEPRINTS = {
   gaming: {
-    categoryName: "ðŸŽ® ØµØ§Ù„Ø© Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨",
+    categoryName: "🎮 صالة الألعاب",
     channels: [
-      { name: "ðŸ’¬-Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨", type: ChannelType.GuildText },
-      { name: "ðŸ“£-Ø£Ø®Ø¨Ø§Ø±-Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨", type: ChannelType.GuildText },
-      { name: "ðŸŽ¬-Ù„Ù‚Ø·Ø§Øª-Ù…ØªÙ…ÙŠØ²Ø©", type: ChannelType.GuildText },
-      { name: "ðŸ”Š-ØµØ§Ù„ÙˆÙ†-Ø§Ù„ØµÙˆØª-1", type: ChannelType.GuildVoice },
-      { name: "ðŸ”Š-ØµØ§Ù„ÙˆÙ†-Ø§Ù„ØµÙˆØª-2", type: ChannelType.GuildVoice }
+      { name: "💬-دردشة-الألعاب", type: ChannelType.GuildText },
+      { name: "📣-أخبار-الألعاب", type: ChannelType.GuildText },
+      { name: "🎬-لقطات-متميزة", type: ChannelType.GuildText },
+      { name: "🔊-صالون-الصوت-1", type: ChannelType.GuildVoice },
+      { name: "🔊-صالون-الصوت-2", type: ChannelType.GuildVoice }
     ]
   },
 
   general: {
-    categoryName: "ðŸ’¬ Ø§Ù„Ù‚Ø³Ù… Ø§Ù„Ø¹Ø§Ù…",
+    categoryName: "💬 القسم العام",
     channels: [
-      { name: "ðŸ‘‹-Ø§Ù„ØªØ±Ø­ÙŠØ¨", type: ChannelType.GuildText },
-      { name: "ðŸ“œ-Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†", type: ChannelType.GuildText },
-      { name: "ðŸ“¢-Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª", type: ChannelType.GuildText },
-      { name: "ðŸ’¬-Ø§Ù„Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø¹Ø§Ù…Ø©", type: ChannelType.GuildText },
-      { name: "ðŸ”Š-Ø§Ù„Ø¯ÙŠÙˆØ§Ù†ÙŠØ©-Ø§Ù„Ø¹Ø§Ù…Ø©", type: ChannelType.GuildVoice }
+      { name: "👋-الترحيب", type: ChannelType.GuildText },
+      { name: "📜-القوانين", type: ChannelType.GuildText },
+      { name: "📢-الإعلانات", type: ChannelType.GuildText },
+      { name: "💬-الدردشة-العامة", type: ChannelType.GuildText },
+      { name: "🔊-الديوانية-العامة", type: ChannelType.GuildVoice }
     ]
   }
 };
 
 // ============================================================
-//  19.5. Ù‚Ø§Ø¹Ø¯Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³Ø§Ø¨Ù‚Ø§Øª Ø§Ù„Ø«Ù‚Ø§ÙÙŠØ© Ø§Ù„Ù…Ø¯Ù…Ø¬Ø© (Trivia Database)
+//  19.5. قاعدة بيانات المسابقات الثقافية المدمجة (Trivia Database)
 // ============================================================
 export interface TriviaQuestion {
   question: string;
@@ -2580,124 +2737,124 @@ export interface TriviaQuestion {
 export class TriviaDatabase {
   private static questions: TriviaQuestion[] = [
     {
-      question: "Ù…Ø§ Ù‡ÙŠ Ø£ÙƒØ¨Ø± Ù‚Ø§Ø±Ø© ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù… Ù…Ù† Ø­ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø­Ø©ØŸ",
-      options: ["Ø£ÙØ±ÙŠÙ‚ÙŠØ§", "Ø¢Ø³ÙŠØ§", "Ø£ÙˆØ±ÙˆØ¨Ø§", "Ø£Ù…Ø±ÙŠÙƒØ§ Ø§Ù„Ø´Ù…Ø§Ù„ÙŠØ©"],
+      question: "ما هي أكبر قارة في العالم من حيث المساحة؟",
+      options: ["أفريقيا", "آسيا", "أوروبا", "أمريكا الشمالية"],
       answerIndex: 1,
-      explanation: "Ù‚Ø§Ø±Ø© Ø¢Ø³ÙŠØ§ Ù‡ÙŠ Ø§Ù„Ø£ÙƒØ¨Ø± Ù…Ø³Ø§Ø­Ø© ÙˆØªØ¹Ø¯Ø§Ø¯Ø§Ù‹ Ù„Ù„Ø³ÙƒØ§Ù† ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù…."
+      explanation: "قارة آسيا هي الأكبر مساحة وتعداداً للسكان في العالم."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø£Ø³Ø±Ø¹ ÙƒØ§Ø¦Ù† Ø¨Ø±ÙŠ ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù…ØŸ",
-      options: ["Ø§Ù„ÙÙ‡Ø¯", "Ø§Ù„Ø£Ø³Ø¯", "Ø§Ù„ØºØ²Ø§Ù„", "Ø§Ù„Ø­ØµØ§Ù†"],
+      question: "ما هو أسرع كائن بري في العالم؟",
+      options: ["الفهد", "الأسد", "الغزال", "الحصان"],
       answerIndex: 0,
-      explanation: "Ø§Ù„ÙÙ‡Ø¯ Ø§Ù„ØµÙŠØ§Ø¯ (Ø§Ù„Ø´ÙŠØªØ§) Ù‡Ùˆ Ø£Ø³Ø±Ø¹ Ø­ÙŠÙˆØ§Ù† Ø¨Ø±ÙŠ ÙˆØªØµÙ„ Ø³Ø±Ø¹ØªÙ‡ Ù„Ø£ÙƒØ«Ø± Ù…Ù† 100 ÙƒÙ…/Ø³."
+      explanation: "الفهد الصياد (الشيتا) هو أسرع حيوان بري وتصل سرعته لأكثر من 100 كم/س."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø§Ù„Ø¹Ù†ØµØ± Ø§Ù„ÙƒÙŠÙ…ÙŠØ§Ø¦ÙŠ Ø§Ù„Ø£ÙƒØ«Ø± ÙˆÙØ±Ø© ÙÙŠ Ø§Ù„ÙƒÙˆÙ†ØŸ",
-      options: ["Ø§Ù„Ø£ÙƒØ³Ø¬ÙŠÙ†", "Ø§Ù„Ù‡ÙŠØ¯Ø±ÙˆØ¬ÙŠÙ†", "Ø§Ù„Ù†ÙŠØªØ±ÙˆØ¬ÙŠÙ†", "Ø§Ù„ÙƒØ±Ø¨ÙˆÙ†"],
+      question: "ما هو العنصر الكيميائي الأكثر وفرة في الكون؟",
+      options: ["الأكسجين", "الهيدروجين", "النيتروجين", "الكربون"],
       answerIndex: 1,
-      explanation: "Ø§Ù„Ù‡ÙŠØ¯Ø±ÙˆØ¬ÙŠÙ† Ù‡Ùˆ Ø§Ù„Ø¹Ù†ØµØ± Ø§Ù„Ø£ÙƒØ«Ø± Ø§Ù†ØªØ´Ø§Ø±Ø§Ù‹ ÙˆÙˆÙØ±Ø© ÙÙŠ Ø§Ù„ÙƒÙˆÙ† Ø§Ù„ÙØ³ÙŠØ­."
+      explanation: "الهيدروجين هو العنصر الأكثر انتشاراً ووفرة في الكون الفسيح."
     },
     {
-      question: "ÙÙŠ Ø£ÙŠ Ù…Ø¯ÙŠÙ†Ø© ÙŠÙ‚Ø¹ Ø§Ù„Ù…Ù‚Ø± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ù„Ù„Ø£Ù…Ù… Ø§Ù„Ù…ØªØ­Ø¯Ø©ØŸ",
-      options: ["Ù„Ù†Ø¯Ù†", "Ø¨Ø§Ø±ÙŠØ³", "Ø¬Ù†ÙŠÙ", "Ù†ÙŠÙˆÙŠÙˆØ±Ùƒ"],
+      question: "في أي مدينة يقع المقر الرئيسي للأمم المتحدة؟",
+      options: ["لندن", "باريس", "جنيف", "نيويورك"],
       answerIndex: 3,
-      explanation: "ÙŠÙ‚Ø¹ Ù…Ù‚Ø± Ø§Ù„Ù…Ù†Ø¸Ù…Ø© Ø§Ù„Ø¯ÙˆÙ„ÙŠØ© Ù„Ù„Ø£Ù…Ù… Ø§Ù„Ù…ØªØ­Ø¯Ø© ÙÙŠ Ù…Ø¯ÙŠÙ†Ø© Ù†ÙŠÙˆÙŠÙˆØ±Ùƒ Ø§Ù„Ø£Ù…Ø±ÙŠÙƒÙŠØ©."
+      explanation: "يقع مقر المنظمة الدولية للأمم المتحدة في مدينة نيويورك الأمريكية."
     },
     {
-      question: "ÙƒÙ… Ø¹Ø¯Ø¯ ÙƒÙˆØ§ÙƒØ¨ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„Ø´Ù…Ø³ÙŠØ©ØŸ",
-      options: ["7 ÙƒÙˆØ§ÙƒØ¨", "8 ÙƒÙˆØ§ÙƒØ¨", "9 ÙƒÙˆØ§ÙƒØ¨", "10 ÙƒÙˆØ§ÙƒØ¨"],
+      question: "كم عدد كواكب المجموعة الشمسية؟",
+      options: ["7 كواكب", "8 كواكب", "9 كواكب", "10 كواكب"],
       answerIndex: 1,
-      explanation: "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø© Ø§Ù„Ø´Ù…Ø³ÙŠØ© ØªØªÙƒÙˆÙ† Ø±Ø³Ù…ÙŠØ§Ù‹ Ù…Ù† 8 ÙƒÙˆØ§ÙƒØ¨ Ø¨Ø¹Ø¯ ØªØµÙ†ÙŠÙ Ø¨Ù„ÙˆØªÙˆ ÙƒÙƒÙˆÙƒØ¨ Ù‚Ø²Ù…."
+      explanation: "المجموعة الشمسية تتكون رسمياً من 8 كواكب بعد تصنيف بلوتو ككوكب قزم."
     },
     {
-      question: "Ù…Ø§ Ù‡ÙŠ Ø§Ù„Ø¹Ù…Ù„Ø© Ø§Ù„Ø±Ø³Ù…ÙŠØ© Ù„Ù„ÙŠØ§Ø¨Ø§Ù†ØŸ",
-      options: ["Ø§Ù„ÙŠÙˆØ§Ù†", "Ø§Ù„ÙŠÙ†", "Ø§Ù„ÙˆÙˆÙ†", "Ø§Ù„Ø¯ÙˆÙ„Ø§Ø±"],
+      question: "ما هي العملة الرسمية لليابان؟",
+      options: ["اليوان", "الين", "الوون", "الدولار"],
       answerIndex: 1,
-      explanation: "Ø§Ù„ÙŠÙ† Ù‡Ùˆ Ø§Ù„Ø¹Ù…Ù„Ø© Ø§Ù„Ø±Ø³Ù…ÙŠØ© ÙˆØ§Ù„Ø£Ø³Ø§Ø³ÙŠØ© Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø© ÙÙŠ Ø§Ù„ÙŠØ§Ø¨Ø§Ù†."
+      explanation: "الين هو العملة الرسمية والأساسية المتداولة في اليابان."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø£Ø·ÙˆÙ„ Ù†Ù‡Ø± ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù…ØŸ",
-      options: ["Ù†Ù‡Ø± Ø§Ù„Ù†ÙŠÙ„", "Ù†Ù‡Ø± Ø§Ù„Ø£Ù…Ø§Ø²ÙˆÙ†", "Ù†Ù‡Ø± Ø§Ù„Ù…ÙŠØ³ÙŠØ³ÙŠØ¨ÙŠ", "Ù†Ù‡Ø± Ø§Ù„ÙŠØ§Ù†ØºØªØ³ÙŠ"],
+      question: "ما هو أطول نهر في العالم؟",
+      options: ["نهر النيل", "نهر الأمازون", "نهر الميسيسيبي", "نهر اليانغتسي"],
       answerIndex: 0,
-      explanation: "Ù†Ù‡Ø± Ø§Ù„Ù†ÙŠÙ„ ÙÙŠ Ø£ÙØ±ÙŠÙ‚ÙŠØ§ Ù‡Ùˆ Ø£Ø·ÙˆÙ„ Ø£Ù†Ù‡Ø§Ø± Ø§Ù„ÙƒØ±Ø© Ø§Ù„Ø£Ø±Ø¶ÙŠØ©."
+      explanation: "نهر النيل في أفريقيا هو أطول أنهار الكرة الأرضية."
     },
     {
-      question: "Ù…Ù† Ù‡Ùˆ Ù…ÙƒØªØ´Ù Ø§Ù„Ø¬Ø§Ø°Ø¨ÙŠØ© Ø§Ù„Ø£Ø±Ø¶ÙŠØ©ØŸ",
-      options: ["Ø£Ù„Ø¨ÙŠØ±Øª Ø£ÙŠÙ†Ø´ØªØ§ÙŠÙ†", "Ø¥Ø³Ø­Ø§Ù‚ Ù†ÙŠÙˆØªÙ†", "ØºØ§Ù„ÙŠÙ„Ùˆ ØºØ§Ù„ÙŠÙ„ÙŠ", "Ù†ÙŠÙƒÙˆÙ„Ø§ ØªØ³Ù„Ø§"],
+      question: "من هو مكتشف الجاذبية الأرضية؟",
+      options: ["ألبيرت أينشتاين", "إسحاق نيوتن", "غاليلو غاليلي", "نيكولا تسلا"],
       answerIndex: 1,
-      explanation: "Ø¥Ø³Ø­Ø§Ù‚ Ù†ÙŠÙˆØªÙ† Ù‡Ùˆ Ù…Ù† ØµØ§Øº Ù‚Ø§Ù†ÙˆÙ† Ø§Ù„Ø¬Ø§Ø°Ø¨ÙŠØ© Ø§Ù„Ø¹Ø§Ù… Ø¨Ø¹Ø¯ Ù‚ØµØ© Ø§Ù„ØªÙØ§Ø­Ø© Ø§Ù„Ø´Ù‡ÙŠØ±Ø©."
+      explanation: "إسحاق نيوتن هو من صاغ قانون الجاذبية العام بعد قصة التفاحة الشهيرة."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø§Ù„ØºØ§Ø² Ø§Ù„Ù…Ø³ØªØ¹Ù…Ù„ Ù„Ø¥Ø·ÙØ§Ø¡ Ø§Ù„Ø­Ø±Ø§Ø¦Ù‚ØŸ",
-      options: ["Ø§Ù„Ø£ÙƒØ³Ø¬ÙŠÙ†", "Ø§Ù„Ù†ÙŠØªØ±ÙˆØ¬ÙŠÙ†", "Ø«Ø§Ù†ÙŠ Ø£ÙƒØ³ÙŠØ¯ Ø§Ù„ÙƒØ±Ø¨ÙˆÙ†", "Ø§Ù„Ù‡ÙŠÙ„ÙŠÙˆÙ…"],
+      question: "ما هو الغاز المستعمل لإطفاء الحرائق؟",
+      options: ["الأكسجين", "النيتروجين", "ثاني أكسيد الكربون", "الهيليوم"],
       answerIndex: 2,
-      explanation: "Ø«Ø§Ù†ÙŠ Ø£ÙƒØ³ÙŠØ¯ Ø§Ù„ÙƒØ±Ø¨ÙˆÙ† ÙŠØ«Ø¨Ø· ÙˆÙŠÙ…Ù†Ø¹ Ø§Ø´ØªØ¹Ø§Ù„ Ø§Ù„Ø£ÙƒØ³Ø¬ÙŠÙ† Ù„Ø°Ø§ ÙŠØ³ØªØ¹Ù…Ù„ Ù„Ø¥Ø·ÙØ§Ø¡ Ø§Ù„Ø­Ø±Ø§Ø¦Ù‚."
+      explanation: "ثاني أكسيد الكربون يثبط ويمنع اشتعال الأكسجين لذا يستعمل لإطفاء الحرائق."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø§Ù„Ø¨Ø­Ø± Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ù„ÙˆØ­Ø© ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù…ØŸ",
-      options: ["Ø§Ù„Ø¨Ø­Ø± Ø§Ù„Ø£Ø­Ù…Ø±", "Ø§Ù„Ø¨Ø­Ø± Ø§Ù„Ù…ÙŠØª", "Ø§Ù„Ø¨Ø­Ø± Ø§Ù„Ù…ØªÙˆØ³Ø·", "Ø¨Ø­Ø± Ø§Ù„Ø¹Ø±Ø¨"],
+      question: "ما هو البحر الأكثر ملوحة في العالم؟",
+      options: ["البحر الأحمر", "البحر الميت", "البحر المتوسط", "بحر العرب"],
       answerIndex: 1,
-      explanation: "Ø§Ù„Ø¨Ø­Ø± Ø§Ù„Ù…ÙŠØª Ù‡Ùˆ Ø§Ù„Ø£ÙƒØ«Ø± Ù…Ù„ÙˆØ­Ø© ÙˆÙ„Ø§ ØªØ¹ÙŠØ´ ÙÙŠÙ‡ Ø§Ù„ÙƒØ§Ø¦Ù†Ø§Øª Ø§Ù„Ø¨Ø­Ø±ÙŠØ© Ù„Ø§Ø±ØªÙØ§Ø¹ Ù…Ù„ÙˆØ­ØªÙ‡."
+      explanation: "البحر الميت هو الأكثر ملوحة ولا تعيش فيه الكائنات البحرية لارتفاع ملوحته."
     },
     {
-      question: "ÙƒÙ… Ø¹Ø¯Ø¯ ØµÙ…Ø§Ù…Ø§Øª Ù‚Ù„Ø¨ Ø§Ù„Ø¥Ù†Ø³Ø§Ù†ØŸ",
-      options: ["ØµÙ…Ø§Ù…Ø§Ù†", "3 ØµÙ…Ø§Ù…Ø§Øª", "4 ØµÙ…Ø§Ù…Ø§Øª", "5 ØµÙ…Ø§Ù…Ø§Øª"],
+      question: "كم عدد صمامات قلب الإنسان؟",
+      options: ["صمامان", "3 صمامات", "4 صمامات", "5 صمامات"],
       answerIndex: 2,
-      explanation: "ÙŠØ­ØªÙˆÙŠ Ù‚Ù„Ø¨ Ø§Ù„Ø¥Ù†Ø³Ø§Ù† Ø§Ù„Ø³Ù„ÙŠÙ… Ø¹Ù„Ù‰ 4 ØµÙ…Ø§Ù…Ø§Øª ØªÙ†Ø¸Ù… Ø­Ø±ÙƒØ© ÙˆØ¶Ø® Ø§Ù„Ø¯Ù…Ø§Ø¡."
+      explanation: "يحتوي قلب الإنسان السليم على 4 صمامات تنظم حركة وضخ الدماء."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø£ØµØºØ± Ø¨Ù„Ø¯ ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù… Ù…Ù† Ø­ÙŠØ« Ø§Ù„Ù…Ø³Ø§Ø­Ø©ØŸ",
-      options: ["Ù…ÙˆÙ†Ø§ÙƒÙˆ", "Ø§Ù„ÙØ§ØªÙŠÙƒØ§Ù†", "Ø³Ø§Ù† Ù…Ø§Ø±ÙŠÙ†Ùˆ", "Ù…Ø§Ù„Ø·Ø§"],
+      question: "ما هو أصغر بلد في العالم من حيث المساحة؟",
+      options: ["موناكو", "الفاتيكان", "سان مارينو", "مالطا"],
       answerIndex: 1,
-      explanation: "Ø¯ÙˆÙ„Ø© Ø§Ù„ÙØ§ØªÙŠÙƒØ§Ù† Ù‡ÙŠ Ø§Ù„Ø£ØµØºØ± Ù…Ø³Ø§Ø­Ø© ÙˆØªØ¹Ø¯Ø§Ø¯Ø§Ù‹ ÙˆØªÙ‚Ø¹ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¯Ø§Ø®Ù„ Ù…Ø¯ÙŠÙ†Ø© Ø±ÙˆÙ…Ø§."
+      explanation: "دولة الفاتيكان هي الأصغر مساحة وتعداداً وتقع بالكامل داخل مدينة روما."
     },
     {
-      question: "ÙÙŠ Ø£ÙŠ Ø¹Ø§Ù… Ø§Ù†Ø¯Ù„Ø¹Øª Ø§Ù„Ø­Ø±Ø¨ Ø§Ù„Ø¹Ø§Ù„Ù…ÙŠØ© Ø§Ù„Ø£ÙˆÙ„Ù‰ØŸ",
+      question: "في أي عام اندلعت الحرب العالمية الأولى؟",
       options: ["1912", "1914", "1918", "1939"],
       answerIndex: 1,
-      explanation: "Ø¨Ø¯Ø£Øª Ø§Ù„Ø­Ø±Ø¨ Ø§Ù„Ø¹Ø§Ù„Ù…ÙŠØ© Ø§Ù„Ø£ÙˆÙ„Ù‰ Ø¹Ø§Ù… 1914 ÙˆØ§Ù†ØªÙ‡Øª Ø±Ø³Ù…ÙŠØ§Ù‹ ÙÙŠ Ø¹Ø§Ù… 1918."
+      explanation: "بدأت الحرب العالمية الأولى عام 1914 وانتهت رسمياً في عام 1918."
     },
     {
-      question: "Ù…Ø§ Ù‡ÙŠ Ø¹Ø§ØµÙ…Ø© Ø¬Ù…Ù‡ÙˆØ±ÙŠØ© Ù…ØµØ± Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©ØŸ",
-      options: ["Ø§Ù„Ø¥Ø³ÙƒÙ†Ø¯Ø±ÙŠØ©", "Ø§Ù„Ø¬ÙŠØ²Ø©", "Ø§Ù„Ù‚Ø§Ù‡Ø±Ø©", "Ø¨ÙˆØ±Ø³Ø¹ÙŠØ¯"],
+      question: "ما هي عاصمة جمهورية مصر العربية؟",
+      options: ["الإسكندرية", "الجيزة", "القاهرة", "بورسعيد"],
       answerIndex: 2,
-      explanation: "Ù…Ø¯ÙŠÙ†Ø© Ø§Ù„Ù‚Ø§Ù‡Ø±Ø© Ù‡ÙŠ Ø§Ù„Ø¹Ø§ØµÙ…Ø© Ø§Ù„ØªØ§Ø±ÙŠØ®ÙŠØ© ÙˆØ§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ù„Ø¬Ù…Ù‡ÙˆØ±ÙŠØ© Ù…ØµØ± Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©."
+      explanation: "مدينة القاهرة هي العاصمة التاريخية والإدارية لجمهورية مصر العربية."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø£Ø³Ø±Ø¹ Ø­ÙŠÙˆØ§Ù† Ø¨Ø±ÙŠ ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù…ØŸ",
-      options: ["Ø§Ù„ÙÙ‡Ø¯", "Ø§Ù„ØºØ²Ø§Ù„", "Ø§Ù„Ø£Ø³Ø¯", "Ø§Ù„Ø­ØµØ§Ù†"],
+      question: "ما هو أسرع حيوان بري في العالم؟",
+      options: ["الفهد", "الغزال", "الأسد", "الحصان"],
       answerIndex: 0,
-      explanation: "Ø§Ù„ÙÙ‡Ø¯ Ø§Ù„ØµÙŠØ§Ø¯ (Ø§Ù„Ø´ÙŠØªØ§) Ù‡Ùˆ Ø£Ø³Ø±Ø¹ Ø­ÙŠÙˆØ§Ù† Ø¨Ø±ÙŠ Ø¹Ù„Ù‰ ÙˆØ¬Ù‡ Ø§Ù„Ø£Ø±Ø¶ØŒ Ø­ÙŠØ« ØªØµÙ„ Ø³Ø±Ø¹ØªÙ‡ Ø¥Ù„Ù‰ Ø£ÙƒØ«Ø± Ù…Ù† 100 ÙƒÙ…/Ø³Ø§Ø¹Ø©."
+      explanation: "الفهد الصياد (الشيتا) هو أسرع حيوان بري على وجه الأرض، حيث تصل سرعته إلى أكثر من 100 كم/ساعة."
     },
     {
-      question: "Ù…Ø§ Ù‡ÙŠ Ø¹Ø§ØµÙ…Ø© Ø¯ÙˆÙ„Ø© Ø§Ù„Ø¥Ù…Ø§Ø±Ø§Øª Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø§Ù„Ù…ØªØ­Ø¯Ø©ØŸ",
-      options: ["Ø¯Ø¨ÙŠ", "Ø£Ø¨ÙˆØ¸Ø¨ÙŠ", "Ø§Ù„Ø´Ø§Ø±Ù‚Ø©", "Ø¹Ø¬Ù…Ø§Ù†"],
+      question: "ما هي عاصمة دولة الإمارات العربية المتحدة؟",
+      options: ["دبي", "أبوظبي", "الشارقة", "عجمان"],
       answerIndex: 1,
-      explanation: "Ø£Ø¨ÙˆØ¸Ø¨ÙŠ Ù‡ÙŠ Ø§Ù„Ø¹Ø§ØµÙ…Ø© Ø§Ù„Ø§ØªØ­Ø§Ø¯ÙŠØ© ÙˆØ§Ù„Ø³ÙŠØ§Ø³ÙŠØ© Ù„Ø¯ÙˆÙ„Ø© Ø§Ù„Ø¥Ù…Ø§Ø±Ø§Øª."
+      explanation: "أبوظبي هي العاصمة الاتحادية والسياسية لدولة الإمارات."
     },
     {
-      question: "ÙƒÙ… Ø¹Ø¯Ø¯ Ø§Ù„Ø¹Ø¸Ø§Ù… ÙÙŠ Ø¬Ø³Ù… Ø§Ù„Ø¥Ù†Ø³Ø§Ù† Ø§Ù„Ø¨Ø§Ù„ØºØŸ",
-      options: ["180 Ø¹Ø¸Ù…Ø©", "206 Ø¹Ø¸Ù…Ø©", "250 Ø¹Ø¸Ù…Ø©", "300 Ø¹Ø¸Ù…Ø©"],
+      question: "كم عدد العظام في جسم الإنسان البالغ؟",
+      options: ["180 عظمة", "206 عظمة", "250 عظمة", "300 عظمة"],
       answerIndex: 1,
-      explanation: "ÙŠØ­ØªÙˆÙŠ Ø§Ù„Ù‡ÙŠÙƒÙ„ Ø§Ù„Ø¹Ø¸Ù…ÙŠ Ù„Ù„Ø¥Ù†Ø³Ø§Ù† Ø§Ù„Ø¨Ø§Ù„Øº Ø¹Ù„Ù‰ 206 Ø¹Ø¸Ù…Ø© Ù…Ù†ÙØµÙ„Ø©."
+      explanation: "يحتوي الهيكل العظمي للإنسان البالغ على 206 عظمة منفصلة."
     },
     {
-      question: "Ù…Ø§ Ù‡Ùˆ Ø§Ù„ÙƒÙˆÙƒØ¨ Ø§Ù„Ù…Ù„Ù‚Ø¨ Ø¨Ø§Ù„ÙƒÙˆÙƒØ¨ Ø§Ù„Ø£Ø­Ù…Ø±ØŸ",
-      options: ["Ø§Ù„Ø²Ù‡Ø±Ø©", "Ø§Ù„Ù…Ø±ÙŠØ®", "Ø§Ù„Ù…Ø´ØªØ±ÙŠ", "Ø²Ø­Ù„"],
+      question: "ما هو الكوكب الملقب بالكوكب الأحمر؟",
+      options: ["الزهرة", "المريخ", "المشتري", "زحل"],
       answerIndex: 1,
-      explanation: "Ø§Ù„Ù…Ø±ÙŠØ® ÙŠÙ„Ù‚Ø¨ Ø¨Ø§Ù„ÙƒÙˆÙƒØ¨ Ø§Ù„Ø£Ø­Ù…Ø± Ù†Ø¸Ø±Ø§Ù‹ Ù„Ø§Ù†ØªØ´Ø§Ø± Ø£ÙƒØ³ÙŠØ¯ Ø§Ù„Ø­Ø¯ÙŠØ¯ Ø¹Ù„Ù‰ Ø³Ø·Ø­Ù‡ Ø¨ÙƒØ«Ø±Ø©."
+      explanation: "المريخ يلقب بالكوكب الأحمر نظراً لانتشار أكسيد الحديد على سطحه بكثرة."
     },
     {
-      question: "Ù…Ù† Ù‡Ùˆ Ø£ÙˆÙ„ Ù…Ù† ØµØ¹Ø¯ Ø¥Ù„Ù‰ Ø§Ù„ÙØ¶Ø§Ø¡ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠØŸ",
-      options: ["Ù†ÙŠÙ„ Ø£Ø±Ù…Ø³ØªØ±ÙˆÙ†Øº", "ÙŠÙˆØ±ÙŠ ØºØ§ØºØ§Ø±ÙŠÙ†", "Ø¨Ø² Ø£Ù„Ø¯Ø±ÙŠÙ†", "Ø³Ù„Ø·Ø§Ù† Ø¨Ù† Ø³Ù„Ù…Ø§Ù†"],
+      question: "من هو أول من صعد إلى الفضاء الخارجي؟",
+      options: ["نيل أرمسترونغ", "يوري غاغارين", "بز ألدرين", "سلطان بن سلمان"],
       answerIndex: 1,
-      explanation: "Ø§Ù„Ø±ÙˆØ³ÙŠ ÙŠÙˆØ±ÙŠ ØºØ§ØºØ§Ø±ÙŠÙ† Ù‡Ùˆ Ø£ÙˆÙ„ Ø¥Ù†Ø³Ø§Ù† ÙŠØ¯ÙˆØ± Ø­ÙˆÙ„ Ø§Ù„Ø£Ø±Ø¶ ÙÙŠ Ø§Ù„ÙØ¶Ø§Ø¡ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠ."
+      explanation: "الروسي يوري غاغارين هو أول إنسان يدور حول الأرض في الفضاء الخارجي."
     },
     {
-      question: "Ù…Ø§ Ù‡ÙŠ ÙØµÙŠÙ„Ø© Ø§Ù„Ø¯Ù… Ø§Ù„ØªÙŠ ØªØ³Ù…Ù‰ Ø§Ù„Ù…ØªØ¨Ø±Ø¹ Ø§Ù„Ø¹Ø§Ù…ØŸ",
+      question: "ما هي فصيلة الدم التي تسمى المتبرع العام؟",
       options: ["A+", "B-", "AB+", "O-"],
       answerIndex: 3,
-      explanation: "ÙØµÙŠÙ„Ø© Ø§Ù„Ø¯Ù… O Ø§Ù„Ø³Ø§Ù„Ø¨Ø© ÙŠÙ…ÙƒÙ† Ø¥Ø¹Ø·Ø§Ø¤Ù‡Ø§ Ù„Ø¬Ù…ÙŠØ¹ Ø§Ù„ÙØµØ§Ø¦Ù„ Ø§Ù„Ø£Ø®Ø±Ù‰ Ø¯ÙˆÙ† ØªØ¹Ø§Ø±Ø¶."
+      explanation: "فصيلة الدم O السالبة يمكن إعطاؤها لجميع الفصائل الأخرى دون تعارض."
     }
   ];
 
@@ -2708,7 +2865,7 @@ export class TriviaDatabase {
 }
 
 // ============================================================
-//  ØªØ­Ø¯ÙŠØ« Ù…Ø¹Ø§Ù„Ø¬ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ù„Ø¥Ø¯Ù…Ø§Ø¬ Ø§Ù„Ù…ÙŠØ²Ø§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© (Offline Quran/Azkar commands)
+//  تحديث معالج الرسائل المساعد لإدماج الميزات الجديدة (Offline Quran/Azkar commands)
 // ============================================================
 let handleManualCommandUpdated = async function(message: Message, commandText: string): Promise<boolean> {
   const parts = commandText.split(/\s+/);
@@ -2718,8 +2875,8 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
 
 
 
-  // 2. Ø£Ù…Ø± Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…ØªØ¹Ø¯Ø¯Ø© Ø§Ù„ÙØ¦Ø§Øª Ø¯ÙˆÙ† Ø¥Ù†ØªØ±Ù†Øª
-  if (command === 'azkar' || command === 'Ø§Ø°ÙƒØ§Ø±') {
+  // 2. أمر قراءة الأذكار المتعددة الفئات دون إنترنت
+  if (command === 'azkar' || command === 'اذكار') {
     const category = args.join(' ');
     const zikr = AzkarDatabase.getRandomZikr(category || undefined);
     const embed = createAzkarEmbed(zikr.category, zikr.text, zikr.count, zikr.reward);
@@ -2727,29 +2884,29 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     return true;
   }
 
-  // 3. Ø£Ù…Ø± Ø¹Ø±Ø¶ ØªØµÙ†ÙŠÙ Ø§Ù„Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…ØªØ§Ø­Ø©
-  if (command === 'azkar_categories' || command === 'ØªØµÙ†ÙŠÙØ§Øª_Ø§Ù„Ø£Ø°ÙƒØ§Ø±') {
+  // 3. أمر عرض تصنيف الأذكار المتاحة
+  if (command === 'azkar_categories' || command === 'تصنيفات_الأذكار') {
     const cats = AzkarDatabase.getCategories().map((c, i) => `**${i+1}.** ${c}`).join('\n');
     const embed = new EmbedBuilder()
       .setColor(EMBED_COLORS.success)
-      .setTitle('ðŸ“¿ ØªØµÙ†ÙŠÙØ§Øª Ø§Ù„Ø£Ø°ÙƒØ§Ø± ÙˆØ§Ù„Ø£Ø¯Ø¹ÙŠØ© Ø§Ù„Ù…ØªØ§Ø­Ø©')
+      .setTitle('📿 تصنيفات الأذكار والأدعية المتاحة')
       .setDescription(cats)
-      .setFooter({ text: 'Ø§Ø³ØªØ®Ø¯Ù…: !opus azkar <Ø§Ù„ØªØµÙ†ÙŠÙ>' })
+      .setFooter({ text: 'استخدم: !opus azkar <التصنيف>' })
       .setTimestamp();
     await message.reply({ embeds: [embed] }).catch(() => null);
     return true;
   }
 
-  // 4. Ø£Ù…Ø± Ø¹Ø±Ø¶ Ù‚ÙˆØ§Ù†ÙŠÙ† Ø§Ù„Ø®Ø§Ø¯Ù… Ø§Ù„Ù…Ø¬Ù‡Ø²Ø© Ù…Ø³Ø¨Ù‚Ø§Ù‹
-  if (command === 'rules_template' || command === 'Ù‚ÙˆØ§Ù„Ø¨_Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†') {
+  // 4. أمر عرض قوانين الخادم المجهزة مسبقاً
+  if (command === 'rules_template' || command === 'قوالب_القوانين') {
     const genre = args[0];
     if (!genre) {
-      await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ØªØ­Ø¯ÙŠØ¯ Ù†ÙˆØ¹ Ø§Ù„Ù‚Ø§Ù„Ø¨ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© (general, gaming, quran, study). Ù…Ø«Ø§Ù„: `!opus rules_template gaming`').catch(() => null);
+      await message.reply('❌ يرجى تحديد نوع القالب المطلوبة (general, gaming, quran, study). مثال: `!opus rules_template gaming`').catch(() => null);
       return true;
     }
     const template = ServerRulesTemplateManager.getTemplate(genre);
     if (!template) {
-      await message.reply('âŒ Ù†ÙˆØ¹ Ø§Ù„Ù‚Ø§Ù„Ø¨ ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…. Ø§Ù„Ù…ØªØ§Ø­: (general, gaming, quran, study).').catch(() => null);
+      await message.reply('❌ نوع القالب غير مدعوم. المتاح: (general, gaming, quran, study).').catch(() => null);
       return true;
     }
 
@@ -2759,38 +2916,38 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     return true;
   }
 
-  // 5. Ø£Ù…Ø± Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø§Ù‚ØªØ±Ø§Ø­Ø§Øª Ù„Ù„Ø´Ø§Øª Ø§Ù„Ø¹Ø§Ù…
-  if (command === 'suggest' || command === 'Ø§Ù‚ØªØ±Ø§Ø­') {
+  // 5. أمر إرسال الاقتراحات للشات العام
+  if (command === 'suggest' || command === 'اقتراح') {
     const suggestionText = args.join(' ');
     if (!suggestionText) {
-      await message.reply('âŒ ÙŠØ±Ø¬Ù‰ ÙƒØªØ§Ø¨Ø© Ø§Ù‚ØªØ±Ø§Ø­Ùƒ. Ù…Ø«Ø§Ù„: `!opus suggest Ø²ÙŠØ§Ø¯Ø© Ù‚Ù†ÙˆØ§Øª Ø§Ù„ØµÙˆØª`').catch(() => null);
+      await message.reply('❌ يرجى كتابة اقتراحك. مثال: `!opus suggest زيادة قنوات الصوت`').catch(() => null);
       return true;
     }
     await SuggestionBox.submitSuggestion(message, suggestionText);
     return true;
   }
 
-  // 6. Ø£Ù…Ø± Ø¥Ø±Ø³Ø§Ù„ ÙˆØ§Ø¬Ù‡Ø© ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© (Verification Panel Setup)
-  if (command === 'setup_verification' || command === 'Ø§Ø¹Ø¯Ø§Ø¯_Ø§Ù„ØªÙˆØ«ÙŠÙ‚') {
+  // 6. أمر إرسال واجهة توثيق الأعضاء التفاعلية (Verification Panel Setup)
+  if (command === 'setup_verification' || command === 'اعداد_التوثيق') {
     if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
-      await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥Ø¹Ø¯Ø§Ø¯ Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„ØªÙˆØ«ÙŠÙ‚.').catch(() => null);
+      await message.reply('🔒 لا تملك صلاحية إعداد بوابة التوثيق.').catch(() => null);
       return true;
     }
     const targetChannel = message.mentions.channels.first() as TextChannel || message.channel as TextChannel;
     await MemberVerificationGateway.sendGatewayMessage(targetChannel);
-    await message.reply(`âœ… ØªÙ… Ø¥Ø¹Ø¯Ø§Ø¯ ÙˆØ¥Ø±Ø³Ø§Ù„ Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­Ù‚Ù‚ Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ© ÙÙŠ Ø§Ù„Ù‚Ù†Ø§Ø©: ${targetChannel}`).catch(() => null);
+    await message.reply(`✅ تم إعداد وإرسال لوحة التحقق التفاعلية في القناة: ${targetChannel}`).catch(() => null);
     return true;
   }
 
-  // 7. Ø£Ù…Ø± Ø¬Ø¯ÙˆÙ„Ø© Ø¨Ø·ÙˆÙ„Ø© Ø±ÙŠØ§Ø¶ÙŠØ© Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© Ø¬Ø¯ÙŠØ¯Ø©
-  if (command === 'schedule_match' || command === 'Ø¬Ø¯ÙˆÙ„Ø©_Ù…Ø¨Ø§Ø±Ø§Ø©') {
+  // 7. أمر جدولة بطولة رياضية إلكترونية جديدة
+  if (command === 'schedule_match' || command === 'جدولة_مباراة') {
     if (!message.member?.permissions.has(PermissionFlagsBits.ManageEvents)) {
-      await message.reply('ðŸ”’ Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¬Ø¯ÙˆÙ„Ø© Ù…Ø¨Ø§Ø±ÙŠØ§Øª Ø§Ù„Ø³ÙŠØ±ÙØ±.').catch(() => null);
+      await message.reply('🔒 لا تملك صلاحية جدولة مباريات السيرفر.').catch(() => null);
       return true;
     }
     const text = args.join(' ');
     if (!text || !text.includes('|')) {
-      await message.reply('âŒ ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù…ÙØµÙˆÙ„Ø© Ø¨Ù€ |. Ù…Ø«Ø§Ù„: `!opus schedule_match League | Falcons | Geekay | 19:30`').catch(() => null);
+      await message.reply('❌ يرجى إدخال البيانات مفصولة بـ |. مثال: `!opus schedule_match League | Falcons | Geekay | 19:30`').catch(() => null);
       return true;
     }
     const subparts = text.split('|');
@@ -2800,37 +2957,37 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     const time = subparts[3]!.trim();
 
     const match = EsportsTournamentScheduler.registerMatch(game, teamA, teamB, time);
-    const embed = createEsportsMatchEmbed(match.gameName, match.teamA, match.teamB, match.startTime, `Ù…Ø¹Ø±Ù Ø§Ù„Ø¨Ø·ÙˆÙ„Ø©: ${match.id}`);
-    await message.reply({ content: `âœ… ØªÙ… Ø¬Ø¯ÙˆÙ„Ø© Ø§Ù„Ù…Ø¨Ø§Ø±Ø§Ø© Ø¨Ù†Ø¬Ø§Ø­!`, embeds: [embed] }).catch(() => null);
+    const embed = createEsportsMatchEmbed(match.gameName, match.teamA, match.teamB, match.startTime, `معرف البطولة: ${match.id}`);
+    await message.reply({ content: `✅ تم جدولة المباراة بنجاح!`, embeds: [embed] }).catch(() => null);
     return true;
   }
 
-  // 8. Ø£Ù…Ø± Ø¹Ø±Ø¶ Ø§Ù„Ù…Ø¨Ø§Ø±ÙŠØ§Øª Ø§Ù„Ù…Ø¬Ø¯ÙˆÙ„Ø©
-  if (command === 'matches' || command === 'Ù…Ø¨Ø§Ø±ÙŠØ§Øª') {
+  // 8. أمر عرض المباريات المجدولة
+  if (command === 'matches' || command === 'مباريات') {
     const list = EsportsTournamentScheduler.getMatches();
     const description = list.map(m => {
-      const statusIcon = m.status === 'LIVE' ? 'ðŸ”´ Ø¨Ø« Ù…Ø¨Ø§Ø´Ø±' : m.status === 'COMPLETED' ? 'ðŸ Ø§Ù†ØªÙ‡Øª' : 'â³ Ù…Ø¬Ø¯ÙˆÙ„Ø©';
-      const score = m.score ? ` (Ø§Ù„Ù†ØªÙŠØ¬Ø©: ${m.score})` : '';
-      return `**[${m.id}]** ${m.gameName}: **${m.teamA}** Ø¶Ø¯ **${m.teamB}** | ${statusIcon} @ ${m.startTime}${score}`;
+      const statusIcon = m.status === 'LIVE' ? '🔴 بث مباشر' : m.status === 'COMPLETED' ? '🏁 انتهت' : '⏳ مجدولة';
+      const score = m.score ? ` (النتيجة: ${m.score})` : '';
+      return `**[${m.id}]** ${m.gameName}: **${m.teamA}** ضد **${m.teamB}** | ${statusIcon} @ ${m.startTime}${score}`;
     }).join('\n');
     const embed = new EmbedBuilder()
       .setColor(EMBED_COLORS.default)
-      .setTitle('ðŸ† Ø¬Ø¯ÙˆÙ„ Ù…Ø¨Ø§Ø±ÙŠØ§Øª Ø§Ù„Ø¨Ø·ÙˆÙ„Ø© Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© Ø§Ù„Ù…ÙØªÙˆØ­Ø©')
-      .setDescription(description || 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø¨Ø§Ø±ÙŠØ§Øª Ù…Ø¬Ø¯ÙˆÙ„Ø© Ø­Ø§Ù„ÙŠØ§Ù‹.')
+      .setTitle('🏆 جدول مباريات البطولة الإلكترونية المفتوحة')
+      .setDescription(description || 'لا توجد مباريات مجدولة حالياً.')
       .setTimestamp();
     await message.reply({ embeds: [embed] }).catch(() => null);
     return true;
   }
 
-  // 9. Ø£Ù…Ø± Ø§Ù„Ù…Ø³Ø§Ø¨Ù‚Ø§Øª Ø§Ù„Ø«Ù‚Ø§ÙÙŠØ© Ø§Ù„ØªÙØ§Ø¹Ù„ÙŠØ©
-  if (command === 'trivia' || command === 'Ù…Ø³Ø§Ø¨Ù‚Ø©') {
+  // 9. أمر المسابقات الثقافية التفاعلية
+  if (command === 'trivia' || command === 'مسابقة') {
     const question = TriviaDatabase.getRandomQuestion();
     const optionsText = question.options.map((opt, i) => `**${i + 1}.** ${opt}`).join('\n');
     const embed = new EmbedBuilder()
       .setColor(EMBED_COLORS.default)
-      .setTitle('ðŸŽ® Ø³Ø¤Ø§Ù„ Ù…Ø³Ø§Ø¨Ù‚Ø© Ø«Ù‚Ø§ÙÙŠØ© Ø³Ø±ÙŠØ¹Ø©')
+      .setTitle('🎮 سؤال مسابقة ثقافية سريعة')
       .setDescription(`**${question.question}**\n\n${optionsText}`)
-      .setFooter({ text: 'Ø£Ø¬Ø¨ Ø¨Ø§Ù„Ø±Ù‚Ù… Ø§Ù„ØµØ­ÙŠØ­ ÙÙŠ ØºØ¶ÙˆÙ† 30 Ø«Ø§Ù†ÙŠØ©!' })
+      .setFooter({ text: 'أجب بالرقم الصحيح في غضون 30 ثانية!' })
       .setTimestamp();
       
     const triviaMsg = await message.reply({ embeds: [embed] }).catch(() => null);
@@ -2845,15 +3002,15 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
         LevelingSystem.handleMessageXP(answerMsg.author.id, answerMsg.author.username, answerMsg.channel);
         const winEmbed = new EmbedBuilder()
           .setColor(EMBED_COLORS.success)
-          .setTitle('ðŸŽ‰ Ø¥Ø¬Ø§Ø¨Ø© ØµØ­ÙŠØ­Ø©!')
-          .setDescription(`Ø£Ø­Ø³Ù†Øª ÙŠØ§ ${answerMsg.author}! Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø© Ø§Ù„ØµØ­ÙŠØ­Ø© Ù‡ÙŠ: **${question.options[question.answerIndex]}**\n\nðŸ’¡ **Ø´Ø±Ø­:** ${question.explanation}\n\n*ØªÙ… Ù…Ù†Ø­Ùƒ Ù†Ù‚Ø§Ø· Ø®Ø¨Ø±Ø© Ø¥Ø¶Ø§ÙÙŠØ© ðŸš€*`)
+          .setTitle('🎉 إجابة صحيحة!')
+          .setDescription(`أحسنت يا ${answerMsg.author}! الإجابة الصحيحة هي: **${question.options[question.answerIndex]}**\n\n💡 **شرح:** ${question.explanation}\n\n*تم منحك نقاط خبرة إضافية 🚀*`)
           .setTimestamp();
         await answerMsg.reply({ embeds: [winEmbed] }).catch(() => null);
       } else {
         const loseEmbed = new EmbedBuilder()
           .setColor(EMBED_COLORS.danger)
-          .setTitle('âŒ Ø¥Ø¬Ø§Ø¨Ø© Ø®Ø§Ø·Ø¦Ø©!')
-          .setDescription(`Ù„Ù„Ø£Ø³Ù ÙŠØ§ ${answerMsg.author}ØŒ Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø© Ø®Ø§Ø·Ø¦Ø©.\n\nØ§Ù„Ø¥Ø¬Ø§Ø¨Ø© Ø§Ù„ØµØ­ÙŠØ­Ø© Ù‡ÙŠ: **${question.options[question.answerIndex]}**\n\nðŸ’¡ **Ø´Ø±Ø­:** ${question.explanation}`)
+          .setTitle('❌ إجابة خاطئة!')
+          .setDescription(`للأسف يا ${answerMsg.author}، الإجابة خاطئة.\n\nالإجابة الصحيحة هي: **${question.options[question.answerIndex]}**\n\n💡 **شرح:** ${question.explanation}`)
           .setTimestamp();
         await answerMsg.reply({ embeds: [loseEmbed] }).catch(() => null);
       }
@@ -2861,7 +3018,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
 
     collector.on('end', (collected: any) => {
       if (collected.size === 0) {
-        (message.channel as any).send(`â° Ø§Ù†ØªÙ‡Ù‰ Ø§Ù„ÙˆÙ‚Øª! Ù„Ù… ÙŠØ¬Ø¨ Ø£Ø­Ø¯ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„Ù…Ø­Ø¯Ø¯.\nØ§Ù„Ø¥Ø¬Ø§Ø¨Ø© Ø§Ù„ØµØ­ÙŠØ­Ø© Ù‡ÙŠ: **${question.options[question.answerIndex]}**`).catch(() => null);
+        (message.channel as any).send(`⏰ انتهى الوقت! لم يجب أحد في الوقت المحدد.\nالإجابة الصحيحة هي: **${question.options[question.answerIndex]}**`).catch(() => null);
       }
     });
 
@@ -2871,65 +3028,65 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
   return false;
 };
 // ============================================================
-//  19.8. Ù…Ø³ØªØ¬ÙŠØ¨ Ø§Ù„Ø·ÙˆØ§Ø±Ø¦ ÙÙŠ ÙˆØ¶Ø¹ Ø¹Ø¯Ù… Ø§Ù„Ø§ØªØµØ§Ù„ (Offline Fallback Responder)
+//  19.8. مستجيب الطوارئ في وضع عدم الاتصال (Offline Fallback Responder)
 // ============================================================
 export class OfflineFallbackResponder {
   private static fallbacks: { keywords: string[]; replies: string[] }[] = [
     {
-      keywords: ["Ø³Ù„Ø§Ù…", "Ù…Ø±Ø­Ø¨Ø§", "Ù‡Ù„Ø§", "Ø´Ù„ÙˆÙ†Ùƒ", "Ø£Ù‡Ù„Ø§Ù‹", "ÙƒÙŠÙÙƒ", "Ù…Ù†ÙˆØ±", "Ø§Ù„Ø³Ù„Ø§Ù… Ø¹Ù„ÙŠÙƒÙ…"],
+      keywords: ["سلام", "مرحبا", "هلا", "شلونك", "أهلاً", "كيفك", "منور", "السلام عليكم"],
       replies: [
-        "ÙˆØ¹Ù„ÙŠÙƒÙ… Ø§Ù„Ø³Ù„Ø§Ù… ÙˆØ±Ø­Ù…Ø© Ø§Ù„Ù„Ù‡ ÙˆØ¨Ø±ÙƒØ§ØªÙ‡! ÙŠØ§ Ù‡Ù„Ø§ ÙˆØºÙ„Ø§ Ù†ÙˆØ±Øª Ø§Ù„Ø³ÙŠØ±ÙØ± ÙŠØ§ Ø­Ø¨ÙŠØ¨Ù†Ø§. ÙƒÙŠÙ Ø£Ù‚Ø¯Ø± Ø£Ø³Ø§Ø¹Ø¯ÙƒØŸ ðŸ˜Š",
-        "Ù…Ø±Ø­Ø¨Ø§Ù‹ Ø¨Ùƒ ÙŠØ§ ØºØ§Ù„ÙŠ! Ø£Ù‡Ù„Ø§Ù‹ Ø¨Ùƒ ÙÙŠ Ø¨ÙŠØªÙƒ Ø§Ù„Ø«Ø§Ù†ÙŠ. Ø¢Ù…Ø±Ù†ÙŠ ÙˆØ¹ÙŠÙˆÙ†ÙŠ Ù„Ùƒ. ðŸŒ¹",
-        "ÙŠØ§ Ù‡Ù„Ø§ ÙˆØ§Ù„Ù„Ù‡ Ø¨Ø§Ù„Ø·ÙŠØ¨! Ù†ÙˆØ±ØªÙ†Ø§ ÙˆØ´Ø±ÙØªÙ†Ø§ Ø¨ÙˆØ¬ÙˆØ¯Ùƒ. ÙƒÙŠÙ Ø£Ø­ÙˆØ§Ù„Ùƒ Ø§Ù„ÙŠÙˆÙ…ØŸ âœ¨",
-        "ÙˆØ¹Ù„ÙŠÙƒÙ… Ø§Ù„Ø³Ù„Ø§Ù… ÙŠØ§ Ø¨Ø§Ø´Ø§! Ù…Ù†ÙˆØ± Ø§Ù„Ø´Ø§Øª ÙƒÙ„Ù‡ ÙˆØ§Ù„Ù„Ù‡. Ù‚ÙˆÙ„ÙŠ Ø­Ø§Ø¨Ø¨ Ù†Ø¹Ù…Ù„ Ø¥ÙŠÙ‡ Ø¯Ù„ÙˆÙ‚ØªÙŠØŸ ðŸ‘‘"
+        "وعليكم السلام ورحمة الله وبركاته! يا هلا وغلا نورت السيرفر يا حبيبنا. كيف أقدر أساعدك؟ 😊",
+        "مرحباً بك يا غالي! أهلاً بك في بيتك الثاني. آمرني وعيوني لك. 🌹",
+        "يا هلا والله بالطيب! نورتنا وشرفتنا بوجودك. كيف أحوالك اليوم؟ ✨",
+        "وعليكم السلام يا باشا! منور الشات كله والله. قولي حابب نعمل إيه دلوقتي؟ 👑"
       ]
     },
 
     {
-      keywords: ["Ø£Ø°ÙƒØ§Ø±", "Ø§Ø°ÙƒØ§Ø±", "Ø¯Ø¹Ø§Ø¡", "Ø§Ø¯Ø¹ÙŠØ©", "Ø°ÙƒØ±"],
+      keywords: ["أذكار", "اذكار", "دعاء", "ادعية", "ذكر"],
       replies: [
-        "Ø£Ù‡Ù„Ø§Ù‹ Ø¨Ùƒ ÙŠØ§Ù„Ø·ÙŠØ¨! Ù„Ù‚Ø±Ø§Ø¡Ø© Ø§Ù„Ø£Ø°ÙƒØ§Ø± Ø§Ù„Ù…ØªÙ†ÙˆØ¹Ø© ÙˆØ§Ù„Ø£Ø¯Ø¹ÙŠØ© Ø§Ù„ÙŠÙˆÙ…ÙŠØ©ØŒ ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø£Ù…Ø±: `!opus azkar` Ø£Ùˆ `!opus Ø§Ø°ÙƒØ§Ø±` ðŸ“¿",
-        "Ù„Ø°ÙƒØ± Ø§Ù„Ù„Ù‡ ÙÙˆØ§Ø¦Ø¯ Ø¹Ø¸ÙŠÙ…Ø©! Ø§ÙƒØªØ¨ `!opus azkar` Ù„Ø¹Ø±Ø¶ Ø°ÙƒØ± Ø¹Ø´ÙˆØ§Ø¦ÙŠ ÙˆØ«ÙˆØ§Ø¨Ù‡ Ø§Ù„Ø¬Ù…ÙŠÙ„."
+        "أهلاً بك يالطيب! لقراءة الأذكار المتنوعة والأدعية اليومية، يمكنك استخدام الأمر: `!opus azkar` أو `!opus اذكار` 📿",
+        "لذكر الله فوائد عظيمة! اكتب `!opus azkar` لعرض ذكر عشوائي وثوابه الجميل."
       ]
     },
     {
-      keywords: ["Ù…Ø³Ø§Ø¨Ù‚Ø©", "Ù…Ø³Ø§Ø¨Ù‚Ø§Øª", "Ø³Ø¤Ø§Ù„", "Ø§Ø³Ø¦Ù„Ø©", "Ø«Ù‚Ø§ÙÙŠØ©", "ØªØ­Ø¯ÙŠ"],
+      keywords: ["مسابقة", "مسابقات", "سؤال", "اسئلة", "ثقافية", "تحدي"],
       replies: [
-        "Ø£Ù‡Ù„Ø§Ù‹ Ø¨Ùƒ ÙŠØ§Ù„Ø·ÙŠØ¨! Ù„Ø¨Ø¯Ø¡ Ù…Ø³Ø§Ø¨Ù‚Ø© Ø«Ù‚Ø§ÙÙŠØ© ØªÙØ§Ø¹Ù„ÙŠØ© Ù…Ù…ØªØ¹Ø© ÙÙŠ Ø§Ù„Ø´Ø§ØªØŒ ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø£Ù…Ø±: `!opus trivia` Ø£Ùˆ `!opus Ù…Ø³Ø§Ø¨Ù‚Ø©` ðŸŽ®"
+        "أهلاً بك يالطيب! لبدء مسابقة ثقافية تفاعلية ممتعة في الشات، يمكنك استخدام الأمر: `!opus trivia` أو `!opus مسابقة` 🎮"
       ]
     },
     {
-      keywords: ["Ø´ØºÙ„"],
+      keywords: ["شغل"],
       replies: [
-        "Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ Ø£Ùˆ Ø§Ù„Ø£ØºØ§Ù†ÙŠØŒ Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø§Ù„ØªØ£ÙƒØ¯ Ù…Ù† Ø£Ù† Ø§Ù„Ø¨ÙˆØª Ù…ØªØµÙ„ Ø¨Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª ÙˆØ£Ù†Ùƒ Ù‚Ø¯ Ù…Ù†Ø´Ù†ØªÙ‡ Ù…Ø¹ Ø·Ù„Ø¨Ùƒ Ù…Ø«Ù„: `@Opus Ø´ØºÙ„ Ø¹Ù…Ø±ÙŠÙ†` ðŸŽµ",
-        "Ø¥Ø°Ø§ ÙˆØ§Ø¬Ù‡Øª Ù…Ø´ÙƒÙ„Ø© ÙÙŠ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø£ØºØ§Ù†ÙŠ Ø¨Ø³Ø¨Ø¨ Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø¥Ù†ØªØ±Ù†Øª Ø£Ùˆ Ø§Ù„Ù€ APIØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹ Ø¨Ø¹Ø¯ Ø§Ø³ØªÙ‚Ø±Ø§Ø± Ø§Ù„Ø§ØªØµØ§Ù„."
+        "لتشغيل الموسيقى أو الأغاني، الرجاء التأكد من أن البوت متصل بالإنترنت وأنك قد منشنته مع طلبك مثل: `@Opus شغل عمرين` 🎵",
+        "إذا واجهت مشكلة في تشغيل الأغاني بسبب انقطاع الإنترنت أو الـ API، يرجى المحاولة لاحقاً بعد استقرار الاتصال."
       ]
     },
     {
-      keywords: ["ÙƒØªÙ…", "Ø·Ø±Ø¯", "Ø­Ø¸Ø±", "Ø¨Ø§Ù†Ø¯", "ÙƒÙŠÙƒ", "ØªØ§ÙŠÙ…", "Ù…ÙŠÙˆØª"],
+      keywords: ["كتم", "طرد", "حظر", "باند", "كيك", "تايم", "ميوت"],
       replies: [
-        "Ù„Ù„Ø¥Ø´Ø±Ø§Ù Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ù…Ù†Ø´Ù† Ø§Ù„Ø¨ÙˆØª Ù…Ø¹ ØªØ­Ø¯ÙŠØ¯ Ù†ÙˆØ¹ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ù…Ø«Ù„: `@Opus Ø§ÙƒØªÙ… ÙÙ„Ø§Ù† Ù„Ù…Ø¯Ø© 10 Ø¯Ù‚Ø§Ø¦Ù‚ Ø¨Ø³Ø¨Ø¨ Ø§Ù„Ø³Ø¨`. ðŸ›¡ï¸",
-        "ØµÙ„Ø§Ø­ÙŠØ§ØªÙŠ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© ØªØ·Ù„Ø¨ Ø£Ù† ÙŠÙ…ØªÙ„Ùƒ Ø§Ù„Ø¨ÙˆØª Ø¯ÙˆØ±Ø§Ù‹ Ø¹Ø§Ù„ÙŠØ§Ù‹ ÙƒØ§ÙÙŠØ§Ù‹ Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ø·Ø±Ø¯ Ø£Ùˆ Ø§Ù„Ø­Ø¸Ø± Ø¨Ù†Ø¬Ø§Ø­."
+        "للإشراف الإداري على الأعضاء، يرجى استخدام منشن البوت مع تحديد نوع الإجراء مثل: `@Opus اكتم فلان لمدة 10 دقائق بسبب السب`. 🛡️",
+        "صلاحياتي الإدارية تطلب أن يمتلك البوت دوراً عالياً كافياً لإجراء الطرد أو الحظر بنجاح."
       ]
     },
     {
-      keywords: ["Ø¨Ù†Ø§Ø¡", "Ø³ÙŠØ±ÙØ±", "Ø±ÙˆÙ…Ø§Øª", "Ø±ÙˆÙ…", "ÙÙˆÙŠØ³", "Ø´Ø§Øª"],
+      keywords: ["بناء", "سيرفر", "رومات", "روم", "فويس", "شات"],
       replies: [
-        "ÙŠÙ…ÙƒÙ†Ù†ÙŠ Ø¨Ù†Ø§Ø¡ Ø®Ø§Ø¯Ù… Ù…ØªÙƒØ§Ù…Ù„ Ù…Ø¹ Ø§Ù„Ø±ØªØ¨ ÙˆØ§Ù„Ù‚Ù†ÙˆØ§Øª! Ø§Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø£Ù…Ø±: `!opus rules_template` Ù„Ø¹Ø±Ø¶ Ù†Ù…Ø§Ø°Ø¬ Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†ØŒ Ø£Ùˆ `@Opus Ø§Ø¨Ù†Ù Ù„ÙŠ Ø³ÙŠØ±ÙØ± Ø£Ù„Ø¹Ø§Ø¨`."
+        "يمكنني بناء خادم متكامل مع الرتب والقنوات! استخدم الأمر: `!opus rules_template` لعرض نماذج القوانين، أو `@Opus ابنِ لي سيرفر ألعاب`."
       ]
     },
     {
-      keywords: ["Ø´ÙƒØ±Ø§", "Ø´ÙƒØ±Ù‹Ø§", "ÙŠØ¹Ø·ÙŠÙƒ Ø§Ù„Ø¹Ø§ÙÙŠØ©", "ÙƒÙÙˆ", "ØªØ³Ù„Ù…", "Ø­Ø¨ÙŠØ¨ Ù‚Ù„Ø¨ÙŠ", "Ø´ÙƒØ±Ø§ Ù„Ùƒ"],
+      keywords: ["شكرا", "شكرًا", "يعطيك العافية", "كفو", "تسلم", "حبيب قلبي", "شكرا لك"],
       replies: [
-        "Ø§Ù„Ù„Ù‡ ÙŠØ¹Ø§ÙÙŠÙƒ ÙˆÙŠØ³Ù„Ù…Ùƒ ÙŠØ§ ØºØ§Ù„ÙŠ! Ù‡Ø°Ø§ ÙˆØ§Ø¬Ø¨ÙŠ Ù„Ø®Ø¯Ù…Ø© Ø®Ø§Ø¯Ù…ÙƒÙ… Ø§Ù„Ø¬Ù…ÙŠÙ„. ðŸ’–",
-        "ØªØ³Ù„Ù… ÙˆØ§Ù„Ù„Ù‡ ÙŠØ§Ù„Ø·ÙŠØ¨! ÙƒÙ„Ùƒ Ø°ÙˆÙ‚ ÙˆØ£Ø¯Ø¨. Ù„Ø§ ØªØªØ±Ø¯Ø¯ ÙÙŠ Ø£ÙŠ Ø·Ù„Ø¨ Ø¢Ø®Ø±. ðŸ¥°",
-        "Ø­Ø¨ÙŠØ¨ÙŠ ÙŠØ§ Ø¨Ø±Ù†Ø³! ØªØ­Øª Ø£Ù…Ø±Ùƒ ÙÙŠ Ø£ÙŠ ÙˆÙ‚Øª. Ø±Ø¨Ù†Ø§ ÙŠØ®Ù„ÙŠÙƒ Ù„ÙŠÙ†Ø§. ðŸŒ¹"
+        "الله يعافيك ويسلمك يا غالي! هذا واجبي لخدمة خادمكم الجميل. 💖",
+        "تسلم والله يالطيب! كلك ذوق وأدب. لا تتردد في أي طلب آخر. 🥰",
+        "حبيبي يا برنس! تحت أمرك في أي وقت. ربنا يخليك لينا. 🌹"
       ]
     },
     {
-      keywords: ["Ù…ÙŠÙ†", "Ù…Ù† Ø£Ù†Øª", "Ù…Ù† Ø§Ù†Øª", "ÙˆØ´ Ø§Ù„Ø¨ÙˆØª", "Ø¨ÙˆØª ÙˆØ´Ùˆ"],
+      keywords: ["مين", "من أنت", "من انت", "وش البوت", "بوت وشو"],
       replies: [
-        "Ø£Ù†Ø§ Opus Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø°ÙƒÙŠ ÙˆØ³Ù„Ø·Ø§Ù† Ø§Ù„Ù…ÙˆØ³ÙŠÙ‚Ù‰ ÙÙŠ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯! ØªÙ… ØªØ·ÙˆÙŠØ±ÙŠ Ù„Ø£ÙƒÙˆÙ† Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯ Ø§Ù„Ø®Ø§Ø±Ù‚ ÙˆØ§Ù„Ø£ÙƒØ«Ø± ØªÙÙˆÙ‚Ø§Ù‹ ÙÙŠ Ø¥Ø¯Ø§Ø±Ø© Ø®Ø§Ø¯Ù…ÙƒÙ…. ðŸ¤–"
+        "أنا Opus المساعد الذكي وسلطان الموسيقى في ديسكورد! تم تطويري لأكون المساعد الخارق والأكثر تفوقاً في إدارة خادمكم. 🤖"
       ]
     }
   ];
@@ -2948,7 +3105,7 @@ export class OfflineFallbackResponder {
 
 
 // ============================================================
-//  Ø¯Ù…Ø¬ Ù…Ø¹Ø§Ù„Ø¬ÙŠ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„ØªÙ‚Ù„ÙŠØ¯ÙŠØ© ÙˆØ§Ù„Ø­Ø¯ÙŠØ«Ø© Ù…Ø¹Ø§Ù‹ (Dual Parser Hook)
+//  دمج معالجي الأوامر التقليدية والحديثة معاً (Dual Parser Hook)
 // ============================================================
 client.on(Events.MessageCreate, async (message: Message) => {
   if (message.author.bot) return;
@@ -2968,12 +3125,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
   if (isCommand && rawPrompt) {
     const handled = await handleManualCommandUpdated(message, rawPrompt);
-    // Ø¥Ø°Ø§ Ù„Ù… ÙŠØªØ¹Ø§Ù…Ù„ Ù…Ø¹Ù‡ Ø§Ù„Ù…Ø·ÙˆØ± Ø§Ù„Ù…Ø­Ø¯Ø«ØŒ ÙŠØªÙ… ØªÙˆØ¬ÙŠÙ‡Ù‡ Ù„Ù„Ù‚Ø¯ÙŠÙ…
+    // إذا لم يتعامل معه المطور المحدث، يتم توجيهه للقديم
     if (handled) return;
   }
 });
 // ============================================================
-//  Ø¨ÙŠØ§Ù†Ø§Øª ØªÙˆØ«ÙŠÙ‚ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª ÙˆØ§Ù„ØªØ­Ø³ÙŠÙ† Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„Ù…ÙƒÙ…Ù„ (Extended System Info V2)
+//  بيانات توثيق اللهجات والتحسين الإداري المكمل (Extended System Info V2)
 // ============================================================
 export const SYSTEM_ARCHITECTURE_SUMMARY = {
   name: "Opus AI Brain Infrastructure v2",
@@ -2989,26 +3146,26 @@ export const SYSTEM_ARCHITECTURE_SUMMARY = {
 
 export const OFFLINE_RESPONDER_GUIDELINES = `
 =========================================
-      ØªÙØ§ØµÙŠÙ„ Ù‡ÙŠÙƒÙ„ÙŠØ© Ø°ÙƒØ§Ø¡ Ø§Ù„Ø¨ÙˆØª Ø§Ù„Ù…Ø³Ø§Ø¹Ø¯
+      تفاصيل هيكلية ذكاء البوت المساعد
 =========================================
-1. ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù„Ù‡Ø¬Ø§Øª (Dialect normalization):
-   ÙŠØªÙ… Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ ÙˆØªÙˆØ­ÙŠØ¯ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø¹Ø§Ù…ÙŠØ© Ù…Ù† Ø§Ù„Ù„Ù‡Ø¬Ø§Øª (Ø§Ù„Ù†Ø¬Ø¯ÙŠØ©ØŒ Ø§Ù„Ø­Ø¬Ø§Ø²ÙŠØ©ØŒ Ø§Ù„Ù…ØµØ±ÙŠØ©ØŒ Ø§Ù„Ø´Ø§Ù…ÙŠØ©ØŒ Ø§Ù„Ù…ØºØ±Ø¨ÙŠØ©ØŒ Ø¥Ù„Ø®)
-   Ù„ØªØ¨Ø³ÙŠØ· ÙÙ‡Ù… Ø§Ù„Ø¬Ù…Ù„Ø© Ù‚Ø¨Ù„ Ø¥Ø±Ø³Ø§Ù„Ù‡Ø§ Ù„Ù€ LLM.
+1. تحليل اللهجات (Dialect normalization):
+   يتم معالجة الإدخال وتوحيد الكلمات العامية من اللهجات (النجدية، الحجازية، المصرية، الشامية، المغربية، إلخ)
+   لتبسيط فهم الجملة قبل إرسالها لـ LLM.
 
-2. Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø°Ø§ØªÙŠØ© Ø§Ù„Ø­Ø±Ø© (Autonomous moderation):
-   ÙŠØ¹Ù…Ù„ Ø§Ù„Ø±Ù‚ÙŠØ¨ Ø¨ØµÙˆØ±Ø© Ù…Ù†ÙØµÙ„Ø© Ù„ÙØ­Øµ Ø§Ù„Ø³Ù„ÙˆÙƒÙŠØ§Øª Ø§Ù„Ø®Ø§Ø·Ø¦Ø© Ø¯ÙˆÙ† ØªØ¯Ø§Ø®Ù„ Ù…Ø¹ Ù…Ø­Ø±Ùƒ Ø§Ù„ØµÙˆØª Ø£Ùˆ Ù…Ù†Ø´Ø¦ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª.
+2. المراقبة الذاتية الحرة (Autonomous moderation):
+   يعمل الرقيب بصورة منفصلة لفحص السلوكيات الخاطئة دون تداخل مع محرك الصوت أو منشئ السيرفرات.
 
-3. Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¯Ø§Ø¦Ù…Ø© (Persistent Memory):
-   ØªØ¹ØªÙ…Ø¯ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø¹Ù„Ù‰ Ø¨Ù†ÙŠØ© TF-IDF Ù…Ø¯Ù…Ø¬Ø© Ø°Ø§ØªÙŠØ§Ù‹ Ù„Ù„Ø¨Ø­Ø« Ø¹Ù† Ø§Ù„ØªØ´Ø§Ø¨Ù‡ Ø§Ù„Ø¯Ù„Ø§Ù„ÙŠ ÙˆØ­ÙØ¸ Ø§Ù„Ø³ÙŠØ§Ù‚.
+3. الذاكرة الدائمة (Persistent Memory):
+   تعتمد الذاكرة على بنية TF-IDF مدمجة ذاتياً للبحث عن التشابه الدلالي وحفظ السياق.
 `;
 // ============================================================
-//  20. Ø¨Ø¯Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Client Login Gateway)
+//  20. بدء تشغيل البوت والاتصال بديسكورد (Client Login Gateway)
 // ============================================================
 startRenderWebServer();
 installLegacyEmbedRepair();
 
 client.login(config.discordToken).catch((err) => {
-  console.error('[Bot Boot Failure] âŒ ÙØ´Ù„ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯:', err);
+  console.error('[Bot Boot Failure] ❌ فشل تشغيل البوت والاتصال بديسكورد:', err);
   process.exit(1);
 });
 
@@ -3016,51 +3173,51 @@ client.login(config.discordToken).catch((err) => {
 
 // ============================================================================
 // ============================================================================
-//  SECTION 21: Ø­Ø²Ù…Ø© Ø£Ø¯ÙˆØ§Øª Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆØ§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø© (Advanced Administrative Diagnostic Suite)
-//  ØªÙ…Øª Ø¥Ø¶Ø§ÙØ© Ù‡Ø°Ø§ Ø§Ù„Ù‚Ø³Ù… Ù„ØªÙˆØ³ÙŠØ¹ Ø§Ù„Ø¨ÙˆØª Ø¨Ù‚Ø¯Ø±Ø§Øª ØªØ´Ø®ÙŠØµÙŠØ© ÙˆØªØ­Ù„ÙŠÙ„ÙŠØ© Ø®Ø§Ø±Ù‚Ø© Ù„ÙŠÙƒÙˆÙ† Ø§Ù„Ø¹Ù‚Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„Ø£Ù‚ÙˆÙ‰.
+//  SECTION 21: حزمة أدوات التشخيص والتحليل الإداري المتقدمة (Advanced Administrative Diagnostic Suite)
+//  تمت إضافة هذا القسم لتوسيع البوت بقدرات تشخيصية وتحليلية خارقة ليكون العقل الإداري الأقوى.
 // ============================================================================
 // ============================================================================
 
 import * as os from 'os';
 
 /**
- * Ù…Ù†Ø³Ù‚ Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ… ÙˆØ§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ø±Ø³ÙˆÙ…ÙŠØ© (Console & ASCII Report Formatter)
- * ÙŠÙˆÙØ± Ø£Ø¯ÙˆØ§Øª Ù„Ø¨Ù†Ø§Ø¡ Ù„ÙˆØ­Ø§Øª ÙˆØ±Ø³ÙˆÙ…Ø§Øª ASCII ÙˆØ¬Ø¯Ø§ÙˆÙ„ Ù„Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª ÙˆØ§Ù„Ø£Ø¯Ø§Ø¡ Ø¨ØµÙˆØ±Ø© Ù…Ø¨Ù‡Ø±Ø©.
+ * منسق لوحة التحكم والتقارير الرسومية (Console & ASCII Report Formatter)
+ * يوفر أدوات لبناء لوحات ورسومات ASCII وجداول لعرض الإحصائيات والأداء بصورة مبهرة.
  */
 export class AdvancedDiagnosticConsoleFormatter {
-  private static readonly BORDER_CHAR_HORIZONTAL = 'â•';
-  private static readonly BORDER_CHAR_VERTICAL = 'â•‘';
-  private static readonly CORNER_TOP_LEFT = 'â•”';
-  private static readonly CORNER_TOP_RIGHT = 'â•—';
-  private static readonly CORNER_BOTTOM_LEFT = 'â•š';
-  private static readonly CORNER_BOTTOM_RIGHT = 'â•';
-  private static readonly T_TOP = 'â•¦';
-  private static readonly T_BOTTOM = 'â•©';
-  private static readonly T_LEFT = 'â• ';
-  private static readonly T_RIGHT = 'â•£';
-  private static readonly CROSS = 'â•¬';
+  private static readonly BORDER_CHAR_HORIZONTAL = '═';
+  private static readonly BORDER_CHAR_VERTICAL = '║';
+  private static readonly CORNER_TOP_LEFT = '╔';
+  private static readonly CORNER_TOP_RIGHT = '╗';
+  private static readonly CORNER_BOTTOM_LEFT = '╚';
+  private static readonly CORNER_BOTTOM_RIGHT = '╝';
+  private static readonly T_TOP = '╦';
+  private static readonly T_BOTTOM = '╩';
+  private static readonly T_LEFT = '╠';
+  private static readonly T_RIGHT = '╣';
+  private static readonly CROSS = '╬';
 
   /**
-   * Ø¥Ù†Ø´Ø§Ø¡ ØµÙ†Ø¯ÙˆÙ‚ ASCII Ø¬Ù…Ø§Ù„ÙŠ Ø­ÙˆÙ„ Ù†Øµ Ù…Ø¹ÙŠÙ†
+   * إنشاء صندوق ASCII جمالي حول نص معين
    */
   static createDecorativeBox(title: string, lines: string[], width: number = 70): string {
     const horizontalBorder = this.BORDER_CHAR_HORIZONTAL.repeat(width - 2);
     let result = '';
     
-    // Ø§Ù„Ø¬Ø²Ø¡ Ø§Ù„Ø¹Ù„ÙˆÙŠ
+    // الجزء العلوي
     result += `${this.CORNER_TOP_LEFT}${horizontalBorder}${this.CORNER_TOP_RIGHT}\n`;
     
-    // Ø§Ù„Ø¹Ù†ÙˆØ§Ù†
+    // العنوان
     const titlePadding = Math.max(0, Math.floor((width - 4 - title.length) / 2));
     const titleLeftPad = ' '.repeat(titlePadding);
     const titleRightPad = ' '.repeat(Math.max(0, width - 4 - title.length - titlePadding));
     result += `${this.BORDER_CHAR_VERTICAL} ${titleLeftPad}${title}${titleRightPad} ${this.BORDER_CHAR_VERTICAL}\n`;
     
-    // ÙØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø¹Ù†ÙˆØ§Ù† ÙˆØ§Ù„Ù…Ø­ØªÙˆÙ‰
+    // فاصل بين العنوان والمحتوى
     const separator = this.BORDER_CHAR_HORIZONTAL.repeat(width - 2);
-    result += `â• ${separator}â•£\n`;
+    result += `╠${separator}╣\n`;
     
-    // Ø§Ù„Ø£Ø³Ø·Ø±
+    // الأسطر
     for (const line of lines) {
       const lineContent = line.length > (width - 4) ? line.substring(0, width - 7) + '...' : line;
       const rightPaddingCount = width - 4 - lineContent.length;
@@ -3068,33 +3225,33 @@ export class AdvancedDiagnosticConsoleFormatter {
       result += `${this.BORDER_CHAR_VERTICAL} ${lineContent}${rightPad} ${this.BORDER_CHAR_VERTICAL}\n`;
     }
     
-    // Ø§Ù„Ø¬Ø²Ø¡ Ø§Ù„Ø³ÙÙ„ÙŠ
+    // الجزء السفلي
     result += `${this.CORNER_BOTTOM_LEFT}${horizontalBorder}${this.CORNER_BOTTOM_RIGHT}`;
     
     return result;
   }
 
   /**
-   * ØªÙˆÙ„ÙŠØ¯ Ø´Ø±ÙŠØ· ØªÙ‚Ø¯Ù… Ø±Ù‚Ù…ÙŠ Ø¨Ø´ÙƒÙ„ ASCII Ù…Ù…ÙŠØ²
+   * توليد شريط تقدم رقمي بشكل ASCII مميز
    */
   static drawProgressBar(percentage: number, length: number = 20): string {
     const normalized = Math.max(0, Math.min(100, percentage));
     const filledLength = Math.round((length * normalized) / 100);
     const emptyLength = length - filledLength;
     
-    const filledBar = 'â–ˆ'.repeat(filledLength);
-    const emptyBar = 'â–‘'.repeat(emptyLength);
+    const filledBar = '█'.repeat(filledLength);
+    const emptyBar = '░'.repeat(emptyLength);
     
     return `[${filledBar}${emptyBar}] ${normalized.toFixed(1)}%`;
   }
 
   /**
-   * Ø¥Ù†Ø´Ø§Ø¡ Ø¬Ø¯ÙˆÙ„ ASCII Ø¬Ù…Ø§Ù„ÙŠ Ù„Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©
+   * إنشاء جدول ASCII جمالي للبيانات الإدارية
    */
   static createTable(headers: string[], rows: string[][], colWidths: number[]): string {
     let result = '';
     
-    // Ø­Ø§ÙØ© Ø¹Ù„ÙˆÙŠØ© Ù„Ù„Ø¬Ø¯ÙˆÙ„
+    // حافة علوية للجدول
     let topBorder = this.CORNER_TOP_LEFT;
     for (let i = 0; i < colWidths.length; i++) {
       topBorder += this.BORDER_CHAR_HORIZONTAL.repeat(colWidths[i]!);
@@ -3103,7 +3260,7 @@ export class AdvancedDiagnosticConsoleFormatter {
     topBorder += this.CORNER_TOP_RIGHT;
     result += topBorder + '\n';
 
-    // Ø·Ø¨Ø§Ø¹Ø© Ø§Ù„Ø¹Ù†Ø§ÙˆÙŠÙ†
+    // طباعة العناوين
     let headerLine = this.BORDER_CHAR_VERTICAL;
     for (let i = 0; i < headers.length; i++) {
       const headerText = headers[i]!;
@@ -3113,7 +3270,7 @@ export class AdvancedDiagnosticConsoleFormatter {
     }
     result += headerLine + '\n';
 
-    // ÙØ§ØµÙ„ Ø¨ÙŠÙ† Ø§Ù„Ø¹Ù†Ø§ÙˆÙŠÙ† ÙˆØ§Ù„ØµÙÙˆÙ
+    // فاصل بين العناوين والصفوف
     let sepLine = this.T_LEFT;
     for (let i = 0; i < colWidths.length; i++) {
       sepLine += this.BORDER_CHAR_HORIZONTAL.repeat(colWidths[i]!);
@@ -3122,7 +3279,7 @@ export class AdvancedDiagnosticConsoleFormatter {
     sepLine += this.T_RIGHT;
     result += sepLine + '\n';
 
-    // Ø·Ø¨Ø§Ø¹Ø© Ø§Ù„ØµÙÙˆÙ
+    // طباعة الصفوف
     for (const row of rows) {
       let rowLine = this.BORDER_CHAR_VERTICAL;
       for (let i = 0; i < colWidths.length; i++) {
@@ -3134,7 +3291,7 @@ export class AdvancedDiagnosticConsoleFormatter {
       result += rowLine + '\n';
     }
 
-    // Ø­Ø§ÙØ© Ø³ÙÙ„ÙŠØ© Ù„Ù„Ø¬Ø¯ÙˆÙ„
+    // حافة سفلية للجدول
     let bottomBorder = this.CORNER_BOTTOM_LEFT;
     for (let i = 0; i < colWidths.length; i++) {
       bottomBorder += this.BORDER_CHAR_HORIZONTAL.repeat(colWidths[i]!);
@@ -3148,7 +3305,7 @@ export class AdvancedDiagnosticConsoleFormatter {
 }
 
 /**
- * Ø¨Ù†ÙŠØ© Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø£Ø¯Ø§Ø¡ ÙˆØ§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø©
+ * بنية لبيانات الأداء والمراقبة
  */
 export interface PerformanceSnapshot {
   timestamp: number;
@@ -3168,8 +3325,8 @@ export interface PerformanceSnapshot {
 }
 
 /**
- * Ù…Ø±Ø§Ù‚Ø¨ Ø§Ù„Ø£Ø¯Ø§Ø¡ ÙˆØ§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù†Ø´Ø· (Active Performance Monitor)
- * ÙŠØªÙˆÙ„Ù‰ ØªØ³Ø¬ÙŠÙ„ ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø¨ÙˆØª Ù„Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø®Ø§Ø¯Ù… Ø§Ù„Ù…Ø¶ÙŠÙ ÙˆØ±ØµØ¯ Ø§Ù„ØªØ³Ø±ÙŠØ¨Ø§Øª Ø§Ù„Ù…Ø­ØªÙ…Ù„Ø© Ù„Ù„Ø°Ø§ÙƒØ±Ø©.
+ * مراقب الأداء والذاكرة النشط (Active Performance Monitor)
+ * يتولى تسجيل وإدارة استهلاك البوت لموارد الخادم المضيف ورصد التسريبات المحتملة للذاكرة.
  */
 export class ActivePerformanceMonitor {
   private static history: PerformanceSnapshot[] = [];
@@ -3177,12 +3334,12 @@ export class ActivePerformanceMonitor {
   private static lastCpuUsage: { user: number; system: number; time: number } | null = null;
 
   /**
-   * Ø£Ø®Ø° Ù„Ù‚Ø·Ø© Ù„Ø£Ø¯Ø§Ø¡ Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ø­Ø§Ù„ÙŠ
+   * أخذ لقطة لأداء النظام الحالي
    */
   static takeSnapshot(clientInstance: any): PerformanceSnapshot {
     const mem = process.memoryUsage();
     
-    // Ø­Ø³Ø§Ø¨ ØªÙ‚Ø±ÙŠØ¨ÙŠ Ù„Ù„Ù€ CPU Ø§Ù„Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ
+    // حساب تقريبي للـ CPU الاستهلاك
     let cpuPercentage = 0;
     const currentUsage = process.cpuUsage();
     const currentTime = Date.now();
@@ -3203,7 +3360,7 @@ export class ActivePerformanceMonitor {
       time: currentTime
     };
 
-    // Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ù…Ù† Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯
+    // إحصائيات من ديسكورد
     let guildsCount = 0;
     let channelsCount = 0;
     let usersCount = 0;
@@ -3225,7 +3382,7 @@ export class ActivePerformanceMonitor {
         external: mem.external / 1024 / 1024
       },
       cpuUsage: Math.min(100, Math.max(0, cpuPercentage)),
-      activeVoiceConnections: 0, // ÙŠØªÙ… Ù…Ù„Ø¤Ù‡Ø§ Ù„Ø§Ø­Ù‚Ø§Ù‹
+      activeVoiceConnections: 0, // يتم ملؤها لاحقاً
       guildsCount,
       channelsCount,
       usersCount,
@@ -3242,21 +3399,21 @@ export class ActivePerformanceMonitor {
   }
 
   /**
-   * Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„ØªØ§Ø±ÙŠØ®ÙŠ Ù„Ù„Ø£Ø¯Ø§Ø¡
+   * الحصول على السجل التاريخي للأداء
    */
   static getHistory(): PerformanceSnapshot[] {
     return this.history;
   }
 
   /**
-   * ØªÙ‚ÙŠÙŠÙ… Ù†Ø³Ø¨Ø© ØªØ³Ø±ÙŠØ¨ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø­ØªÙ…Ù„Ø© (Memory Leak Probability Assessment)
+   * تقييم نسبة تسريب الذاكرة المحتملة (Memory Leak Probability Assessment)
    */
   static evaluateMemoryStability(): { growthRateMb: number; leakProbability: 'Low' | 'Medium' | 'High'; analysis: string } {
     if (this.history.length < 5) {
       return {
         growthRateMb: 0,
         leakProbability: 'Low',
-        analysis: 'Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„ØªØ§Ø±ÙŠØ®ÙŠØ© ØºÙŠØ± ÙƒØ§ÙÙŠØ© Ù„Ø¥Ø¬Ø±Ø§Ø¡ ØªØ­Ù„ÙŠÙ„ ØªØ³Ø±ÙŠØ¨ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø­Ø§Ù„ÙŠØ§Ù‹.'
+        analysis: 'البيانات التاريخية غير كافية لإجراء تحليل تسريب الذاكرة حالياً.'
       };
     }
 
@@ -3265,21 +3422,21 @@ export class ActivePerformanceMonitor {
     const durationHours = (last.timestamp - first.timestamp) / 1000 / 60 / 60;
     
     if (durationHours === 0) {
-      return { growthRateMb: 0, leakProbability: 'Low', analysis: 'Ø§Ù„Ù…Ø¯Ø© Ø§Ù„Ø²Ù…Ù†ÙŠØ© Ù‚ØµÙŠØ±Ø© Ø¬Ø¯Ø§Ù‹ Ù„Ù„ØªØ­Ù„ÙŠÙ„.' };
+      return { growthRateMb: 0, leakProbability: 'Low', analysis: 'المدة الزمنية قصيرة جداً للتحليل.' };
     }
 
     const growthMb = last.memoryUsage.heapUsed - first.memoryUsage.heapUsed;
     const growthRateMb = growthMb / durationHours;
 
     let leakProbability: 'Low' | 'Medium' | 'High' = 'Low';
-    let analysis = 'Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ù…Ø³ØªÙ‚Ø± ÙˆØªØ­Øª Ù…Ø³ØªÙˆÙŠØ§Øª Ø§Ù„Ø£Ù…Ø§Ù† Ø§Ù„Ù…Ø¹ÙŠØ§Ø±ÙŠØ©.';
+    let analysis = 'استهلاك الذاكرة مستقر وتحت مستويات الأمان المعيارية.';
 
     if (growthRateMb > 50) {
       leakProbability = 'High';
-      analysis = 'ðŸš¨ Ø§Ø­ØªÙ…Ø§Ù„ÙŠØ© Ø¹Ø§Ù„ÙŠØ© Ø¬Ø¯Ø§Ù‹ Ù„ØªØ³Ø±ÙŠØ¨ Ø§Ù„Ø°Ø§ÙƒØ±Ø©! Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ù€ Heap ÙŠÙ†Ù…Ùˆ Ø¨Ø´ÙƒÙ„ Ù…ØªØ³Ø§Ø±Ø¹ ÙŠÙÙˆÙ‚ 50 Ù…ÙŠØºØ§Ø¨Ø§ÙŠØª Ù„ÙƒÙ„ Ø³Ø§Ø¹Ø©.';
+      analysis = '🚨 احتمالية عالية جداً لتسريب الذاكرة! استهلاك الـ Heap ينمو بشكل متسارع يفوق 50 ميغابايت لكل ساعة.';
     } else if (growthRateMb > 15) {
       leakProbability = 'Medium';
-      analysis = 'âš ï¸ Ø§Ø­ØªÙ…Ø§Ù„ÙŠØ© Ù…ØªÙˆØ³Ø·Ø© Ù„ØªØ³Ø±ÙŠØ¨ Ø°Ø§ÙƒØ±Ø©. ÙŠÙˆØ¬Ø¯ Ù†Ù…Ùˆ Ø·ÙÙŠÙ ÙˆÙ…Ø³ØªÙ…Ø± ÙÙŠ Ø­Ø¬Ù… Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ù„ÙƒØ©.';
+      analysis = '⚠️ احتمالية متوسطة لتسريب ذاكرة. يوجد نمو طفيف ومستمر في حجم الذاكرة المستهلكة.';
     }
 
     return {
@@ -3290,10 +3447,10 @@ export class ActivePerformanceMonitor {
   }
 
   /**
-   * ØªÙˆÙ„ÙŠØ¯ Ø±Ø³Ù… Ø¨ÙŠØ§Ù†ÙŠ ASCII Ø¨Ø³ÙŠØ· ÙŠÙˆØ¶Ø­ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø¹Ø¨Ø± Ø§Ù„Ø²Ù…Ù†
+   * توليد رسم بياني ASCII بسيط يوضح استهلاك الذاكرة عبر الزمن
    */
   static generateMemoryTrendChart(width: number = 50, height: number = 10): string {
-    if (this.history.length < 2) return 'ØºÙŠØ± ÙƒØ§ÙÙ Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø±Ø³Ù… Ø§Ù„Ø¨ÙŠØ§Ù†ÙŠ.';
+    if (this.history.length < 2) return 'غير كافٍ لتوليد الرسم البياني.';
     
     const heapUsedValues = this.history.map(s => s.memoryUsage.heapUsed);
     const minVal = Math.min(...heapUsedValues);
@@ -3311,26 +3468,26 @@ export class ActivePerformanceMonitor {
       const row = height - 1 - normalizedRow;
 
       const currentLine = chartLines[row]!;
-      chartLines[row] = currentLine.substring(0, col) + 'â–ˆ' + currentLine.substring(col + 1);
+      chartLines[row] = currentLine.substring(0, col) + '█' + currentLine.substring(col + 1);
     }
 
     let finalChart = '';
     const step = valRange / (height - 1);
     for (let r = 0; r < height; r++) {
       const val = maxVal - r * step;
-      finalChart += `${val.toFixed(1)} MB â•‘ ${chartLines[r]}\n`;
+      finalChart += `${val.toFixed(1)} MB ║ ${chartLines[r]}\n`;
     }
     
-    finalChart += ' '.repeat(9) + 'â•š' + 'â•'.repeat(width) + '\n';
-    finalChart += ' '.repeat(9) + `  Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© [${this.history.length} Ù„Ù‚Ø·Ø©] Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø©`;
+    finalChart += ' '.repeat(9) + '╚' + '═'.repeat(width) + '\n';
+    finalChart += ' '.repeat(9) + `  بداية المراقبة [${this.history.length} لقطة] نهاية المراقبة`;
     
     return finalChart;
   }
 }
 
 /**
- * Ù…ØªØªØ¨Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆØ§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© (Global Event Statistics Tracker)
- * ÙŠØ³Ø¬Ù„ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø£Ø±Ù‚Ø§Ù… Ø§Ù„ØªÙØ§Ø¹Ù„Ø§Øª ÙˆØ§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…Ù†ÙØ°Ø© ÙˆØ¹Ù…Ù„ÙŠØ§Øª Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª.
+ * متتبع الأحداث والإحصائيات الإدارية (Global Event Statistics Tracker)
+ * يسجل إجمالي أرقام التفاعلات والأوامر المنفذة وعمليات التعديل في السيرفرات.
  */
 export class AdminEventStatisticsTracker {
   private static eventsHandled: Record<string, number> = {};
@@ -3339,28 +3496,28 @@ export class AdminEventStatisticsTracker {
   private static startTime: number = Date.now();
 
   /**
-   * Ø²ÙŠØ§Ø¯Ø© Ø¹Ø¯Ø¯ Ù…Ø±Ø§Øª Ø­Ø¯ÙˆØ« Ø­Ø¯Ø« Ù…Ø¹ÙŠÙ†
+   * زيادة عدد مرات حدوث حدث معين
    */
   static recordEvent(eventName: string) {
     this.eventsHandled[eventName] = (this.eventsHandled[eventName] || 0) + 1;
   }
 
   /**
-   * Ø²ÙŠØ§Ø¯Ø© Ø¹Ø¯Ø¯ Ù…Ø±Ø§Øª ØªÙ†ÙÙŠØ° Ø£Ù…Ø± Ù…Ø¹ÙŠÙ†
+   * زيادة عدد مرات تنفيذ أمر معين
    */
   static recordCommand(commandName: string) {
     this.commandsExecuted[commandName] = (this.commandsExecuted[commandName] || 0) + 1;
   }
 
   /**
-   * ØªØ³Ø¬ÙŠÙ„ Ø­Ø¯ÙˆØ« Ø®Ø·Ø£ Ø¨Ø±Ù…Ø¬ÙŠ
+   * تسجيل حدوث خطأ برمجي
    */
   static recordError() {
     this.errorsLoggedCount++;
   }
 
   /**
-   * ØªÙˆÙ„ÙŠØ¯ ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø§Ù„ÙƒØ§Ù…Ù„
+   * توليد تقرير الإحصائيات الكامل
    */
   static generateReportLines(): string[] {
     const elapsedMs = Date.now() - this.startTime;
@@ -3370,13 +3527,13 @@ export class AdminEventStatisticsTracker {
     const totalCommands = Object.values(this.commandsExecuted).reduce((a, b) => a + b, 0);
 
     const report: string[] = [
-      `ØªØ§Ø±ÙŠØ® Ø¨Ø¯Ø¡ Ø§Ù„ØªØ´ØºÙŠÙ„: ${new Date(this.startTime).toLocaleString('ar-EG')}`,
-      `Ù…Ø¯Ø© Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ø³ØªÙ…Ø±: ${(elapsedMs / 1000 / 60).toFixed(1)} Ø¯Ù‚ÙŠÙ‚Ø©`,
-      `Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø©: ${totalEvents} (${(totalEvents / elapsedHours || 0).toFixed(1)} Ø­Ø¯Ø«/Ø³Ø§Ø¹Ø©)`,
-      `Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…Ù†ÙØ°Ø©: ${totalCommands} (${(totalCommands / elapsedHours || 0).toFixed(1)} Ø£Ù…Ø±/Ø³Ø§Ø¹Ø©)`,
-      `Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ù…Ø³Ø¬Ù„Ø©: ${this.errorsLoggedCount} ${this.errorsLoggedCount > 0 ? 'âš ï¸' : 'âœ…'}`,
+      `تاريخ بدء التشغيل: ${new Date(this.startTime).toLocaleString('ar-EG')}`,
+      `مدة التشغيل المستمر: ${(elapsedMs / 1000 / 60).toFixed(1)} دقيقة`,
+      `إجمالي الأحداث المعالجة: ${totalEvents} (${(totalEvents / elapsedHours || 0).toFixed(1)} حدث/ساعة)`,
+      `إجمالي الأوامر المنفذة: ${totalCommands} (${(totalCommands / elapsedHours || 0).toFixed(1)} أمر/ساعة)`,
+      `إجمالي الأخطاء المسجلة: ${this.errorsLoggedCount} ${this.errorsLoggedCount > 0 ? '⚠️' : '✅'}`,
       '----------------------------------------',
-      'ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø£ÙƒØ«Ø± Ø§Ø³ØªØ®Ø¯Ø§Ù…Ø§Ù‹:'
+      'تفاصيل الأوامر الأكثر استخداماً:'
     ];
 
     const sortedCommands = Object.entries(this.commandsExecuted)
@@ -3384,10 +3541,10 @@ export class AdminEventStatisticsTracker {
       .slice(0, 5);
 
     if (sortedCommands.length === 0) {
-      report.push('  - Ù„Ù… ÙŠØªÙ… ØªÙ†ÙÙŠØ° Ø£ÙŠ Ø£ÙˆØ§Ù…Ø± Ø¨Ø¹Ø¯.');
+      report.push('  - لم يتم تنفيذ أي أوامر بعد.');
     } else {
       for (const [cmd, count] of sortedCommands) {
-        report.push(`  â€¢ Ø§Ù„Ø£Ù…Ø± [!${cmd}]: ØªÙ… ØªÙ†ÙÙŠØ°Ù‡ ${count} Ù…Ø±Ø©`);
+        report.push(`  • الأمر [!${cmd}]: تم تنفيذه ${count} مرة`);
       }
     }
 
@@ -3396,14 +3553,14 @@ export class AdminEventStatisticsTracker {
 }
 
 /**
- * Ù†Ø¸Ø§Ù… Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ ÙˆØ¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØºÙŠÙŠØ±Ø§Øª Ø§Ù„ÙÙ†ÙŠ ÙÙŠ Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Server Struct & Audit Trail Auditor)
- * Ù…Ø­Ø§ÙƒÙŠ Ù„ØªØªØ¨Ø¹ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ø­Ø³Ø§Ø³Ø© Ø§Ù„ØªÙŠ ÙŠØ¬Ø±ÙŠÙ‡Ø§ Ø§Ù„Ù…Ø´Ø±ÙÙˆÙ† Ù„Ø¶Ù…Ø§Ù† Ø§Ù„Ø´ÙØ§ÙÙŠØ©.
+ * نظام التدقيق وإدارة التغييرات الفني في ديسكورد (Server Struct & Audit Trail Auditor)
+ * محاكي لتتبع العمليات الحساسة التي يجريها المشرفون لضمان الشفافية.
  */
 export class ServerAuditTrailAuditor {
   private static auditLogs: { timestamp: number; action: string; executor: string; target: string; details?: string }[] = [];
 
   /**
-   * ØªØ³Ø¬ÙŠÙ„ Ø¹Ù…Ù„ÙŠØ© Ø¥Ø´Ø±Ø§ÙÙŠØ© Ø¬Ø¯ÙŠØ¯Ø©
+   * تسجيل عملية إشرافية جديدة
    */
   static logAuditEvent(action: string, executor: string, target: string, details?: string) {
     this.auditLogs.push({
@@ -3420,14 +3577,14 @@ export class ServerAuditTrailAuditor {
   }
 
   /**
-   * ØªÙˆÙ„ÙŠØ¯ ØªÙ‚Ø±ÙŠØ± Ø³Ø¬Ù„ Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„Ø¬Ù…Ø§Ù„ÙŠ
+   * توليد تقرير سجل التدقيق الإداري الجمالي
    */
   static generateAuditReport(): string {
     if (this.auditLogs.length === 0) {
-      return 'ðŸ“ Ø³Ø¬Ù„ Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ Ø®Ø§Ù„Ù Ù…Ù† Ø£ÙŠ Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø£Ùˆ Ø¹Ù…Ù„ÙŠØ§Øª Ø­Ø§Ù„ÙŠØ§Ù‹.';
+      return '📝 سجل التدقيق خالٍ من أي إجراءات أو عمليات حالياً.';
     }
 
-    const headers = ['Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡', 'Ø§Ù„Ù…Ù†ÙØ°', 'Ø§Ù„Ù…Ø³ØªÙ‡Ø¯Ù', 'Ø§Ù„ØªÙˆÙ‚ÙŠØª'];
+    const headers = ['الإجراء', 'المنفذ', 'المستهدف', 'التوقيت'];
     const rows = this.auditLogs.slice(-10).reverse().map(log => {
       const timeStr = new Date(log.timestamp).toLocaleTimeString('ar-EG');
       return [log.action.substring(0, 15), log.executor.substring(0, 12), log.target.substring(0, 12), timeStr];
@@ -3438,8 +3595,8 @@ export class ServerAuditTrailAuditor {
 }
 
 /**
- * Ù…Ø¬Ø±ÙŠ Ø§Ù„ÙØ­ÙˆØµØ§Øª ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ ÙˆØ§Ù„Ø°Ø§ØªÙŠ (Self-Testing Diagnostics Scheduler)
- * ÙŠÙ‚ÙˆÙ… Ø¨ÙØ­Øµ Ø³Ù„Ø§Ù…Ø© Ø§Ù„Ø¨ÙˆØª ÙˆØ§Ù„Ø§ØªØµØ§Ù„Ø§Øª Ø¨ØµÙˆØ±Ø© Ø¯ÙˆØ±ÙŠØ© ÙˆÙ…Ø¬Ø¯ÙˆÙ„Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù„Ù„ØªØ£ÙƒØ¯ Ù…Ù† Ø³Ù„Ø§Ù…Ø© Ø§Ù„Ù†Ø¸Ø§Ù….
+ * مجري الفحوصات والتشخيص التلقائي والذاتي (Self-Testing Diagnostics Scheduler)
+ * يقوم بفحص سلامة البوت والاتصالات بصورة دورية ومجدولة تلقائياً للتأكد من سلامة النظام.
  */
 export class SelfTestingDiagnosticsScheduler {
   private static diagnosticsTimer: NodeJS.Timeout | null = null;
@@ -3447,37 +3604,37 @@ export class SelfTestingDiagnosticsScheduler {
   private static systemLog: string[] = [];
 
   /**
-   * ØªÙØ¹ÙŠÙ„ Ø§Ù„ÙØ­Øµ Ø§Ù„Ø¯ÙˆØ±ÙŠ Ø§Ù„Ù…Ø¬Ø¯ÙˆÙ„ (ÙƒÙ„ Ø³Ø§Ø¹Ø© Ù…Ø«Ù„Ø§Ù‹)
+   * تفعيل الفحص الدوري المجدول (كل ساعة مثلاً)
    */
   static initializeAutoDiagnostics(clientInstance: any) {
     if (this.diagnosticsTimer) return;
 
-    this.writeLog('âš™ï¸ ØªÙØ¹ÙŠÙ„ Ù…Ø¬Ø¯ÙˆÙ„ Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆØ§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø°Ø§ØªÙŠ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¨Ù†Ø¬Ø§Ø­...');
+    this.writeLog('⚙️ تفعيل مجدول التشخيص والتحليل الذاتي التلقائي بنجاح...');
     
-    // Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„ÙØ­Øµ Ø§Ù„Ø£ÙˆÙ„ Ø¨Ø¹Ø¯ 10 Ø«ÙˆØ§Ù†Ù
+    // إجراء الفحص الأول بعد 10 ثوانٍ
     setTimeout(() => {
       this.runDiagnosticCheck(clientInstance);
     }, 10000);
 
-    // Ø§Ù„ÙØ­Øµ Ø§Ù„Ø¯ÙˆØ±ÙŠ ÙƒÙ„ 30 Ø¯Ù‚ÙŠÙ‚Ø©
+    // الفحص الدوري كل 30 دقيقة
     this.diagnosticsTimer = setInterval(() => {
       this.runDiagnosticCheck(clientInstance);
     }, 30 * 60 * 1000);
   }
 
   /**
-   * Ø¥ÙŠÙ‚Ø§Ù Ù…Ø¬Ø¯ÙˆÙ„ Ø§Ù„ÙØ­Øµ
+   * إيقاف مجدول الفحص
    */
   static shutdown() {
     if (this.diagnosticsTimer) {
       clearInterval(this.diagnosticsTimer);
       this.diagnosticsTimer = null;
-      this.writeLog('ðŸ›‘ Ø¥ÙŠÙ‚Ø§Ù Ù…Ø¬Ø¯ÙˆÙ„ Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆØ§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø°Ø§ØªÙŠ.');
+      this.writeLog('🛑 إيقاف مجدول التشخيص والتحليل الذاتي.');
     }
   }
 
   /**
-   * ÙƒØªØ§Ø¨Ø© Ø­Ø¯Ø« ÙÙŠ Ø³Ø¬Ù„ Ø§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„ÙÙ†ÙŠ
+   * كتابة حدث في سجل التشخيص الفني
    */
   private static writeLog(msg: string) {
     const timestamp = new Date().toISOString().substring(11, 19);
@@ -3488,62 +3645,62 @@ export class SelfTestingDiagnosticsScheduler {
   }
 
   /**
-   * ØªÙ†ÙÙŠØ° ÙØ­Øµ ØªØ´Ø®ÙŠØµÙŠ ÙƒØ§Ù…Ù„ Ø­Ø§Ù„ÙŠØ§Ù‹
+   * تنفيذ فحص تشخيصي كامل حالياً
    */
   static runDiagnosticCheck(clientInstance: any): { success: boolean; score: number; issues: string[] } {
     if (this.isDiagnosticRunning) {
-      return { success: false, score: 0, issues: ['Ø§Ù„ÙØ­Øµ Ù‚ÙŠØ¯ Ø§Ù„Ø¹Ù…Ù„ Ø¨Ø§Ù„ÙØ¹Ù„ Ø­Ø§Ù„ÙŠØ§Ù‹.'] };
+      return { success: false, score: 0, issues: ['الفحص قيد العمل بالفعل حالياً.'] };
     }
 
     this.isDiagnosticRunning = true;
-    this.writeLog('ðŸ” Ø¨Ø¯Ø¡ ØªØ´ØºÙŠÙ„ Ø§Ù„ÙØ­Øµ ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ø°Ø§ØªÙŠ Ø§Ù„Ù…Ø¬Ø¯ÙˆÙ„ Ù„Ù„Ø¨ÙˆØª...');
+    this.writeLog('🔍 بدء تشغيل الفحص والتشخيص الذاتي المجدول للبوت...');
     
     const issues: string[] = [];
     let score = 100;
 
-    // 1. ÙØ­Øµ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯
+    // 1. فحص الاتصال بديسكورد
     if (!clientInstance) {
-      issues.push('Ù„Ù… ÙŠØªÙ… ØªÙˆÙÙŠØ± ÙƒØ§Ø¦Ù† Ø¹Ù…ÙŠÙ„ Discord (Client Instance).');
+      issues.push('لم يتم توفير كائن عميل Discord (Client Instance).');
       score -= 50;
     } else if (!clientInstance.ws || clientInstance.ws.ping === -1) {
-      issues.push('Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨ÙˆØ§Ø¬Ù‡Ø© Ø¨Ø±Ù…Ø¬Ø© Discord ØºÙŠØ± Ù…Ø³ØªÙ‚Ø± Ø£Ùˆ ØºÙŠØ± Ù…ØªØµÙ„.');
+      issues.push('الاتصال بواجهة برمجة Discord غير مستقر أو غير متصل.');
       score -= 30;
     } else {
       const ping = clientInstance.ws.ping;
       if (ping > 250) {
-        issues.push(`Ø²Ù…Ù† Ø§Ù†ØªÙ‚Ø§Ù„ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø®Ø§Ø¯Ù… Ù…Ø±ØªÙØ¹ Ø¬Ø¯Ø§Ù‹: ${ping}ms`);
+        issues.push(`زمن انتقال الاتصال بالخادم مرتفع جداً: ${ping}ms`);
         score -= 10;
       }
     }
 
-    // 2. ÙØ­Øµ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø©
+    // 2. فحص استهلاك الذاكرة
     const snapshot = ActivePerformanceMonitor.takeSnapshot(clientInstance);
     const heapUsed = snapshot.memoryUsage.heapUsed;
     if (heapUsed > 300) {
-      issues.push(`ðŸš¨ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ù€ heap Ù…Ø±ØªÙØ¹ Ø¬Ø¯Ø§Ù‹ Ø¨Ø´ÙƒÙ„ ØºÙŠØ± Ø§Ø¹ØªÙŠØ§Ø¯ÙŠ: ${heapUsed.toFixed(1)} MB`);
+      issues.push(`🚨 استهلاك الـ heap مرتفع جداً بشكل غير اعتيادي: ${heapUsed.toFixed(1)} MB`);
       score -= 20;
     }
 
-    // 3. ØªÙ‚ÙŠÙŠÙ… Ø§Ø³ØªÙ‚Ø±Ø§Ø± Ø§Ù„Ø°Ø§ÙƒØ±Ø© ÙˆØ§Ù„ØªØ³Ø±ÙŠØ¨Ø§Øª
+    // 3. تقييم استقرار الذاكرة والتسريبات
     const memStability = ActivePerformanceMonitor.evaluateMemoryStability();
     if (memStability.leakProbability === 'High') {
-      issues.push(`ðŸš¨ Ø®Ø·Ø± ØªØ³Ø±ÙŠØ¨ Ø°Ø§ÙƒØ±Ø© Ù…Ø±ØªÙØ¹: ${memStability.growthRateMb.toFixed(2)} MB/Ø³Ø§Ø¹Ø©`);
+      issues.push(`🚨 خطر تسريب ذاكرة مرتفع: ${memStability.growthRateMb.toFixed(2)} MB/ساعة`);
       score -= 25;
     } else if (memStability.leakProbability === 'Medium') {
-      issues.push(`âš ï¸ Ù†Ù…Ùˆ Ø·ÙÙŠÙ ÙˆÙ…Ø³ØªÙ…Ø± ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø©: ${memStability.growthRateMb.toFixed(2)} MB/Ø³Ø§Ø¹Ø©`);
+      issues.push(`⚠️ نمو طفيف ومستمر في الذاكرة: ${memStability.growthRateMb.toFixed(2)} MB/ساعة`);
       score -= 10;
     }
 
     this.isDiagnosticRunning = false;
     const success = issues.length === 0;
     
-    this.writeLog(`ðŸ Ø§ÙƒØªÙ…Ø§Ù„ Ø§Ù„ÙØ­Øµ Ø§Ù„Ø°Ø§ØªÙŠ. Ø§Ù„Ù†ØªÙŠØ¬Ø©: ${score}/100. Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø´Ø§ÙƒÙ„: ${issues.length}`);
+    this.writeLog(`🏁 اكتمال الفحص الذاتي. النتيجة: ${score}/100. عدد المشاكل: ${issues.length}`);
     if (!success) {
       for (const iss of issues) {
-        this.writeLog(`  âš ï¸ Ù…Ø´ÙƒÙ„Ø©: ${iss}`);
+        this.writeLog(`  ⚠️ مشكلة: ${iss}`);
       }
     } else {
-      this.writeLog('âœ… Ù†Ø¸Ø§Ù… Ø§Ù„Ø¨ÙˆØª ÙŠØ¹Ù…Ù„ Ø¨Ø£Ø¹Ù„Ù‰ ÙƒÙØ§Ø¡Ø© ÙˆØ§Ø³ØªÙ‚Ø±Ø§Ø±ØŒ Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø´Ø§ÙƒÙ„ Ù…Ø¹Ù„Ù‚Ø©.');
+      this.writeLog('✅ نظام البوت يعمل بأعلى كفاءة واستقرار، لا توجد مشاكل معلقة.');
     }
 
     return {
@@ -3554,7 +3711,7 @@ export class SelfTestingDiagnosticsScheduler {
   }
 
   /**
-   * Ø§Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„ÙÙ†ÙŠ Ù„Ù„Ø£Ø®Ø·Ø§Ø¡ ÙˆØ§Ù„ØªØ´Ø®ÙŠØµØ§Øª
+   * الحصول على السجل الفني للأخطاء والتشخيصات
    */
   static getSystemLog(): string[] {
     return this.systemLog;
@@ -3562,16 +3719,16 @@ export class SelfTestingDiagnosticsScheduler {
 }
 
 /**
- * Ù…Ø®Ø·Ø· Ù‚Ù†ÙˆØ§Øª ÙˆØªÙˆØ²ÙŠØ¹ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¨ØµÙˆØ±Ø© ASCII (Server Channel Tree Plotter)
- * ÙŠÙˆÙ„Ø¯ Ø±Ø³Ù…Ø§Ù‹ Ø¨ÙŠØ§Ù†ÙŠØ§Ù‹ Ù‡ÙŠÙƒÙ„ÙŠØ§Ù‹ Ø¬Ù…ÙŠÙ„Ø§Ù‹ ÙŠÙˆØ¶Ø­ Ø´ÙƒÙ„ Ø§Ù„Ø®Ø§Ø¯Ù… ÙˆÙØ±ÙˆØ¹Ù‡ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡.
+ * مخطط قنوات وتوزيع السيرفر بصورة ASCII (Server Channel Tree Plotter)
+ * يولد رسماً بيانياً هيكلياً جميلاً يوضح شكل الخادم وفروعه الإدارية للأعضاء.
  */
 export class ServerChannelTreeVisualizer {
   
   /**
-   * Ø±Ø³Ù… Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØªØµÙ†ÙŠÙØ§ØªÙ‡Ø§ ÙƒØ´Ø¬Ø±Ø© ASCII Ø¬Ù…Ø§Ù„ÙŠØ©
+   * رسم قنوات السيرفر وتصنيفاتها كشجرة ASCII جمالية
    */
   static renderTree(guild: any): string {
-    if (!guild) return 'âŒ Ø§Ù„Ø®Ø§Ø¯Ù… ØºÙŠØ± Ù…ØªÙˆÙØ± Ø­Ø§Ù„ÙŠØ§Ù‹ Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø´Ø¬Ø±Ø©.';
+    if (!guild) return '❌ الخادم غير متوفر حالياً لتوليد الشجرة.';
     
     const categories = guild.channels.cache
       .filter((c: any) => c.type === 4) // Category
@@ -3581,23 +3738,23 @@ export class ServerChannelTreeVisualizer {
       .filter((c: any) => !c.parentId && c.type !== 4)
       .sort((a: any, b: any) => a.position - b.position);
 
-    let tree = `ðŸŒ² Ù‡ÙŠÙƒÙ„ÙŠØ© Ù‚Ù†ÙˆØ§Øª Ø®Ø§Ø¯Ù…: ${guild.name}\n`;
-    tree += 'â•'.repeat(40) + '\n';
+    let tree = `🌲 هيكلية قنوات خادم: ${guild.name}\n`;
+    tree += '═'.repeat(40) + '\n';
 
-    // Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø®Ø§Ø±Ø¬ Ø§Ù„ØªØµÙ†ÙŠÙ
+    // القنوات خارج التصنيف
     for (let i = 0; i < uncategorized.size; i++) {
       const channel = uncategorized.at(i);
       const isLast = i === uncategorized.size - 1 && categories.size === 0;
-      const prefix = isLast ? 'â”—â”â” ' : 'â”£â”â” ';
-      const typeIcon = channel.type === 2 ? 'ðŸ”Š' : 'ðŸ’¬';
+      const prefix = isLast ? '┗━━ ' : '┣━━ ';
+      const typeIcon = channel.type === 2 ? '🔊' : '💬';
       tree += `${prefix}${typeIcon} ${channel.name}\n`;
     }
 
-    // ØªØµÙ†ÙŠÙØ§Øª ÙˆÙ‚Ù†ÙˆØ§ØªÙ‡Ø§
+    // تصنيفات وقنواتها
     let catIndex = 0;
     for (const [_, cat] of categories) {
       const isLastCat = catIndex === categories.size - 1;
-      const catPrefix = isLastCat ? 'â”—â”â” ðŸ“ ' : 'â”£â”â” ðŸ“ ';
+      const catPrefix = isLastCat ? '┗━━ 📁 ' : '┣━━ 📁 ';
       tree += `${catPrefix}${cat.name}\n`;
 
       const childChannels = guild.channels.cache
@@ -3606,10 +3763,10 @@ export class ServerChannelTreeVisualizer {
 
       let chIndex = 0;
       for (const [_, child] of childChannels) {
-        const linePrefix = isLastCat ? '    ' : 'â”ƒ   ';
+        const linePrefix = isLastCat ? '    ' : '┃   ';
         const isLastChild = chIndex === childChannels.size - 1;
-        const childPrefix = isLastChild ? 'â”—â”â” ' : 'â”£â”â” ';
-        const typeIcon = child.type === 2 ? 'ðŸ”Š' : 'ðŸ’¬';
+        const childPrefix = isLastChild ? '┗━━ ' : '┣━━ ';
+        const typeIcon = child.type === 2 ? '🔊' : '💬';
         tree += `${linePrefix}${childPrefix}${typeIcon} ${child.name}\n`;
         chIndex++;
       }
@@ -3621,19 +3778,19 @@ export class ServerChannelTreeVisualizer {
 }
 
 // ============================================================================
-// Ø¯Ù…Ø¬ Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆØªÙ‡ÙŠØ¦Ø© Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ù†Ø´Ø·Ø© Ø§Ù„Ø°Ø§ØªÙŠØ© Ø¹Ù†Ø¯ ØªØ´ØºÙŠÙ„ Ø§Ù„Ø¨ÙˆØª
+// دمج مراقبة الأحداث وتهيئة نظام المراقبة النشطة الذاتية عند تشغيل البوت
 // ============================================================================
 client.once(Events.ClientReady, () => {
-  // ØªÙ‡ÙŠØ¦Ø© Ù…Ø¬Ø¯ÙˆÙ„ Ø§Ù„ØªØ­Ù„ÙŠÙ„Ø§Øª ÙˆØ§Ù„ØªØ´Ø®ÙŠØµØ§Øª Ø§Ù„Ø°Ø§ØªÙŠØ© ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
+  // تهيئة مجدول التحليلات والتشخيصات الذاتية تلقائياً
   SelfTestingDiagnosticsScheduler.initializeAutoDiagnostics(client);
   
-  // Ø£Ø®Ø° Ø§Ù„Ù„Ù‚Ø·Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ Ù„Ù„Ù†Ø¸Ø§Ù…
+  // أخذ اللقطة الأولى للنظام
   ActivePerformanceMonitor.takeSnapshot(client);
   
   // Diagnostic suite initialized
 });
 
-// ØªØ¹Ù„ÙŠÙ‚ ÙˆØªØªØ¨Ø¹ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« Ù„Ù…ØªØªØ¨Ø¹ Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª
+// تعليق وتتبع الأحداث لمتتبع الإحصائيات
 client.on(Events.MessageCreate, (msg: Message) => {
   if (msg.author.bot) return;
   AdminEventStatisticsTracker.recordEvent('MessageCreate');
@@ -3648,16 +3805,16 @@ client.on(Events.MessageCreate, (msg: Message) => {
 
 client.on(Events.GuildCreate, (g) => {
   AdminEventStatisticsTracker.recordEvent('GuildCreate');
-  ServerAuditTrailAuditor.logAuditEvent('Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ø®Ø§Ø¯Ù…', 'System', g.name, `Ù…Ø¹Ø±Ù Ø§Ù„Ø®Ø§Ø¯Ù…: ${g.id}`);
+  ServerAuditTrailAuditor.logAuditEvent('انضمام لخادم', 'System', g.name, `معرف الخادم: ${g.id}`);
 });
 
 client.on(Events.GuildDelete, (g) => {
   AdminEventStatisticsTracker.recordEvent('GuildDelete');
-  ServerAuditTrailAuditor.logAuditEvent('Ù…ØºØ§Ø¯Ø±Ø© Ø®Ø§Ø¯Ù…', 'System', g.name, `Ù…Ø¹Ø±Ù Ø§Ù„Ø®Ø§Ø¯Ù…: ${g.id}`);
+  ServerAuditTrailAuditor.logAuditEvent('مغادرة خادم', 'System', g.name, `معرف الخادم: ${g.id}`);
 });
 
 // ============================================================================
-// Ù…Ø¹Ø§Ù„Ø¬Ø© ÙˆØ¥Ø¶Ø§ÙØ© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„ØªØ´Ø®ÙŠØµÙŠØ© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙÙŠ Ù…Ø­Ø±Ùƒ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ù„Ù„Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯
+// معالجة وإضافة الأوامر التشخيصية الجديدة في محرك الأوامر الإدارية للديسكورد
 // ============================================================================
 const originalHandler = handleManualCommandUpdated;
 handleManualCommandUpdated = async function(message: Message, commandText: string): Promise<boolean> {
@@ -3666,58 +3823,58 @@ handleManualCommandUpdated = async function(message: Message, commandText: strin
   const args = parts.slice(1);
   const guild = message.guild!;
 
-  // 1. Ø£Ù…Ø± ØªØ´Ø®ÙŠØµ Ø­Ø§Ù„Ø© Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ø­ÙŠÙˆÙŠØ©
-  if (command === 'diagnose' || command === 'ØªØ´Ø®ÙŠØµ') {
+  // 1. أمر تشخيص حالة النظام الحيوية
+  if (command === 'diagnose' || command === 'تشخيص') {
     const snapshot = ActivePerformanceMonitor.takeSnapshot(client);
     const memStability = ActivePerformanceMonitor.evaluateMemoryStability();
     const selfTest = SelfTestingDiagnosticsScheduler.runDiagnosticCheck(client);
 
     const reportLines = [
-      `Ø­Ø§Ù„Ø© Ø§Ù„Ø§ØªØµØ§Ù„: ${selfTest.success ? 'Ù…Ù…ØªØ§Ø²Ø© âœ…' : 'ØªÙˆØ§Ø¬Ù‡ Ù…Ø´Ø§ÙƒÙ„ âš ï¸'}`,
-      `Ø¯Ø±Ø¬Ø© Ø§Ø³ØªÙ‚Ø±Ø§Ø± Ø§Ù„Ø¨ÙˆØª: ${selfTest.score}/100`,
-      `Ø²Ù…Ù† Ø§Ø³ØªØ¬Ø§Ø¨Ø© Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ (Ping): ${snapshot.pingMs}ms`,
-      `Ø­Ø¬Ù… Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… (Heap): ${snapshot.memoryUsage.heapUsed.toFixed(1)} MB / ${snapshot.memoryUsage.heapTotal.toFixed(1)} MB`,
-      `ØªØ³Ø±ÙŠØ¨ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø­ØªÙ…Ù„: ${memStability.leakProbability} (Ù…Ø¹Ø¯Ù„ Ø§Ù„Ù†Ù…Ùˆ: ${memStability.growthRateMb.toFixed(2)} MB/Ø³Ø§Ø¹Ø©)`,
-      `Ø­Ø¬Ù… Ø§Ù„Ù€ RSS Ø§Ù„ÙƒÙ„ÙŠ: ${snapshot.memoryUsage.rss.toFixed(1)} MB`,
-      `Ù†Ø³Ø¨Ø© Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬: ${snapshot.cpuUsage.toFixed(2)}%`,
-      `ÙˆÙ‚Øª Ø§Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ø³ØªÙ…Ø±: ${(snapshot.uptimeSeconds / 60).toFixed(1)} Ø¯Ù‚ÙŠÙ‚Ø©`
+      `حالة الاتصال: ${selfTest.success ? 'ممتازة ✅' : 'تواجه مشاكل ⚠️'}`,
+      `درجة استقرار البوت: ${selfTest.score}/100`,
+      `زمن استجابة ديسكورد (Ping): ${snapshot.pingMs}ms`,
+      `حجم الذاكرة المستخدم (Heap): ${snapshot.memoryUsage.heapUsed.toFixed(1)} MB / ${snapshot.memoryUsage.heapTotal.toFixed(1)} MB`,
+      `تسريب الذاكرة المحتمل: ${memStability.leakProbability} (معدل النمو: ${memStability.growthRateMb.toFixed(2)} MB/ساعة)`,
+      `حجم الـ RSS الكلي: ${snapshot.memoryUsage.rss.toFixed(1)} MB`,
+      `نسبة استخدام المعالج: ${snapshot.cpuUsage.toFixed(2)}%`,
+      `وقت التشغيل المستمر: ${(snapshot.uptimeSeconds / 60).toFixed(1)} دقيقة`
     ];
 
-    const box = AdvancedDiagnosticConsoleFormatter.createDecorativeBox('ðŸ“Š Ù†ØªØ§Ø¦Ø¬ Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„ÙÙ†ÙŠ ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ø´Ø§Ù…Ù„ Ù„Ù„Ø§Ø³ØªÙ‚Ø±Ø§Ø±', reportLines, 65);
+    const box = AdvancedDiagnosticConsoleFormatter.createDecorativeBox('📊 نتائج التحليل الفني والتشخيص الشامل للاستقرار', reportLines, 65);
     await message.reply(`\`\`\`\n${box}\n\`\`\``).catch(() => null);
     return true;
   }
 
-  // 2. Ø£Ù…Ø± Ø±Ø³Ù… Ø´Ø¬Ø±Ø© Ø§Ù„Ù‚Ù†ÙˆØ§Øª ASCII
-  if (command === 'tree' || command === 'Ø´Ø¬Ø±Ø©') {
+  // 2. أمر رسم شجرة القنوات ASCII
+  if (command === 'tree' || command === 'شجرة') {
     const tree = ServerChannelTreeVisualizer.renderTree(guild);
     await message.reply(`\`\`\`\n${tree}\n\`\`\``).catch(() => null);
     return true;
   }
 
-  // 3. Ø£Ù…Ø± Ø¹Ø±Ø¶ ØªÙ‚Ø±ÙŠØ± Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø§Ù„Ø£Ø­Ø¯Ø§Ø«
-  if (command === 'stats' || command === 'Ø§Ø­ØµØ§Ø¦ÙŠØ§Øª') {
+  // 3. أمر عرض تقرير إحصائيات الأحداث
+  if (command === 'stats' || command === 'احصائيات') {
     const reportLines = AdminEventStatisticsTracker.generateReportLines();
-    const box = AdvancedDiagnosticConsoleFormatter.createDecorativeBox('ðŸ“ˆ Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆØ­Ø±ÙƒØ© Ø§Ù„Ø£ÙˆØ§Ù…Ø±', reportLines, 68);
+    const box = AdvancedDiagnosticConsoleFormatter.createDecorativeBox('📈 إحصائيات معالجة الأحداث وحركة الأوامر', reportLines, 68);
     await message.reply(`\`\`\`\n${box}\n\`\`\``).catch(() => null);
     return true;
   }
 
-  // 4. Ø£Ù…Ø± Ø¹Ø±Ø¶ Ø§Ù„Ø±Ø³Ù… Ø§Ù„Ø¨ÙŠØ§Ù†ÙŠ Ù„Ù„Ø°Ø§ÙƒØ±Ø© Ø¹Ø¨Ø± Ø§Ù„Ø²Ù…Ù†
-  if (command === 'memory' || command === 'Ø°Ø§ÙƒØ±Ø©') {
+  // 4. أمر عرض الرسم البياني للذاكرة عبر الزمن
+  if (command === 'memory' || command === 'ذاكرة') {
     ActivePerformanceMonitor.takeSnapshot(client);
     const chart = ActivePerformanceMonitor.generateMemoryTrendChart(50, 10);
-    await message.reply(`ðŸ“Š **Ù…Ø®Ø·Ø· Ù…Ø³Ø§Ø± Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ù…Ø¯Ù…Ø¬ Ø¹Ø¨Ø± Ø§Ù„Ø²Ù…Ù† (Heap Used Trend):**\n\`\`\`\n${chart}\n\`\`\``).catch(() => null);
+    await message.reply(`📊 **مخطط مسار استهلاك الذاكرة المدمج عبر الزمن (Heap Used Trend):**\n\`\`\`\n${chart}\n\`\`\``).catch(() => null);
     return true;
   }
 
-  // 5. Ø£Ù…Ø± Ø¹Ø±Ø¶ Ø³Ø¬Ù„ Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ ÙˆØ§Ù„Ù…Ø´Ø±ÙÙŠÙ†
-  if (command === 'audit' || command === 'ØªØ¯Ù‚ÙŠÙ‚') {
+  // 5. أمر عرض سجل التدقيق الإداري والمشرفين
+  if (command === 'audit' || command === 'تدقيق') {
     const auditReport = ServerAuditTrailAuditor.generateAuditReport();
-    await message.reply(`ðŸ“œ **Ø³Ø¬Ù„ Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ ÙˆØ§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ø§Ù„Ø­Ø³Ø§Ø³Ø© Ø§Ù„Ø£Ø®ÙŠØ±Ø©:**\n\`\`\`\n${auditReport}\n\`\`\``).catch(() => null);
+    await message.reply(`📜 **سجل التدقيق والعمليات الإدارية الحساسة الأخيرة:**\n\`\`\`\n${auditReport}\n\`\`\``).catch(() => null);
     return true;
   }
 
-  // ØªÙÙˆÙŠØ¶ Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ù„Ù„Ø£ØµÙ„
+  // تفويض الأوامر السابقة للأصل
   return originalHandler(message, commandText);
 };

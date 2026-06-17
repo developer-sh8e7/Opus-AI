@@ -174,6 +174,16 @@ export async function createChannels(
         deny: resolvedDeny,
       });
     }
+    // تأكيد وجود صلاحيات البوت نفسه لكي لا يفقد الوصول للقناة المنشأة
+    if (guild.client.user) {
+      const hasBotOverwrite = permissionOverwrites.some(o => o.id === guild.client.user?.id);
+      if (!hasBotOverwrite) {
+        permissionOverwrites.push({
+          id: guild.client.user.id,
+          allow: PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages | PermissionFlagsBits.ReadMessageHistory | PermissionFlagsBits.ManageChannels,
+        });
+      }
+    }
   }
 
   for (let i = 0; i < names.length; i++) {

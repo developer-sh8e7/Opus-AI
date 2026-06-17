@@ -91,7 +91,7 @@ export function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(server|سيرفر|خادم|متجر|build|بناء|صمم|نظم.*السيرفر|ضبط.*السيرفر)/i.test(content)) {
     addGroup(TOOL_GROUPS.server);
   }
-  if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|اخف|إخف)/i.test(content)) {
+  if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|يدخل|يخش|يتكلم|سكرين|يشارك|صلاحية|صلاحيات|اخف|إخف)/i.test(content)) {
     addGroup(TOOL_GROUPS.channels);
   }
   if (/(role|roles|رول|رولات|رتبة|رتب|مشرف|permission|برمشن)/i.test(content)) {

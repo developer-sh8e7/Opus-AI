@@ -10,7 +10,7 @@ export type ArabicIntent =
   | 'GIVE_ROLE'
   | 'UNKNOWN';
 
-const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]> = {
+export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]> = {
   CREATE_CHANNEL: [
     /(?:سو|سوي|انشئ|أنشئ|اضف|أضف|ابغى|ابي)\s+(?:لي\s+)?(?:روم|قناة|شانل)/i,
   ],
@@ -143,10 +143,20 @@ function normalizeName(value: string): string {
 
 export function buildArabicPermissionOperations(
   text: string,
-  guild: Guild
+  guild: Guild,
+  sessionEntities?: Array<{ id: string; name: string; type: string }>
 ): ArabicPermissionOperation[] {
-  const channelId = text.match(/<#(\d{17,20})>/)?.[1]
+  let channelId = text.match(/<#(\d{17,20})>/)?.[1]
     ?? text.match(/\b(\d{17,20})\b/)?.[1];
+  if (!channelId && sessionEntities) {
+    const textNorm = text.normalize('NFKC').replace(/[\u0623\u0625\u0622]/g, '\u0627').replace(/\u0649/g, '\u064a').replace(/\u0629/g, '\u0647').toLowerCase();
+    const sessionChannel = sessionEntities.find(
+      (e) => e.type === 'channel' && textNorm.includes(e.name.normalize('NFKC').toLowerCase())
+    );
+    if (sessionChannel) {
+      channelId = sessionChannel.id;
+    }
+  }
   if (!channelId || !guild.channels.cache.has(channelId)) return [];
 
   const exceptionMatch = text.match(

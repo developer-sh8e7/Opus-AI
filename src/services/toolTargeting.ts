@@ -137,7 +137,7 @@ export function resolveExplicitToolTargets(
       .map((channel) => channel.id)
     : [];
 
-  if (channelIds.length === 0 && /(?:الروم|القناة|الشانل|the\s+(?:room|channel))/i.test(rawText)) {
+  if (channelIds.length === 0 && /(?:الروم|روم|القناة|الشانل|the\s+(?:room|channel))/i.test(rawText)) {
     const latestChannel = sessionEntities.find((entity) =>
       entity.type === 'channel' || entity.type === 'thread'
     ) ?? EntityRegistry.getLatest(guild.id, 'channel');
