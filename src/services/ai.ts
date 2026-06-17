@@ -180,6 +180,29 @@ function buildAnthropicBody(
   };
 }
 
+// ─── Tertiary fallback: generic OpenAI-compatible ──
+
+export async function callOpenAIFallback(
+  messages: AIMessage[],
+  options: GenerateAIOptions = {}
+): Promise<ProviderMessage> {
+  const apiKey = process.env.FALLBACK_API_KEY;
+  const endpoint = process.env.FALLBACK_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions';
+  const model = process.env.FALLBACK_MODEL || 'llama-3.3-70b-versatile';
+
+  if (!apiKey) {
+    throw new AIProviderError('fallback', 'No FALLBACK_API_KEY configured', false);
+  }
+
+  return retryProvider('fallback', (attempt) => {
+    const body = buildCompletionBody(messages, {
+      ...options,
+      temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
+    }, model);
+    return postChatCompletion('fallback', endpoint, apiKey, body);
+  });
+}
+
 /** Convert Anthropic response to internal ProviderMessage (OpenAI-format tool_calls) */
 function fromAnthropicResponse(response: AnthropicResponse): ProviderMessage {
   let content: string | null = null;
@@ -864,11 +887,68 @@ export class AIResponseParser {
 
 export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
 export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث QWEN_API_KEY في Railway.';
+export const AI_PROVIDER_STATE_MESSAGE = 'جميع مزودي الذكاء الاصطناعي معطلون حاليًا.';
 export const EXTENDED_CONVERSATIONAL_SCENARIOS_DATABASE: readonly never[] = [];
+
+// ─── Circuit Breaker ────────────────────────────
+interface CircuitState {
+  consecutiveFailures: number;
+  lastFailureAt: number;
+  cooldownMs: number;
+}
+
+const circuitBreakers = new Map<string, CircuitState>();
+
+function isCircuitOpen(name: string): boolean {
+  const state = circuitBreakers.get(name);
+  if (!state) return false;
+  if (state.consecutiveFailures < 3) return false;
+  const elapsed = Date.now() - state.lastFailureAt;
+  return elapsed < state.cooldownMs;
+}
+
+function recordFailure(name: string, cooldownMs = 90_000): void {
+  const prev = circuitBreakers.get(name);
+  circuitBreakers.set(name, {
+    consecutiveFailures: (prev?.consecutiveFailures ?? 0) + 1,
+    lastFailureAt: Date.now(),
+    cooldownMs,
+  });
+}
+
+function recordSuccess(name: string): void {
+  circuitBreakers.delete(name);
+}
+
+// ─── Admin Alerting ────────────────────────────
+let lastAllDownAlert = 0;
+const ALL_DOWN_ALERT_COOLDOWN_MS = 300_000;
+
+async function sendAdminAlert(subject: string, body: string): Promise<void> {
+  const now = Date.now();
+  if (now - lastAllDownAlert < ALL_DOWN_ALERT_COOLDOWN_MS) return;
+  lastAllDownAlert = now;
+
+  const webhookUrl = process.env.ADMIN_ALERT_WEBHOOK_URL;
+  Logger.error('AI-ALERT', `[${subject}] ${body}`);
+
+  if (!webhookUrl) return;
+  try {
+    const { WebhookClient } = await import('discord.js');
+    const webhook = new WebhookClient({ url: webhookUrl });
+    await webhook.send({
+      content: `🚨 **${subject}**\n\n${body}\n\nLast successful: <t:${Math.floor(now / 1000)}:R>`,
+      username: 'Opus AI Monitor',
+    });
+    Logger.info('AI-ALERT', 'Admin webhook alert sent');
+  } catch {
+    Logger.error('AI-ALERT', 'Failed to send admin webhook alert');
+  }
+}
 
 class AIProviderError extends Error {
   constructor(
-    readonly provider: 'opencode-zen' | 'cerebras',
+    readonly provider: string,
     message: string,
     readonly retryable: boolean,
     readonly status?: number,
@@ -1096,7 +1176,7 @@ function parseRetryAfter(value: string | null): number | undefined {
 }
 
 async function postChatCompletion(
-  provider: 'cerebras',
+  provider: string,
   endpoint: string,
   apiKey: string,
   body: ChatCompletionBody
@@ -1177,7 +1257,7 @@ function delay(ms: number): Promise<void> {
 }
 
 async function retryProvider(
-  provider: 'opencode-zen' | 'cerebras',
+  provider: string,
   request: (attempt: number) => Promise<ProviderMessage>
 ): Promise<ProviderMessage> {
   let lastError: unknown;
@@ -1243,35 +1323,70 @@ export async function generateAIResponse(
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
   const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
-  let zenFailure: unknown;
+  let lastError: unknown;
+  const failedProviders: string[] = [];
 
-  try {
-    return await callQwenZen(messages, { ...options, intent });
-  } catch (zenError) {
-    zenFailure = zenError;
-    Logger.warn(
-      'AI',
-      `OpenCode Zen unavailable (${zenError instanceof AIProviderError ? zenError.status ?? 'network' : 'unknown'}); using Cerebras fallback.`
-    );
+  async function tryProvider(
+    name: string,
+    call: () => Promise<ProviderMessage>
+  ): Promise<ProviderMessage | null> {
+    if (isCircuitOpen(name)) {
+      Logger.warn('AI', `${name} circuit open — skipping`);
+      return null;
+    }
+    try {
+      const result = await call();
+      recordSuccess(name);
+      return result;
+    } catch (error) {
+      lastError = error;
+      failedProviders.push(name);
+      recordFailure(name);
+      const status = error instanceof AIProviderError ? error.status ?? 'network' : 'unknown';
+      Logger.warn('AI', `${name} failed (${status})`);
+      return null;
+    }
   }
 
-  try {
-    return await callCerebras(messages, options);
-  } catch (cerebrasError) {
-    Logger.error(
-      'AI',
-      cerebrasError instanceof Error ? cerebrasError.message : 'Cerebras request failed.'
-    );
-    const zenAuthFailed = zenFailure instanceof AIProviderError &&
-      (zenFailure.status === 401 || zenFailure.status === 403);
-    const cerebrasAuthFailed = cerebrasError instanceof AIProviderError &&
-      (cerebrasError.status === 401 || cerebrasError.status === 403);
-    throw new Error(
-      zenAuthFailed && cerebrasAuthFailed
-        ? AI_CONFIGURATION_ERROR_MESSAGE
-        : AI_TEMPORARY_ERROR_MESSAGE
-    );
-  }
+  // 1. Primary — OpenCode Zen (Qwen 3.6 Plus via Anthropic adapter)
+  const zenResult = await tryProvider('opencode-zen', () =>
+    callQwenZen(messages, { ...options, intent })
+  );
+  if (zenResult) return zenResult;
+
+  // 2. Fallback — Cerebras
+  const cerebrasResult = await tryProvider('cerebras', () =>
+    callCerebras(messages, options)
+  );
+  if (cerebrasResult) return cerebrasResult;
+
+  // 3. Tertiary fallback — generic OpenAI-compatible (e.g. Groq)
+  const fallbackResult = await tryProvider('fallback', () =>
+    callOpenAIFallback(messages, options)
+  );
+  if (fallbackResult) return fallbackResult;
+
+  // ALL providers failed
+  const statusCodes = failedProviders
+    .map((n) => `${n}=${lastError instanceof AIProviderError ? lastError.status ?? '?' : '?'}`)
+    .join(', ');
+  Logger.error('AI', `All AI providers failed: ${statusCodes}`);
+
+  // Admin alert (rate-limited to once per 5 min)
+  sendAdminAlert('All AI providers down', [
+    'Providers failed: ' + statusCodes,
+    'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
+    'Request intent: ' + intent,
+  ].join('\n'));
+
+  const allAuthFailed = failedProviders.length >= 2 &&
+    lastError instanceof AIProviderError &&
+    (lastError.status === 401 || lastError.status === 403);
+  throw new Error(
+    allAuthFailed
+      ? AI_CONFIGURATION_ERROR_MESSAGE
+      : AI_TEMPORARY_ERROR_MESSAGE
+  );
 }
 
 export async function getAIResponse(
@@ -1298,7 +1413,9 @@ export function runAIDiagnostics(): {
       `AI providers configured: ${success ? 'yes' : 'no'}`,
       `Executable AI tools: ${tools.length}`,
       `Primary: OpenCode Zen (${config.qwenModel})`,
-      `Fallback: Cerebras (${config.cerebrasModel})`,
+      `Fallback 1: Cerebras (${config.cerebrasModel})`,
+      `Fallback 2: OpenAI-compatible (env FALLBACK_API_KEY)`,
+      `Circuit breaker: ${circuitBreakers.size > 0 ? [...circuitBreakers.entries()].map(([k, v]) => `${k}=${v.consecutiveFailures}fails`).join(', ') : 'all closed'}`,
     ],
   };
 }

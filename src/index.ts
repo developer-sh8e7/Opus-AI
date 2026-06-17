@@ -983,7 +983,7 @@ client.once(Events.ClientReady, async () => {
   contextCleanupTimer.unref();
   Logger.info(
     'System',
-    `AI routing ready: OpenCode Zen primary (${config.qwenModel}), Cerebras fallback (${config.cerebrasModel})`
+    `AI routing ready: OpenCode Zen primary (${config.qwenModel}), Cerebras fallback (${config.cerebrasModel}), circuit breaker active (3 failures → 90s cooldown)`
   );
   
   // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية
