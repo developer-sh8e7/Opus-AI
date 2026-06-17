@@ -8,6 +8,8 @@ export type ArabicIntent =
   | 'KICK_USER'
   | 'TIMEOUT_USER'
   | 'GIVE_ROLE'
+  | 'BULK_DELETE'
+  | 'REBUILD_SERVER'
   | 'UNKNOWN';
 
 export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]> = {
@@ -25,6 +27,15 @@ export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]>
   KICK_USER: [/(?:كيك|kick)\s+/i, /طرد\s+(?!نهائي)/i],
   TIMEOUT_USER: [/(?:تايم\s?اوت|timeout|ميوت|اسكت|أسكت|كتم)\s+/i],
   GIVE_ROLE: [/(?:اعطي|أعطي|عطي|ضيف|اضف|أضف)\s+(?:رتبة|رول|دور)\s+/i],
+  BULK_DELETE: [
+    /(?:احذف|تحذف|امسح|ازل|شيل|delete|remove).*(?:كل|جميع|all).*(?:الرومات|رومات|القنوات|روومات|الرومز|channels|rooms)/i,
+    /delete\s+all\s+/i,
+  ],
+  REBUILD_SERVER: [
+    /(?:سوي|سو|انشئ|انشاء|ابني|بناء|جدد|جديد)\s+(?:سيرفر|server)/i,
+    /(?:نظف|ترتيب|إعادة|اعادة|re(?:build|organize|design))\s+(?:السيرفر|السيرفرات)/i,
+    /تحسين\s+السيرفر\s+(?:وتطويره|وتنظيمه)/i,
+  ],
 };
 
 const PERMISSION_PHRASES: Array<{

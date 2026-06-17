@@ -1,4 +1,7 @@
 import { AuditLogEvent, ChannelType, PermissionFlagsBits } from 'discord.js';
+import { detectAllIntents } from '../services/intentVerifier.js';
+import { KnowledgeSkillLoader } from './knowledge_skill_loader.js';
+import type { Guild, GuildMember } from 'discord.js';
 
 const PERMISSION_ARABIC: Partial<Record<keyof typeof PermissionFlagsBits, string>> = {
   CreateInstantInvite: 'إنشاء دعوات',
@@ -133,4 +136,181 @@ export function buildDiscordKnowledgePrompt(): string {
     'Threads require ViewChannel and SendMessagesInThreads.',
     'Use permissionOverwrites.edit for targeted changes; never replace unrelated overwrites.',
   ].join('\n');
+}
+
+export interface ToolKnowledgeValidation {
+  allowed: boolean;
+  reason?: string;
+  fix?: string;
+}
+
+const EVERYONE_ROLE_ID_PATTERN = /^@?everyone$/i;
+
+function isEveryoneRole(args: Record<string, any>, everyoneRoleId: string): boolean {
+  return args.targetId === '@everyone' || args.targetId === everyoneRoleId;
+}
+
+function hasPermissionInAllow(args: Record<string, any>, permName: string): boolean {
+  const allow = Array.isArray(args.allow) ? args.allow : [];
+  return allow.some((p: string) => p.toLowerCase() === permName.toLowerCase());
+}
+
+function hasPermissionInDeny(args: Record<string, any>, permName: string): boolean {
+  const deny = Array.isArray(args.deny) ? args.deny : [];
+  return deny.some((p: string) => p.toLowerCase() === permName.toLowerCase());
+}
+
+export function validateToolKnowledgeRules(
+  name: string,
+  args: Record<string, any>,
+  guild: Guild,
+  actorMember?: GuildMember | null
+): ToolKnowledgeValidation {
+  const everyoneRoleId = guild.id;
+
+  switch (name) {
+    case 'edit_permissions':
+    case 'bulk_permission_update':
+      return validatePermissionOverwriteRules(args, everyoneRoleId, guild);
+    case 'manage_members':
+      return validateModerationRules(args, guild, actorMember);
+    case 'delete_channels':
+      return validateDeleteChannelRules(args);
+    default:
+      return { allowed: true };
+  }
+}
+
+function validatePermissionOverwriteRules(
+  args: Record<string, any>,
+  everyoneRoleId: string,
+  guild: Guild
+): ToolKnowledgeValidation {
+  // AP-001: MoveMembers allowed for @everyone
+  if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInAllow(args, 'MoveMembers')) {
+    return {
+      allowed: false,
+      reason: 'لا يمكن إعطاء صلاحية نقل الأعضاء للكل. هذا يسمح لأي شخص بنقل الآخرين إلى رومات خاصة.',
+      fix: 'قم بإعطاء صلاحية MoveMembers فقط لرتبة معينة (مشرف/مساعد)، وليس للكل.',
+    };
+  }
+
+  // AP-002: ManageRoles allowed for @everyone or broad role
+  if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInAllow(args, 'ManageRoles')) {
+    return {
+      allowed: false,
+      reason: 'لا يمكن إعطاء صلاحية إدارة الرتب للكل. هذا يسمح لأي شخص بتعديل صلاحيات الرتب.',
+      fix: 'قم بإعطاء ManageRoles فقط لرتبة إدارة موثوقة.',
+    };
+  }
+
+  // AP-003: ManageChannels allowed for @everyone
+  if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInAllow(args, 'ManageChannels')) {
+    return {
+      allowed: false,
+      reason: 'لا يمكن إعطاء صلاحية إدارة الرومات للكل. هذا يسمح لأي شخص بحذف أو تعديل الرومات.',
+      fix: 'قم بإعطاء ManageChannels فقط لرتبة إدارة.',
+    };
+  }
+
+  // AP-004: Administrator granted to any role (most dangerous when @everyone)
+  if (hasPermissionInAllow(args, 'Administrator')) {
+    return {
+      allowed: false,
+      reason: 'صلاحية Administrator خطيرة ويجب أن تبقى فقط لمالك السيرفر.',
+      fix: 'تجنب إعطاء Administrator لأي رتبة. استخدم صلاحيات محددة بدلاً من ذلك.',
+    };
+  }
+
+  // AP-005: ViewChannel denied for @everyone — hides the channel rather than creating visible-but-locked
+  if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInDeny(args, 'ViewChannel')) {
+    return {
+      allowed: false,
+      reason: 'منع مشاهدة الروم للكل يخفي الروم بالكامل. إذا كنت تقصد "مقفل بس يشوفونه"، امنع صلاحية أخرى (مثل SendMessages للنصي أو Connect للصوتي) بدلاً من منع المشاهدة.',
+      fix: 'لروم نصي مقفل للقراءة فقط: امنع SendMessages. لروم صوتي مقفل: امنع Connect.',
+    };
+  }
+
+  // AP-010: Category-level permission update — warn about unsynced children
+  if (args.channelId && guild.channels.cache.get(args.channelId)?.type === ChannelType.GuildCategory) {
+    return {
+      allowed: true,
+      reason: 'ملاحظة: تعديل صلاحيات الكاتقوري لا يطبق تلقائياً على الرومات الموجودة تحته إذا كانت غير متزامنة.',
+      fix: 'تحقق من مزامنة الرومات بعد تعديل صلاحيات الكاتقوري.',
+    };
+  }
+
+  // AP-012: Stream in allow but uses name "Stream" which maps incorrectly in this project
+  if (hasPermissionInAllow(args, 'Stream') && !hasPermissionInAllow(args, 'Video')) {
+    return { allowed: true };
+  }
+
+  return { allowed: true };
+}
+
+function validateModerationRules(
+  args: Record<string, any>,
+  guild: Guild,
+  actorMember?: GuildMember | null
+): ToolKnowledgeValidation {
+  const action = String(args.action ?? '');
+
+  // AP-011: Target is guild owner
+  if (args.memberId && guild.ownerId && args.memberId === guild.ownerId) {
+    return {
+      allowed: false,
+      reason: 'لا يمكن تطبيق عقوبة على مالك السيرفر.',
+    };
+  }
+
+  // AP-006: Missing hierarchy check (actor below target)
+  if (actorMember && args.memberId && action !== 'unban') {
+    const target = guild.members.cache.get(args.memberId);
+    if (target && actorMember.roles.highest.position <= target.roles.highest.position) {
+      return {
+        allowed: false,
+        reason: 'لا يمكنك تطبيق عقوبة على عضو برتبة أعلى أو مساوية لرتبتك.',
+      };
+    }
+  }
+
+  // AP-007: Timeout duration > 28 days
+  if ((action === 'timeout') && typeof args.data?.duration === 'number') {
+    const maxTimeoutMs = 28 * 24 * 60 * 60 * 1000;
+    if (args.data.duration > maxTimeoutMs) {
+      return {
+        allowed: false,
+        reason: 'مدة التايم أوت لا يمكن أن تتجاوز 28 يوم.',
+        fix: 'استخدم مدة 28 يوم أو أقل.',
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
+function validateDeleteChannelRules(
+  args: Record<string, any>
+): ToolKnowledgeValidation {
+  const channelIds = Array.isArray(args.channelIds) ? args.channelIds : [];
+
+  // AP-009: Bulk delete (≥5 channels) without explicit confirmation flag
+  if (channelIds.length >= 5 && args._confirmed !== true) {
+    return {
+      allowed: false,
+      reason: 'حذف 5 رومات أو أكثر يتطلب تأكيدًا.',
+      fix: 'اسأل المستخدم للتأكيد قبل تنفيذ الحذف الكبير، ثم أضف confirmed: true.',
+    };
+  }
+
+  return { allowed: true };
+}
+
+export function buildKnowledgeSectionsForPrompt(text: string): string {
+  const intents = detectAllIntents(text);
+  const sections = KnowledgeSkillLoader.getRelevantSections(intents, [], text);
+  if (sections.length === 0) return '';
+  return sections.map((s) =>
+    `[DISCORD_KNOWLEDGE_${s.source.replace(/[^\w]/g, '_').toUpperCase()}]\n${s.content}`
+  ).join('\n');
 }

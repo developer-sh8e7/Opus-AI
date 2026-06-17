@@ -25,6 +25,8 @@ const INTENT_TO_TOOLS: Record<ArabicIntent, string[]> = {
   KICK_USER: ['manage_members'],
   TIMEOUT_USER: ['manage_members'],
   GIVE_ROLE: ['manage_roles'],
+  BULK_DELETE: ['delete_channels'],
+  REBUILD_SERVER: ['create_channels', 'delete_channels', 'edit_permissions', 'manage_roles'],
   UNKNOWN: [],
 };
 
@@ -36,6 +38,8 @@ const INTENT_DESCRIPTIONS: Record<ArabicIntent, string> = {
   KICK_USER: 'طرد الأعضاء',
   TIMEOUT_USER: 'كتم/تايم أوت الأعضاء',
   GIVE_ROLE: 'إعطاء الرتب',
+  BULK_DELETE: 'حذف جميع الرومات',
+  REBUILD_SERVER: 'إعادة بناء السيرفر',
   UNKNOWN: '',
 };
 

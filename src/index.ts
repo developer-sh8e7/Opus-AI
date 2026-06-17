@@ -119,6 +119,7 @@ import { detectAllIntents, findMissingIntents, buildMissingIntentPrompt } from '
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
 import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.js';
 import { runMemoryManagerDiagnostics } from './intelligence/memory_manager.js';
+import { buildKnowledgeSectionsForPrompt, validateToolKnowledgeRules } from './intelligence/discord_knowledge.js';
 import { Logger } from './utils/logger.js';
 
 // استيراد مولدات الـ Embed المتقدمة
@@ -453,6 +454,22 @@ async function executeToolWithAudit(
   actorMember?: GuildMember | null
 ): Promise<any> {
   const startedAt = Date.now();
+
+  // Anti-pattern safety gate
+  const knowledgeCheck = validateToolKnowledgeRules(name, args, guild, actorMember);
+  if (!knowledgeCheck.allowed) {
+    Logger.audit('knowledge_rule_blocked', {
+      tool_name: name,
+      reason: knowledgeCheck.reason,
+      fix: knowledgeCheck.fix,
+    });
+    return {
+      success: false,
+      message: knowledgeCheck.reason,
+      fix: knowledgeCheck.fix,
+    };
+  }
+
   try {
     const result = await executeTool(name, args, guild, activeChannelId, userId, actorMember);
     const registeredEntities = EntityRegistry.registerToolResult(
@@ -1250,7 +1267,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
       ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
       memoryManager.buildEntityContext(message.channel.id),
       SkillRegistry.buildSkillManifestForAI(),
-    ].join('\n');
+      buildKnowledgeSectionsForPrompt(cleanedPromptText),
+    ].filter(Boolean).join('\n');
     const enrichedPrompt = [
       ContextAnalyzer.buildEnrichedPrompt(ctx),
       explicitTargetsContext,

@@ -26,6 +26,8 @@ export interface RegisteredEntity {
   metadata?: Record<string, unknown>;
   conversationChannelId?: string;
   modifiedAt?: number;
+  /** 'deleted' marks a tombstone — entity no longer exists on Discord */
+  status?: 'active' | 'deleted';
 }
 
 const ENTITY_TTL_MS = 15 * 60 * 1000;
@@ -85,6 +87,7 @@ export class EntityRegistry {
     this.initialize();
     this.cleanup();
     return (this.entities.get(guildId) ?? [])
+      .filter((entity) => entity.status !== 'deleted')
       .filter((entity) => !type || entity.type === type)
       .sort((left, right) => {
         if (conversationChannelId) {
@@ -219,6 +222,14 @@ export class EntityRegistry {
       }
     }
 
+    if (toolName === 'delete_channels') {
+      const deletedIds = Array.isArray(args.channelIds) ? args.channelIds : [];
+      for (const channelId of deletedIds) {
+        this.markTombstone(guild.id, 'channel', channelId);
+        this.markTombstone(guild.id, 'category', channelId);
+      }
+    }
+
     if (toolName === 'manage_members' && args.memberId) {
       const member = guild.members.cache.get(args.memberId);
       registered.push(this.register({
@@ -333,6 +344,27 @@ export class EntityRegistry {
     }
     if (removed > 0) this.scheduleSave();
     return removed;
+  }
+
+  /** Mark an entity as deleted (tombstone). Returns true if found and marked. */
+  static markTombstone(guildId: string, type: EntityType, id: string): boolean {
+    this.initialize();
+    const entities = this.entities.get(guildId);
+    if (!entities) return false;
+    const entity = entities.find((e) => e.type === type && e.id === id);
+    if (!entity) return false;
+    entity.status = 'deleted';
+    entity.modifiedAt = Date.now();
+    this.scheduleSave();
+    return true;
+  }
+
+  /** Check if an entity is tombstoned (deleted). */
+  static isTombstone(guildId: string, type: EntityType, id: string): boolean {
+    this.initialize();
+    const entities = this.entities.get(guildId);
+    if (!entities) return false;
+    return entities.some((e) => e.type === type && e.id === id && e.status === 'deleted');
   }
 
   static clearGuild(guildId: string): void {

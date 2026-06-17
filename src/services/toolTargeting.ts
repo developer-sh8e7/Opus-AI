@@ -141,20 +141,26 @@ export function resolveExplicitToolTargets(
     const latestChannel = sessionEntities.find((entity) =>
       entity.type === 'channel' || entity.type === 'thread'
     ) ?? EntityRegistry.getLatest(guild.id, 'channel');
-    if (latestChannel) channelIds.push(latestChannel.id);
+    if (latestChannel && !EntityRegistry.isTombstone(guild.id, 'channel', latestChannel.id)) {
+      channelIds.push(latestChannel.id);
+    }
   }
   if (categoryIds.length === 0 && /(?:فيها|الكاتقوري|الفئة|the\s+category)/i.test(rawText)) {
     const latestCategory = sessionEntities.find((entity) =>
       entity.type === 'category'
     ) ?? EntityRegistry.getLatest(guild.id, 'category');
-    if (latestCategory) categoryIds.push(latestCategory.id);
+    if (latestCategory && !EntityRegistry.isTombstone(guild.id, 'category', latestCategory.id)) {
+      categoryIds.push(latestCategory.id);
+    }
   }
   const roleIds = unique([...mentionedRoleIds, ...findNamedMatches(rawText, namedRoles)]);
   if (roleIds.length === 0 && /(?:الرتبة|الرول|هالرتبة|هالرول|the\s+role)/i.test(rawText)) {
     const latestRole = sessionEntities.find((entity) =>
       entity.type === 'role'
     ) ?? EntityRegistry.getLatest(guild.id, 'role');
-    if (latestRole) roleIds.push(latestRole.id);
+    if (latestRole && !EntityRegistry.isTombstone(guild.id, 'role', latestRole.id)) {
+      roleIds.push(latestRole.id);
+    }
   }
 
   return {
