@@ -35,7 +35,7 @@ import {
 } from 'discord.js';
 import path from 'node:path';
 import { config } from './config.js';
-import { startRenderWebServer } from './renderWebServer.js';
+import { startHealthServer } from './healthServer.js';
 import { installLegacyEmbedRepair } from './utils/textEncoding.js';
 import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
 import { getConversationReply } from './services/conversation.js';
@@ -3179,7 +3179,7 @@ export const OFFLINE_RESPONDER_GUIDELINES = `
 // ============================================================
 //  20. بدء تشغيل البوت والاتصال بديسكورد (Client Login Gateway)
 // ============================================================
-startRenderWebServer();
+startHealthServer();
 installLegacyEmbedRepair();
 
 client.login(config.discordToken).catch((err) => {

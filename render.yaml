@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: opus-ai-bot
-    runtime: node
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    healthCheckPath: /healthz
-    autoDeployTrigger: commit

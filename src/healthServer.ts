@@ -12,7 +12,7 @@ function sendText(req: IncomingMessage, res: ServerResponse, statusCode: number,
   res.end(body);
 }
 
-export function startRenderWebServer(): Server {
+export function startHealthServer(): Server {
   const port = Number(process.env.PORT || 3000);
 
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -32,12 +32,12 @@ export function startRenderWebServer(): Server {
   });
 
   server.on('error', (error) => {
-    console.error('[Render Web] Failed to start web server:', error);
+    console.error('[Health Server] Failed to start web server:', error);
     process.exit(1);
   });
 
   server.listen(port, '0.0.0.0', () => {
-    console.log(`[Render Web] Health server listening on port ${port}`);
+    console.log(`[Health Server] Listening on port ${port} (healthcheck at /healthz)`);
   });
   return server;
 }
