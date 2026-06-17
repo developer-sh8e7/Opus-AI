@@ -8,6 +8,7 @@ const TOOL_GROUPS = {
     'delete_channels',
     'edit_permissions',
     'bulk_permission_update',
+    'sweep_permission_overwrites',
     'send_embed',
   ],
   roles: [
@@ -39,7 +40,7 @@ const TOOL_GROUPS = {
 } as const;
 
 const EXPLICIT_ACTION_PATTERN =
-  /(?:^|\s)(?:خل|خلي|خله|سو|سوي|سووا|انشئ|أنشئ|اصنع|أصنع|اضف|أضف|احذف|تحذف|امسح|شيل|ازل|أزل|غير|غيّر|عدل|عدّل|حط|حطوا|انقل|اقفل|افتح|امنح|اسحب|اعط|أعط|ارسل|أرسل|ثبت|ثبّت|فك|شغل|وقف|اطرد|احظر|اكتم|رتب|نظم|صمم|ابن|ابني|create|delete|remove|add|edit|change|rename|send|set|make|build|move|lock|unlock|ban|kick|timeout|mute|play|stop|assign|give)(?=\s|$|[^\p{L}\p{N}])/iu;
+  /(?:^|\s)(?:خل|خلي|خله|سو|سوي|سووا|انشئ|أنشئ|اصنع|أصنع|اضف|أضف|احذف|تحذف|امسح|شيل|ازل|أزل|غير|غيّر|عدل|عدّل|حط|حطوا|انقل|اقفل|افتح|امنح|اسحب|اعط|أعط|ارسل|أرسل|ثبت|ثبّت|فك|شغل|وقف|اطرد|احظر|اكتم|افصل|دسكونكت|دسكنوكت|ديسكونكت|رتب|نظم|صمم|ابن|ابني|create|delete|remove|add|edit|change|rename|send|set|make|build|move|lock|unlock|ban|kick|timeout|mute|disconnect|voicekick|play|stop|assign|give)(?=\s|$|[^\p{L}\p{N}])/iu;
 
 const EXPLICIT_DESIRE_PATTERN =
   /(?:^|\s)(?:ابي|أبي|ابغى|أبغى|اريد|أريد)(?:\s+(?:منك|انك|إنك))?\s+(?:(?:تسوي|تسوى|تنشئ|تصنع|تضيف|تحذف|تمسح|تشيل|تزيل|تغير|تعدّل|تعدل|تحط|تنقل|تقفل|تفتح|ترسل|تعطي|تسحب|تشغل|توقف|تطرد|تحظر|تكتم|ترتب|تنظم|تصمم)(?=\s|$|[^\p{L}\p{N}])|(?:روم|قناة|كاتقوري|فئة|رتبة|رول|ايمبد|إيمبد|سيرفر|متجر|بان|حظر|تايم\s*اوت|موسيقى)(?=\s|$))/iu;
@@ -48,7 +49,7 @@ const EXPLICIT_INFORMATION_PATTERN =
   /(?:عطني|اعطني|أعطني|ورني|أرني|ارني|هات|جيب|اعرض|أعرض|افحص|تحقق|وش عندنا|كم عدد|what|show|list|get|check|inspect).*(?:السيرفر|الخادم|الروم|القناة|القنوات|الرومات|الرتبة|الرتب|الرولات|العضو|الأعضاء|member|server|channel|role|audit|stats|queue)/iu;
 
 const EXPLICIT_PERMISSION_PATTERN =
-  /(?:\d{17,20}|<#\d{17,20}>|روم|قناة|كاتقوري|فئة).*(?:الكل|everyone|رتبة|رول).*(?:يشوف|يدخل|يكتب|يتكلم|سكرين|منشن|صلاحية|برمشن)/iu;
+  /(?:\d{17,20}|<#\d{17,20}>|روم|قناة|كاتقوري|فئة).*(?:الكل|everyone|رتبة|رول).*(?:يشوف|يدخل|يكتب|يتكلم|سكرين|منشن|صلاحية|برمشن|ميوت|ديفن|موف|منج)/iu;
 
 export function getCurrentUserText(messages: AIMessage[]): string {
   const latestUserMessage = [...messages]
@@ -91,19 +92,19 @@ export function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(server|سيرفر|خادم|متجر|build|بناء|صمم|نظم.*السيرفر|ضبط.*السيرفر)/i.test(content)) {
     addGroup(TOOL_GROUPS.server);
   }
-  if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|يدخل|يخش|يتكلم|سكرين|يشارك|صلاحية|صلاحيات|اخف|إخف)/i.test(content)) {
+  if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|يدخل|يخش|يتكلم|سكرين|يشارك|صلاحية|صلاحيات|منشن|اخف|إخف)/i.test(content)) {
     addGroup(TOOL_GROUPS.channels);
   }
   if (/(role|roles|رول|رولات|رتبة|رتب|مشرف|permission|برمشن)/i.test(content)) {
     addGroup(TOOL_GROUPS.roles);
   }
-  if (/(ban|unban|kick|timeout|mute|member|حظر|فك الحظر|طرد|كتم|عضو|رسائل|messages)/i.test(content)) {
+  if (/(ban|unban|kick|timeout|mute|member|disconnect|voicekick|حظر|فك الحظر|طرد|دسكونكت|دسكنوكت|ديسكونكت|افصل|فصل|كتم|عضو|رسائل|messages)/i.test(content)) {
     addGroup(TOOL_GROUPS.members);
   }
   if (/(profile|avatar|username|rename|change.*name|غير اسمك|غيّر اسمك|صورتك)/i.test(content)) {
     addGroup(TOOL_GROUPS.profile);
   }
-  if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع)/i.test(content)) addGroup(TOOL_GROUPS.voice);
+  if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|دسكونكت|دسكنوكت|voicekick)/i.test(content)) addGroup(TOOL_GROUPS.voice);
   if (/(music|song|play|pause|resume|skip|queue|volume|اغنية|أغنية|موسيقى|شغل|وقف|الصوت)/i.test(content)) {
     addGroup(TOOL_GROUPS.music);
   }
@@ -119,7 +120,7 @@ export function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i.test(content)) {
     selected.add('analytics_operations');
   }
-  if (/(clone|نسخ الروم|غير اسم الروم|غيّر اسم الروم|topic|وصف الروم|nsfw|سلومود|slowmode|bitrate|حد المستخدمين|قفل الروم|فك قفل الروم|دعوة|invite|مزامنة الصلاحيات)/i.test(content)) {
+  if (/(clone|نسخ الروم|غير اسم الروم|غيّر اسم الروم|topic|وصف الروم|nsfw|سلومود|slowmode|bitrate|حد المستخدمين|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|قفل الروم|فك قفل الروم|دعوة|invite|مزامنة الصلاحيات)/i.test(content)) {
     selected.add('channel_operations');
   }
   if (/(pin|ثبت الرسالة|ثبّت الرسالة|crosspost|نشر الإعلان|react|تفاعل على الرسالة|عدل رسالة البوت)/i.test(content)) {

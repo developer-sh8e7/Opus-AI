@@ -1,9 +1,10 @@
-import { Guild, PermissionFlagsBits } from 'discord.js';
+import { ChannelType, Guild, PermissionFlagsBits } from 'discord.js';
 
 export type ArabicIntent =
   | 'CREATE_CHANNEL'
   | 'SET_PERMISSIONS'
   | 'DELETE_CHANNEL'
+  | 'VOICE_DISCONNECT'
   | 'BAN_USER'
   | 'KICK_USER'
   | 'TIMEOUT_USER'
@@ -22,6 +23,9 @@ export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]>
   ],
   DELETE_CHANNEL: [
     /(?:احذف|إحذف|حذف|امسح|أمسح|ازيل|أزل)\s+(?:الروم|القناة|الشانل|روم|قناة)/i,
+  ],
+  VOICE_DISCONNECT: [
+    /(?:دسكونكت|دسكنوكت|ديسكونكت|disconnect|voice\s*kick|voicekick|افصل|فصل|طلعه|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)/i,
   ],
   BAN_USER: [/(?:بان|ban|احظر|إحظر|حظر نهائي)\s+/i],
   KICK_USER: [/(?:كيك|kick)\s+/i, /طرد\s+(?!نهائي)/i],
@@ -49,7 +53,12 @@ const PERMISSION_PHRASES: Array<{
   { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?(?:يدخل|يخش|يتصل)(?:ون|ونه|ونها|ه|ها)?/i, flag: PermissionFlagsBits.Connect, type: 'deny', name: 'Connect' },
   { pattern: /(?:يقدر(?:ون)?\s*)?(?:يدخل|يخش|يتصل|تدخل|تخش|تتصل)(?:ون|ونه|ونها|ه|ها)?/i, flag: PermissionFlagsBits.Connect, type: 'allow', name: 'Connect' },
   { pattern: /(?:يتكلم|تتكلم)(?:ون)?/i, flag: PermissionFlagsBits.Speak, type: 'allow', name: 'Speak' },
+  { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?(?:يفتح|تفتح|يسوي|تسوي)(?:ون)?\s*(?:سكرين|شير|بث)|(?:بدون|منع)\s*(?:سكرين|شير|بث)/i, flag: PermissionFlagsBits.Stream, type: 'deny', name: 'Stream' },
   { pattern: /(?:سكرين(?:\s*شير)?|بث\s+الشاشة|(?:يفتح|تفتح|يسوي|تسوي)(?:ون)?\s+سكرين)/i, flag: PermissionFlagsBits.Stream, type: 'allow', name: 'Stream' },
+  { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?(?:منج|يدير|يعدل|manage)\s*(?:شنل|شانل|روم|قناه|قناة|channel)/i, flag: PermissionFlagsBits.ManageChannels, type: 'deny', name: 'ManageChannels' },
+  { pattern: /(?:move|موف|ينقل|نقل|يحرك|تحريك)/i, flag: PermissionFlagsBits.MoveMembers, type: 'allow', name: 'MoveMembers' },
+  { pattern: /(?:ميوت|يكتم|كتم صوتي|mute)/i, flag: PermissionFlagsBits.MuteMembers, type: 'allow', name: 'MuteMembers' },
+  { pattern: /(?:ديفن|دفن|يصم|deafen)/i, flag: PermissionFlagsBits.DeafenMembers, type: 'allow', name: 'DeafenMembers' },
   { pattern: /(?:نشاط|أنشطة|activity|activities|watch\s+together|youtube\s+together|فيديو|video)/i, flag: PermissionFlagsBits.UseEmbeddedActivities, type: 'allow', name: 'UseEmbeddedActivities' },
   { pattern: /(?:ما|لا)\s+يكتب(?:ون)?/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
   { pattern: /يكتب(?:ون)?|يرسل(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.SendMessages, type: 'allow', name: 'SendMessages' },
@@ -157,8 +166,17 @@ export function buildArabicPermissionOperations(
   guild: Guild,
   sessionEntities?: Array<{ id: string; name: string; type: string }>
 ): ArabicPermissionOperation[] {
-  let channelId = text.match(/<#(\d{17,20})>/)?.[1]
-    ?? text.match(/\b(\d{17,20})\b/)?.[1];
+  const isConcreteChannel = (id: string): boolean => {
+    const channel = guild.channels.cache.get(id);
+    return Boolean(channel && channel.type !== ChannelType.GuildCategory);
+  };
+  const mentionedChannelIds = [...text.matchAll(/<#(\d{17,20})>/g)]
+    .map((match) => match[1])
+    .filter(isConcreteChannel);
+  const rawChannelIds = [...text.matchAll(/\b(\d{17,20})\b/g)]
+    .map((match) => match[1])
+    .filter(isConcreteChannel);
+  let channelId = mentionedChannelIds[0] ?? rawChannelIds[0];
   if (!channelId && sessionEntities) {
     const textNorm = text.normalize('NFKC').replace(/[\u0623\u0625\u0622]/g, '\u0627').replace(/\u0649/g, '\u064a').replace(/\u0629/g, '\u0647').toLowerCase();
     const sessionChannel = sessionEntities.find(

@@ -186,13 +186,18 @@ function validatePermissionOverwriteRules(
   everyoneRoleId: string,
   guild: Guild
 ): ToolKnowledgeValidation {
-  // AP-001: MoveMembers allowed for @everyone
+  // AP-001: MoveMembers allowed broadly for @everyone.
+  // Channel-specific voice overwrites are allowed when the user explicitly targets a voice room;
+  // this changes only that room's overwrite, not the base @everyone role permissions.
   if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInAllow(args, 'MoveMembers')) {
-    return {
-      allowed: false,
-      reason: 'لا يمكن إعطاء صلاحية نقل الأعضاء للكل. هذا يسمح لأي شخص بنقل الآخرين إلى رومات خاصة.',
-      fix: 'قم بإعطاء صلاحية MoveMembers فقط لرتبة معينة (مشرف/مساعد)، وليس للكل.',
-    };
+    const targetChannel = args.channelId ? guild.channels.cache.get(String(args.channelId)) : undefined;
+    if (!targetChannel || targetChannel.type !== ChannelType.GuildVoice) {
+      return {
+        allowed: false,
+        reason: 'لا يمكن إعطاء صلاحية نقل الأعضاء للكل بشكل عام. حدد روم صوتي معيّن أو أعطها لرتبة مشرف.',
+        fix: 'استخدم برمشن الروم الصوتي المحدد فقط أو رتبة إدارية موثوقة.',
+      };
+    }
   }
 
   // AP-002: ManageRoles allowed for @everyone or broad role
@@ -254,6 +259,7 @@ function validateModerationRules(
   actorMember?: GuildMember | null
 ): ToolKnowledgeValidation {
   const action = String(args.action ?? '');
+  const voiceStateAction = ['move', 'voicekick', 'deafen', 'mute_voice'].includes(action);
 
   // AP-011: Target is guild owner
   if (args.memberId && guild.ownerId && args.memberId === guild.ownerId) {
@@ -264,7 +270,7 @@ function validateModerationRules(
   }
 
   // AP-006: Missing hierarchy check (actor below target)
-  if (actorMember && args.memberId && action !== 'unban') {
+  if (actorMember && args.memberId && action !== 'unban' && !voiceStateAction) {
     const target = guild.members.cache.get(args.memberId);
     if (target && actorMember.roles.highest.position <= target.roles.highest.position) {
       return {

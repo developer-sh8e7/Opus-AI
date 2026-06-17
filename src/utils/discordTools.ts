@@ -49,6 +49,7 @@ export const permissionMap: Record<string, bigint> = {
   // صلاحيات الرومات الصوتية
   Connect: PermissionFlagsBits.Connect,
   Speak: PermissionFlagsBits.Speak,
+  Stream: PermissionFlagsBits.Stream,
   Video: PermissionFlagsBits.Stream,
   UseEmbeddedActivities: PermissionFlagsBits.UseEmbeddedActivities,
   UseSoundboard: PermissionFlagsBits.UseSoundboard,
@@ -550,6 +551,98 @@ export async function bulkPermissionUpdate(
   };
 }
 
+export async function sweepPermissionOverwrites(
+  guild: Guild,
+  options: {
+    channelIds?: string[];
+    categoryId?: string;
+    permissions: string[];
+    includeEveryone?: boolean;
+    includeRoles?: boolean;
+    includeMembers?: boolean;
+  }
+): Promise<{ success: boolean; message: string; updated: string[]; failed: string[]; targets: string[] }> {
+  const selectedIds = new Set(options.channelIds ?? []);
+  if (options.categoryId) {
+    for (const channel of guild.channels.cache.values()) {
+      if (channel.parentId === options.categoryId) selectedIds.add(channel.id);
+    }
+  }
+
+  if (selectedIds.size === 0) {
+    return { success: false, message: 'لم يتم تحديد أي رومات لفحص الصلاحيات.', updated: [], failed: [], targets: [] };
+  }
+
+  const permissionBits = options.permissions
+    .map(resolvePermission)
+    .filter((permission): permission is bigint => permission !== null);
+  if (permissionBits.length === 0) {
+    return { success: false, message: 'لم يتم تحديد صلاحيات صالحة لسحبها.', updated: [], failed: [], targets: [] };
+  }
+
+  const includeEveryone = options.includeEveryone ?? true;
+  const includeRoles = options.includeRoles ?? true;
+  const includeMembers = options.includeMembers ?? true;
+  const updated: string[] = [];
+  const failed: string[] = [];
+  const targets = new Set<string>();
+
+  for (const channelId of selectedIds) {
+    const channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null);
+    if (!channel || !('permissionOverwrites' in channel)) {
+      failed.push(channelId);
+      continue;
+    }
+
+    let changed = false;
+    const candidates = new Set<string>();
+    if (includeEveryone) candidates.add(guild.id);
+
+    for (const overwrite of channel.permissionOverwrites.cache.values()) {
+      const hasAllowedPermission = permissionBits.some((permission) => overwrite.allow.has(permission));
+      if (!hasAllowedPermission) continue;
+      if (overwrite.type === 0 && includeRoles) candidates.add(overwrite.id);
+      if (overwrite.type === 1 && includeMembers) candidates.add(overwrite.id);
+    }
+
+    if (includeRoles) {
+      for (const role of guild.roles.cache.values()) {
+        if (role.id === guild.id || role.managed) continue;
+        if (permissionBits.some((permission) => role.permissions.has(permission))) candidates.add(role.id);
+      }
+    }
+
+    for (const targetId of candidates) {
+      try {
+        const overwrite: Record<string, boolean> = {};
+        for (const permission of permissionBits) {
+          const key = Object.keys(permissionMap).find((name) => permissionMap[name] === permission);
+          if (key) overwrite[key] = false;
+        }
+        if (Object.keys(overwrite).length === 0) continue;
+        await channel.permissionOverwrites.edit(targetId, overwrite, {
+          reason: 'سحب صلاحيات خطيرة من الروم بواسطة Opus Ai',
+        });
+        changed = true;
+        targets.add(targetId);
+        await delay(250);
+      } catch (error) {
+        failed.push(`${channelId}:${targetId}`);
+      }
+    }
+
+    if (changed) updated.push(channelId);
+  }
+
+  return {
+    success: failed.length === 0,
+    message: `تم فحص ${selectedIds.size} روم وتحديث ${updated.length} روم${failed.length > 0 ? `، وتعذر تحديث ${failed.length} هدف` : ''}.`,
+    updated,
+    failed,
+    targets: [...targets],
+  };
+}
+
 // ============================================================
 //  إدارة وتنفيذ العقوبات والعمليات ضد الأعضاء
 // ============================================================
@@ -571,13 +664,21 @@ export async function manageMembers(
       return { success: true, message: `تم فك الحظر عن المستخدم ${memberId} بنجاح.` };
     }
 
-    // فحص الأمان لضمان عدم التحكم بعضو مساوٍ أو أعلى من البوت
-    const memberCheck = await validateMemberHierarchy(guild, memberId);
+    const voiceStateAction = ['move', 'voicekick', 'deafen', 'mute_voice'].includes(action);
+    const memberCheck: { allowed: boolean; targetMember?: GuildMember | null; reason?: string } = voiceStateAction
+      ? { allowed: true, targetMember: guild.members.cache.get(memberId) || await guild.members.fetch(memberId).catch(() => null) }
+      : await validateMemberHierarchy(guild, memberId);
     if (!memberCheck.allowed) {
       return { success: false, message: `حماية أمنية: ${memberCheck.reason}` };
     }
+    if (!memberCheck.targetMember) {
+      return { success: false, message: 'العضو المطلوب غير موجود في السيرفر.' };
+    }
 
-    const member = memberCheck.targetMember!;
+    const member = memberCheck.targetMember;
+    if (member.id === guild.client.user?.id) {
+      return { success: false, message: 'لا يمكن للبوت تطبيق هذا الإجراء على نفسه.' };
+    }
     const reason = data?.reason || 'إجراء إداري بواسطة نظام الإدارة الذكي';
 
     // 1. طرد عضو
@@ -739,9 +840,16 @@ export async function getServerInfo(guild: Guild): Promise<{
 // ============================================================
 export async function editBotProfile(
   client: Client,
-  data: { username?: string; avatarUrl?: string }
+  data: { username?: string; avatarUrl?: string; nickname?: string },
+  guild?: Guild
 ): Promise<{ success: boolean; message: string }> {
   try {
+    if (data.nickname && guild) {
+      const botMember = guild.members.me || await guild.members.fetch(client.user!.id);
+      await botMember.setNickname(data.nickname, 'تغيير لقب البوت داخل السيرفر بواسطة Opus Ai');
+      return { success: true, message: `تم تغيير لقب البوت في السيرفر إلى "${data.nickname}" بنجاح.` };
+    }
+
     const updateData: { username?: string; avatar?: string } = {};
     if (data.username) updateData.username = data.username;
     if (data.avatarUrl) {

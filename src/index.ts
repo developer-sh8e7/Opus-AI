@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ════════════════════════════════════════════════════════════════
  *               خادم الإدارة والتشغيل المركزي - Opus Central Router
  * ════════════════════════════════════════════════════════════════
@@ -58,6 +58,7 @@ import {
   manageRoles, 
   editPermissions, 
   bulkPermissionUpdate,
+  sweepPermissionOverwrites,
   manageMembers, 
   getServerInfo,
   editBotProfile,
@@ -231,6 +232,7 @@ function validateAIToolPermission(
     case 'manage_roles':
     case 'edit_permissions':
     case 'bulk_permission_update':
+    case 'sweep_permission_overwrites':
       return {
         allowed: hasAnyPermission(actorMember, [PermissionFlagsBits.ManageRoles]),
         message: denied,
@@ -391,11 +393,14 @@ async function executeTool(
     case 'bulk_permission_update':
       return await bulkPermissionUpdate(guild, args);
 
+    case 'sweep_permission_overwrites':
+      return await sweepPermissionOverwrites(guild, args);
+
     case 'manage_members':
       return await manageMembers(guild, args.action, args.memberId, args.data);
 
     case 'edit_bot_profile':
-      return await editBotProfile(guild.client, args);
+      return await editBotProfile(guild.client, args, guild);
 
     case 'bulk_delete_messages':
       return await bulkDeleteMessages(guild, args.channelId, args.count, args.userId);
@@ -511,6 +516,37 @@ SkillRegistry.configureToolAdapter((toolName, args, params) => executeToolWithAu
   params.user
 ));
 
+function formatPermissionNames(permissions: unknown): string {
+  return Array.isArray(permissions) && permissions.length > 0 ? permissions.join(', ') : 'لا شيء';
+}
+
+function rememberDirectInteraction(
+  message: Message,
+  userContent: string,
+  assistantContent: string,
+  toolsUsed: string[] = []
+): void {
+  memoryManager.addMessage(message.channel.id, { role: 'user', content: userContent });
+  memoryManager.addMessage(message.channel.id, { role: 'assistant', content: assistantContent });
+  memoryManager.rememberAction(message.channel.id, assistantContent);
+  if (!message.guild || !client.user) return;
+  const context = ContextEngine.getOrCreate(message.channel.id, message.guild.id);
+  ContextEngine.addTurn(message.channel.id, {
+    role: 'user',
+    content: userContent,
+    timestamp: Date.now(),
+    userId: message.author.id,
+    intent: detectArabicIntent(userContent),
+  });
+  ContextEngine.addTurn(message.channel.id, {
+    role: 'assistant',
+    content: assistantContent,
+    timestamp: Date.now(),
+    userId: client.user.id,
+    toolsUsed,
+  });
+}
+
 function buildToolExecutionReply(
   guild: Guild,
   completedResults: Array<{ name: string; args: any; result: any }>
@@ -523,6 +559,7 @@ function buildToolExecutionReply(
     'manage_roles',
     'edit_permissions',
     'bulk_permission_update',
+    'sweep_permission_overwrites',
     'manage_members',
     'edit_bot_profile',
     'bulk_delete_messages',
@@ -560,12 +597,29 @@ function buildToolExecutionReply(
     if (name === 'edit_permissions') {
       const channelName = guild.channels.cache.get(args.channelId)?.name ?? args.channelId;
       const targetName = args.targetType === 'role'
-        ? guild.roles.cache.get(args.targetId)?.name ?? args.targetId
+        ? guild.roles.cache.get(args.targetId)?.name ?? (args.targetId === guild.id || args.targetId === '@everyone' ? '@everyone' : args.targetId)
         : guild.members.cache.get(args.targetId)?.displayName ?? args.targetId;
-      return `تم تحديث صلاحيات روم "${channelName}" للرتبة/العضو "${targetName}" بنجاح.`;
+      return [
+        `تم تحديث صلاحيات روم "${channelName}" للرتبة/العضو "${targetName}" بنجاح.`,
+        `المسموح: ${formatPermissionNames(args.allow)}.`,
+        `الممنوع: ${formatPermissionNames(args.deny)}.`,
+      ].join(' ');
     }
 
-    if (name === 'edit_bot_profile' && args.username) {
+    if (name === 'bulk_permission_update') {
+      return [
+        result.message || 'تم تحديث صلاحيات الرومات المحددة.',
+        `المسموح: ${formatPermissionNames(args.allow)}.`,
+        `الممنوع: ${formatPermissionNames(args.deny)}.`,
+      ].join(' ');
+    }
+
+    if (name === 'sweep_permission_overwrites') {
+      return result.message || 'تم فحص الصلاحيات وسحب المطلوب من الرومات المحددة.';
+    }
+
+    if (name === 'edit_bot_profile' && (args.username || args.nickname)) {
+      if (args.nickname) return `تم تغيير لقب البوت في السيرفر إلى "${args.nickname}" بنجاح.`;
       return `تم تغيير اسم البوت إلى "${args.username}" بنجاح.`;
     }
 
@@ -581,6 +635,173 @@ function buildToolExecutionReply(
 
     return result.message || 'تم تنفيذ الإجراء بنجاح.';
   }).join('\n');
+}
+
+function normalizeArabicCommandText(text: string): string {
+  return text
+    .normalize('NFKC')
+    .toLocaleLowerCase('ar')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function resolveMemberIdFromText(guild: Guild, text: string): Promise<string | undefined> {
+  const mentionId = text.match(/<@!?(\d{17,20})>/)?.[1];
+  if (mentionId) return mentionId;
+
+  for (const match of text.matchAll(/\b(\d{17,20})\b/g)) {
+    const id = match[1];
+    if (guild.channels.cache.has(id) || guild.roles.cache.has(id)) continue;
+    const member = guild.members.cache.get(id) || await guild.members.fetch(id).catch(() => null);
+    if (member) return id;
+  }
+
+  return undefined;
+}
+
+function extractVoiceUserLimit(text: string): number | undefined {
+  const normalized = normalizeArabicCommandText(text);
+  const match = normalized.match(/(?:حد|عدد|الا|فقط|بس)\D{0,25}(\d{1,2})\s*(?:اشخاص|اشخاصا|شخص|members?|users?)?/i)
+    ?? normalized.match(/(?:user\s*limit|voice\s*limit)\D{0,12}(\d{1,2})/i);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  return Number.isInteger(value) && value >= 0 && value <= 99 ? value : undefined;
+}
+
+function findRecentUserPrompt(channelId: string, predicate: (content: string) => boolean): string | undefined {
+  return [...memoryManager.getHistory(channelId)]
+    .reverse()
+    .find((entry) => entry.role === 'user' && typeof entry.content === 'string' && predicate(entry.content))
+    ?.content ?? undefined;
+}
+
+function isIdOnlyPrompt(text: string): boolean {
+  return /^\s*(?:<[@#]!?)?\d{17,20}>?\s*$/.test(text);
+}
+
+function buildPendingVoicePrompt(channelId: string, currentText: string): string | undefined {
+  if (!isIdOnlyPrompt(currentText)) return undefined;
+  const previous = findRecentUserPrompt(channelId, (content) =>
+    /(?:دسكونكت|دسكنوكت|ديسكونكت|voice\s*kick|voicekick|disconnect|افصل|فصل|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)|(?:عطه|اعطه)\s*(?:دسكونكت|دسكنوكت|ديسكونكت)/i.test(
+      normalizeArabicCommandText(content)
+    )
+  );
+  return previous ? `${previous}\n${currentText}` : undefined;
+}
+
+function buildPendingPermissionPrompt(channelId: string, currentText: string, guild: Guild): string | undefined {
+  if (!isIdOnlyPrompt(currentText)) return undefined;
+  const id = currentText.match(/(\d{17,20})/)?.[1];
+  const channel = id ? guild.channels.cache.get(id) : undefined;
+  if (!channel || channel.type === ChannelType.GuildCategory) return undefined;
+  const previous = findRecentUserPrompt(channelId, (content) =>
+    /(?:صلاحيات?|برمشن|يشوف|يدخل|يخش|يتكلم|سكرين|منج\s*شنل|ميوت|ديفن|move|منشن)/i.test(content)
+  );
+  return previous ? `${previous}\n${currentText}` : undefined;
+}
+
+async function handleDirectVoiceRoomRequest(message: Message, cleanedPromptText: string): Promise<boolean> {
+  const guild = message.guild;
+  if (!guild || !message.member) return false;
+  const normalized = normalizeArabicCommandText(cleanedPromptText);
+  const wantsVoiceDisconnect = /(?:دسكونكت|دسكنوكت|ديسكونكت|voice\s*kick|voicekick|disconnect|افصل|فصل|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)|(?:عطه|اعطه)\s*(?:دسكونكت|دسكنوكت|ديسكونكت)/i.test(normalized);
+  const userLimit = extractVoiceUserLimit(cleanedPromptText);
+  if (!wantsVoiceDisconnect && userLimit === undefined) return false;
+
+  const voiceChannel = message.member.voice.channel;
+  if (!voiceChannel && /(?:انا فيه|معي|الروم الي انا|الروم اللي انا|فويسي|صوتي)/i.test(normalized)) {
+    await message.reply('ما لقيتك داخل روم صوتي حاليًا، ادخل الروم أو منشن/اكتب ID الروم المطلوب.').catch(() => null);
+    return true;
+  }
+
+  const channelId = voiceChannel?.id;
+  const completed: Array<{ name: string; args: any; result: any }> = [];
+
+  if (wantsVoiceDisconnect) {
+    const memberId = await resolveMemberIdFromText(guild, cleanedPromptText);
+    if (!memberId) {
+      const finalReply = 'منشن العضو أو اكتب ID حقه عشان أفصله من الروم الصوتي.';
+      await message.reply(finalReply).catch(() => null);
+      rememberDirectInteraction(message, cleanedPromptText, finalReply, []);
+      return true;
+    }
+    const args = {
+      action: 'voicekick',
+      memberId,
+      data: { reason: `طلب فصل صوتي بواسطة ${message.author.tag}` },
+    };
+    const result = await executeToolWithAudit('manage_members', args, guild, message.channel.id, message.author.id, message.member);
+    completed.push({ name: 'manage_members', args, result });
+  }
+
+  if (userLimit !== undefined) {
+    if (!channelId) {
+      await message.reply('حدد الروم الصوتي أو ادخل الروم عشان أقدر أضبط حد الأشخاص.').catch(() => null);
+      return true;
+    }
+    const args = { action: 'voice_set_user_limit', channelId, value: userLimit };
+    const result = await executeToolWithAudit('channel_operations', args, guild, message.channel.id, message.author.id, message.member);
+    completed.push({ name: 'channel_operations', args, result });
+  }
+
+  const reply = buildToolExecutionReply(guild, completed) ?? completed.map((item) => item.result?.message).filter(Boolean).join('\n');
+  const finalReply = reply || 'تمت معالجة طلب الفويس.';
+  await message.reply(finalReply).catch(() => null);
+  rememberDirectInteraction(message, cleanedPromptText, finalReply, completed.map((item) => item.name));
+  return true;
+}
+
+async function handleDirectMentionSweepRequest(
+  message: Message,
+  cleanedPromptText: string,
+  explicitTargets: ReturnType<typeof resolveExplicitToolTargets>
+): Promise<boolean> {
+  const guild = message.guild;
+  if (!guild) return false;
+  const normalized = normalizeArabicCommandText(cleanedPromptText);
+  const wantsMentionRemoval = /(?:اسحب|شيل|امنع|حطها?\s*x|حط\s*x|deny|remove).*(?:منشن|mention).*(?:everyone|here|الكل)/i.test(normalized);
+  const wantsCategoryScope = /(?:كاتقوري|فئه|كل\s+الرومات|كل\s+القنوات)/i.test(normalized);
+  if (!wantsMentionRemoval || !wantsCategoryScope) return false;
+
+  const categoryId = explicitTargets.categoryIds[0];
+  if (!categoryId) {
+    await message.reply('حدد الكاتقوري بالمنشن أو ID عشان أفحص كل الرومات داخله.').catch(() => null);
+    return true;
+  }
+
+  const args = {
+    categoryId,
+    permissions: ['MentionEveryone'],
+    includeEveryone: true,
+    includeRoles: true,
+    includeMembers: true,
+  };
+  const result = await executeToolWithAudit('sweep_permission_overwrites', args, guild, message.channel.id, message.author.id, message.member);
+  const finalReply = result?.message ?? 'تم فحص صلاحيات المنشن في رومات الكاتقوري.';
+  await message.reply(finalReply).catch(() => null);
+  rememberDirectInteraction(message, cleanedPromptText, finalReply, ['sweep_permission_overwrites']);
+  return true;
+}
+
+async function handleDirectBotNicknameRequest(message: Message, cleanedPromptText: string): Promise<boolean> {
+  const guild = message.guild;
+  if (!guild) return false;
+  const normalized = normalizeArabicCommandText(cleanedPromptText);
+  if (!/(?:غير|غيّر|عدل|سم|سميني).*(?:اسمك|لقبك|نكك|nickname|nick)/i.test(normalized)) return false;
+  const desiredName = cleanedPromptText.match(/(?:الى|إلى|لـ|ل)\s*([^\n]+)$/i)?.[1]?.trim()
+    ?? cleanedPromptText.match(/(?:اسمك|لقبك|نكك)\s+([^\n]+)$/i)?.[1]?.trim();
+  if (!desiredName || desiredName.length > 32) return false;
+
+  const args = { nickname: desiredName.replace(/^['"`]+|['"`]+$/g, '') };
+  const result = await executeToolWithAudit('edit_bot_profile', args, guild, message.channel.id, message.author.id, message.member);
+  const finalReply = result?.message ?? `تم تغيير لقبي إلى "${args.nickname}".`;
+  await message.reply(finalReply).catch(() => null);
+  rememberDirectInteraction(message, cleanedPromptText, finalReply, ['edit_bot_profile']);
+  return true;
 }
 
 // ============================================================
@@ -1131,38 +1352,69 @@ client.on(Events.MessageCreate, async (message: Message) => {
     return;
   }
 
+  const detectedLanguage = ContextEngine.detectLanguage(cleanedPromptText);
+  memoryManager.updateUserProfile(message.author.id, {
+    preferredDialect: detectedLanguage === 'en' ? 'en' : 'ar',
+    totalMessagesSent: 1,
+  });
+
   const conversationReply = getConversationReply(cleanedPromptText);
   if (conversationReply) {
     await message.reply(conversationReply).catch(() => null);
+    rememberDirectInteraction(message, cleanedPromptText, conversationReply);
     return;
   }
 
-  const directPermissionOperations = buildArabicPermissionOperations(
-    cleanedPromptText,
+  if (await handleDirectBotNicknameRequest(message, cleanedPromptText)) return;
+  const pendingVoicePrompt = buildPendingVoicePrompt(message.channel.id, cleanedPromptText);
+  if (pendingVoicePrompt && await handleDirectVoiceRoomRequest(message, pendingVoicePrompt)) return;
+  if (await handleDirectVoiceRoomRequest(message, cleanedPromptText)) return;
+
+  const preSessionEntities = memoryManager.getRecentEntities(message.channel.id);
+  const preExplicitTargets = resolveExplicitToolTargets(
     message.guild,
-    memoryManager.getRecentEntities(message.channel.id)
+    cleanedPromptText,
+    preSessionEntities
+  );
+  if (await handleDirectMentionSweepRequest(message, cleanedPromptText, preExplicitTargets)) return;
+
+  const permissionPromptText = buildPendingPermissionPrompt(message.channel.id, cleanedPromptText, message.guild) ?? cleanedPromptText;
+  const directPermissionOperations = buildArabicPermissionOperations(
+    permissionPromptText,
+    message.guild,
+    preSessionEntities
   );
   if (directPermissionOperations.length > 0) {
     const results: string[] = [];
     for (const operation of directPermissionOperations) {
+      const unsafeEveryoneAllow = operation.targetId === message.guild.id
+        ? operation.allow.filter((permission) => ['ManageChannels', 'ManageRoles', 'Administrator'].includes(permission))
+        : [];
+      const safeOperation = unsafeEveryoneAllow.length > 0
+        ? { ...operation, allow: operation.allow.filter((permission) => !unsafeEveryoneAllow.includes(permission)) }
+        : operation;
+      if (safeOperation.allow.length === 0 && safeOperation.deny.length === 0) {
+        results.push(`ما طبقت الصلاحيات الخطيرة للكل: ${unsafeEveryoneAllow.join(', ')}.`);
+        continue;
+      }
       const result = await executeToolWithAudit(
         'edit_permissions',
-        operation,
+        safeOperation,
         message.guild,
         message.channel.id,
         message.author.id,
         message.member
       );
-      results.push(result?.message ?? (result?.success ? 'تم تحديث الصلاحيات.' : 'تعذر تحديث الصلاحيات.'));
-      const registeredEntities = EntityRegistry.registerToolResult(
-        message.guild,
-        'edit_permissions',
-        operation,
-        result
-      );
-      memoryManager.rememberEntities(message.channel.id, registeredEntities);
+      results.push(buildToolExecutionReply(message.guild, [{ name: 'edit_permissions', args: safeOperation, result }])
+        ?? result?.message
+        ?? (result?.success ? 'تم تحديث الصلاحيات.' : 'تعذر تحديث الصلاحيات.'));
+      if (unsafeEveryoneAllow.length > 0) {
+        results.push(`رفضت إعطاء ${unsafeEveryoneAllow.join(', ')} للكل لأنها صلاحيات خطيرة.`);
+      }
     }
-    await message.reply(results.join('\n')).catch(() => null);
+    const finalReply = results.join('\n');
+    await message.reply(finalReply).catch(() => null);
+    rememberDirectInteraction(message, permissionPromptText, finalReply, ['edit_permissions']);
     return;
   }
 
@@ -1266,6 +1518,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     const systemPrompt = [
       ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
       memoryManager.buildEntityContext(message.channel.id),
+      memoryManager.buildUserPreferenceContext(message.author.id),
       SkillRegistry.buildSkillManifestForAI(),
       buildKnowledgeSectionsForPrompt(cleanedPromptText),
     ].filter(Boolean).join('\n');
@@ -1298,50 +1551,70 @@ client.on(Events.MessageCreate, async (message: Message) => {
       const workflowMember = message.member;
       if (!workflowGuild || !workflowMember) return;
       ContextEngine.setWorkflow(message.channel.id, `ai_${Date.now()}`, structuredWorkflow);
-      const workflowResult = await WorkflowEngine.execute(structuredWorkflow, async (skillId, rawArgs) => {
-        const skill = SkillRegistry.get(skillId);
-        if (!skill) {
-          return { success: false, message: `المهارة "${skillId}" غير محملة أو غير مدعومة.` };
-        }
-        if (!hasAnyPermission(workflowMember, skill.requiredPermissions)) {
-          return {
-            success: false,
-            message: 'لا يمكن تنفيذ هذه المهارة قبل التحقق من صلاحيات العضو المنفذ.',
-          };
-        }
-        let skillArgs = applyArabicPermissionsToToolArgs(
-          skillId,
+      const workflowResult = await WorkflowEngine.execute(structuredWorkflow, async (toolOrSkillId, rawArgs) => {
+        let stepArgs = applyArabicPermissionsToToolArgs(
+          toolOrSkillId,
           rawArgs,
           cleanedPromptText,
           workflowGuild.id
         );
-        const targeted = applyExplicitTargets(skillId, skillArgs, explicitTargets);
+        const targeted = applyExplicitTargets(toolOrSkillId, stepArgs, explicitTargets);
         if (targeted.error) return { success: false, message: targeted.error };
-        skillArgs = targeted.args;
-        const skillResult = await skill.execute({
-          guild: workflowGuild,
-          channel: message.channel as TextChannel,
-          user: workflowMember,
-          args: skillArgs,
-          context: sessionContext,
-        });
-        const toolResult = skillResult.data && typeof skillResult.data === 'object'
-          ? skillResult.data as Record<string, any>
-          : skillResult;
-        const registeredEntities = EntityRegistry.registerToolResult(
+        stepArgs = targeted.args;
+        if (toolOrSkillId === 'delete_channels' && Array.isArray(stepArgs.channelIds)) {
+          stepArgs = {
+            ...stepArgs,
+            channelIds: stepArgs.channelIds.filter((id: string) => id !== message.channel.id),
+          };
+          if (stepArgs.channelIds.length === 0) {
+            return { success: false, message: 'لا يمكن حذف الروم الحالي حتى تستمر المحادثة.' };
+          }
+        }
+
+        const skill = SkillRegistry.get(toolOrSkillId);
+        if (skill) {
+          if (!hasAnyPermission(workflowMember, skill.requiredPermissions)) {
+            return {
+              success: false,
+              message: 'لا يمكن تنفيذ هذه المهارة قبل التحقق من صلاحيات العضو المنفذ.',
+            };
+          }
+          const skillResult = await skill.execute({
+            guild: workflowGuild,
+            channel: message.channel as TextChannel,
+            user: workflowMember,
+            args: stepArgs,
+            context: sessionContext,
+          });
+          const toolResult = skillResult.data && typeof skillResult.data === 'object'
+            ? skillResult.data as Record<string, any>
+            : skillResult;
+          const registeredEntities = EntityRegistry.registerToolResult(
+            workflowGuild,
+            toolOrSkillId,
+            stepArgs,
+            toolResult,
+            message.channel.id
+          );
+          memoryManager.rememberEntities(message.channel.id, registeredEntities);
+          return skillResult;
+        }
+
+        return executeToolWithAudit(
+          toolOrSkillId,
+          stepArgs,
           workflowGuild,
-          skillId,
-          skillArgs,
-          toolResult
+          message.channel.id,
+          message.author.id,
+          workflowMember
         );
-        memoryManager.rememberEntities(message.channel.id, registeredEntities);
-        return skillResult;
       });
       ContextEngine.clearWorkflow(message.channel.id);
       const workflowReply = workflowResult.steps
         .map((step) => step.result?.messageAr ?? step.result?.message ?? 'تمت معالجة الخطوة.')
         .join('\n');
       await sendLongMessage(message, workflowReply);
+      memoryManager.rememberAction(message.channel.id, workflowReply);
       ContextEngine.addTurn(message.channel.id, {
         role: 'assistant',
         content: workflowReply,
@@ -1353,7 +1626,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     }
 
     // Normalize <function> tags to structured tool_calls before the tool loop
-    if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+    if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && /<(?:function|tool_call)\b/i.test(aiResponse.content)) {
       const normalized = normalizeFunctionTags(aiResponse.content);
       if (normalized) {
         aiResponse.tool_calls = normalized.toolCalls;
@@ -1448,13 +1721,6 @@ client.on(Events.MessageCreate, async (message: Message) => {
         memoryManager.addMessage(message.channel.id, toolMsg);
         history.push(toolMsg);
         completedToolResults.push({ name: toolName, args: toolArgs, result: executionResult });
-        const registeredEntities = EntityRegistry.registerToolResult(
-          message.guild,
-          toolName,
-          toolArgs,
-          executionResult
-        );
-        memoryManager.rememberEntities(message.channel.id, registeredEntities);
       }
 
       // فحص أمان أن القناة لم يتم حذفها أثناء تشغيل الأدوات
@@ -1474,6 +1740,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           systemPrompt: [
             ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
             memoryManager.buildEntityContext(message.channel.id),
+            memoryManager.buildUserPreferenceContext(message.author.id),
             SkillRegistry.buildSkillManifestForAI(),
             '[TOOL_EXECUTION_COMPLETE]',
             deterministicReply,
@@ -1483,7 +1750,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
         });
 
         // Normalize <function> tags (Slice 1)
-        if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+        if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && /<(?:function|tool_call)\b/i.test(aiResponse.content)) {
           const normalized = normalizeFunctionTags(aiResponse.content);
           if (normalized) {
             aiResponse.tool_calls = normalized.toolCalls;
@@ -1496,6 +1763,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           await sendLongMessage(message, aiResponse.content);
           const finalMsg: AIMessage = { role: 'assistant', content: aiResponse.content };
           memoryManager.addMessage(message.channel.id, finalMsg);
+          memoryManager.rememberAction(message.channel.id, aiResponse.content);
           history.push(finalMsg);
           ContextEngine.addTurn(message.channel.id, {
             role: 'assistant',
@@ -1513,6 +1781,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           await sendLongMessage(message, deterministicReply);
           const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
           memoryManager.addMessage(message.channel.id, finalMsg);
+          memoryManager.rememberAction(message.channel.id, deterministicReply);
           history.push(finalMsg);
           ContextEngine.addTurn(message.channel.id, {
             role: 'assistant',
@@ -1534,12 +1803,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
         systemPrompt: [
           ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
           memoryManager.buildEntityContext(message.channel.id),
+          memoryManager.buildUserPreferenceContext(message.author.id),
           SkillRegistry.buildSkillManifestForAI(),
         ].join('\n'),
       });
 
       // Normalize <function> tags in every loop iteration too
-      if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+      if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && /<(?:function|tool_call)\b/i.test(aiResponse.content)) {
         const normalized = normalizeFunctionTags(aiResponse.content);
         if (normalized) {
           aiResponse.tool_calls = normalized.toolCalls;
@@ -1550,7 +1820,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
     // Final safety: strip any remaining <function> tags from final content
     let finalContent = aiResponse.content ?? '';
-    if (typeof aiResponse.content === 'string' && aiResponse.content.includes('<function>')) {
+    if (typeof aiResponse.content === 'string' && /<(?:function|tool_call)\b/i.test(aiResponse.content)) {
       const lastNormalized = normalizeFunctionTags(aiResponse.content);
       if (lastNormalized) {
         if (lastNormalized.toolCalls.length > 0) {
@@ -1577,6 +1847,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
         const verifySystemPrompt = [
           ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
           memoryManager.buildEntityContext(message.channel.id),
+          memoryManager.buildUserPreferenceContext(message.author.id),
           SkillRegistry.buildSkillManifestForAI(),
           missingPrompt,
           'Complete the missing steps above. Use get_server_info if you need current channel/role data.',
@@ -1605,8 +1876,6 @@ client.on(Events.MessageCreate, async (message: Message) => {
             try {
               const vr = await executeToolWithAudit(tc.function.name, tArgs, message.guild, message.channel.id, message.author.id, message.member);
               completedToolResults.push({ name: tc.function.name, args: tArgs, result: vr });
-              const regEntities = EntityRegistry.registerToolResult(message.guild, tc.function.name, tArgs, vr);
-              memoryManager.rememberEntities(message.channel.id, regEntities);
               const toolResultMsg: AIMessage = {
                 role: 'tool', name: tc.function.name, tool_call_id: tc.id,
                 content: MemoryManager.trimToolResult(JSON.stringify(vr)),
@@ -1634,6 +1903,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
       const finalMsg: AIMessage = { role: 'assistant', content: finalContent };
       memoryManager.addMessage(message.channel.id, finalMsg);
+      memoryManager.rememberAction(message.channel.id, finalContent);
       history.push(finalMsg);
       ContextEngine.addTurn(message.channel.id, {
         role: 'assistant',
@@ -1645,8 +1915,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
     }
 
     if (!finalResponseSent && channelOk) {
-      const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults);
-      await message.reply(deterministicReply || 'تمت معالجة الطلب.').catch(() => null);
+      const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults) || 'تمت معالجة الطلب.';
+      await message.reply(deterministicReply).catch(() => null);
+      memoryManager.rememberAction(message.channel.id, deterministicReply);
     }
   } catch (error) {
     console.error('[Core AI Loop] AI request processing failed:', error);

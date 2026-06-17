@@ -51,6 +51,8 @@ const FUNCTION_TAG_TOOL_MAP: Record<string, string> = {
   'guild.members.kick': 'manage_members',
   'member.timeout': 'manage_members',
   'guild.members.unban': 'manage_members',
+  'manage_members': 'manage_members',
+  'voicekick': 'manage_members',
 };
 
 export interface NormalizedFunctionTagResult {
@@ -78,58 +80,84 @@ export interface NormalizedFunctionTagResult {
  */
 export function normalizeFunctionTags(content: string): NormalizedFunctionTagResult | null {
   if (!content || typeof content !== 'string') return null;
-  if (!content.includes('<function>')) return null;
+  if (!/<(?:function|tool_call)\b/i.test(content)) return null;
 
-  // Match: <function>toolName</function>args-json-text</function>
-  // Uses [^<]+ for tool name and non-greedy .*? for JSON args up to </function>
-  const pattern = /<function>([^<]+)<\/function>(.*?)<\/function>/gs;
   const toolCalls: NormalizedFunctionTagResult['toolCalls'] = [];
   let cleanContent = content;
-  let match: RegExpExecArray | null;
   let hasNormalized = false;
 
-  while ((match = pattern.exec(content)) !== null) {
-    const [fullMatch, rawToolName, rawArgs] = match;
-    const trimmedName = rawToolName.trim();
-    const toolName = FUNCTION_TAG_TOOL_MAP[trimmedName] ?? trimmedName;
+  const normalizeToolName = (raw: string): string => {
+    const trimmed = raw.trim();
+    const mapped = FUNCTION_TAG_TOOL_MAP[trimmed] ?? trimmed;
+    return mapped.toLowerCase().replace(/\s+/g, '_');
+  };
 
-    // Attempt to parse the JSON arguments; fall back to {} on failure
-    let argsStr = rawArgs.trim();
-    if (argsStr) {
+  const normalizeArgs = (raw: string): string => {
+    let argsStr = raw.trim();
+    if (!argsStr) return '{}';
+    try {
+      JSON.parse(argsStr);
+      return argsStr;
+    } catch {
       try {
-        // Validate by parsing
-        JSON.parse(argsStr);
+        const fixed = argsStr
+          .replace(/(\s*'?)([a-zA-Z_$][\w$]*)(\s*):/g, '"$2":')
+          .replace(/:\s*'([^']*)'/g, ':"$1"')
+          .replace(/,\s*([}\]])/g, '$1');
+        JSON.parse(fixed);
+        return fixed;
       } catch {
-        // Attempt common JSON fixes: unquoted keys, single quotes
-        try {
-          const fixed = argsStr
-            .replace(/(\s*'?)([a-zA-Z_$][\w$]*)(\s*):/g, '"$2":')
-            .replace(/:\s*'([^']*)'/g, ':"$1"')
-            .replace(/,\s*([}\]])/g, '$1');
-          JSON.parse(fixed);
-          argsStr = fixed;
-        } catch {
-          // If still invalid, use empty object — the tool loop or
-          // ToolCallValidator will report a meaningful validation error
-          argsStr = '{}';
-        }
+        return '{}';
       }
-    } else {
-      argsStr = '{}';
     }
+  };
 
+  const pushCall = (rawName: string, rawArgs: string, fullMatch: string): void => {
     const callId = `fn_${Date.now()}_${toolCalls.length}_${Math.random().toString(36).slice(2, 6)}`;
     toolCalls.push({
       id: callId,
       type: 'function',
       function: {
-        name: toolName.toLowerCase().replace(/\s+/g, '_'),
-        arguments: argsStr,
+        name: normalizeToolName(rawName),
+        arguments: normalizeArgs(rawArgs),
       },
     });
-
     cleanContent = cleanContent.replace(fullMatch, '').trim();
     hasNormalized = true;
+  };
+
+  // Pattern 1: <function>tool</function>{json}</function>
+  const classicPattern = /<function>([^<]+)<\/function>(.*?)<\/function>/gis;
+  let classicMatch: RegExpExecArray | null;
+  while ((classicMatch = classicPattern.exec(content)) !== null) {
+    pushCall(classicMatch[1], classicMatch[2], classicMatch[0]);
+  }
+
+  // Pattern 2: <function=tool>{json}</function>
+  const attributePattern = /<function=([A-Za-z0-9_.:-]+)>(.*?)<\/function>/gis;
+  let attributeMatch: RegExpExecArray | null;
+  while ((attributeMatch = attributePattern.exec(content)) !== null) {
+    pushCall(attributeMatch[1], attributeMatch[2], attributeMatch[0]);
+  }
+
+  // Pattern 3: <tool_call>tool<arg_key>k</arg_key><arg_value>v</arg_value></tool_call>
+  const toolCallPattern = /<tool_call>(.*?)<\/tool_call>/gis;
+  let toolCallMatch: RegExpExecArray | null;
+  while ((toolCallMatch = toolCallPattern.exec(content)) !== null) {
+    const body = toolCallMatch[1];
+    const rawName = body.split(/<arg_key>/i)[0].trim();
+    const args: Record<string, string | boolean | number> = {};
+    const argPattern = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>/gis;
+    let argMatch: RegExpExecArray | null;
+    while ((argMatch = argPattern.exec(body)) !== null) {
+      const key = argMatch[1].replace(/<[^>]+>/g, '').trim();
+      const rawValue = argMatch[2].replace(/<[^>]+>/g, '').trim();
+      if (!key) continue;
+      if (/^(true|false)$/i.test(rawValue)) args[key] = /^true$/i.test(rawValue);
+      else if (/^-?\d+(?:\.\d+)?$/.test(rawValue)) args[key] = Number(rawValue);
+      else args[key] = rawValue;
+    }
+    if (rawName) pushCall(rawName, JSON.stringify(args), toolCallMatch[0]);
   }
 
   if (!hasNormalized) return null;

@@ -94,11 +94,19 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
     /(?:احذف|حذف|امسح).*?(?:ابقي?|ابق|خليني?|خلي|اترك).*?(?:\+|و)\s*(?:سو|سوي|انشئ|أنشئ|اصنع)/i
   );
   if (deletePreserveCreate) {
-    return [{
+    const steps: WorkflowStep[] = [{
       id: 'delete_preserve',
       tool: 'delete_channels',
-      args: { },
+      args: { _confirmed: true },
     }];
+    if (/(?:متجر|ستور|store)/i.test(clean)) {
+      steps.push({
+        id: 'build_store',
+        tool: 'execute_community_build',
+        args: { blueprintType: 'store' },
+      });
+    }
+    return steps;
   }
 
   if (!requestsCategory || !requestsText || !requestsVoice || !requestsRole) return [];

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { ChannelType, Collection, type Guild } from 'discord.js';
-import { buildArabicPermissionOperations } from '../intelligence/arabic_nlp.js';
+import { buildArabicPermissionOperations, detectArabicIntent } from '../intelligence/arabic_nlp.js';
 import { planCompoundDiscordRequest } from '../intelligence/compound_planner.js';
 import { ContextEngine } from '../intelligence/context_engine.js';
 import { EntityRegistry } from '../intelligence/entity_registry.js';
@@ -8,6 +8,7 @@ import { MemoryManager } from '../intelligence/memory_manager.js';
 import { applyExplicitTargets, resolveExplicitToolTargets } from '../services/toolTargeting.js';
 import { KnowledgeSkillLoader } from '../intelligence/knowledge_skill_loader.js';
 import { validateToolKnowledgeRules } from '../intelligence/discord_knowledge.js';
+import { resolvePermission } from '../utils/discordTools.js';
 
 function createGuild(): Guild {
   const guildId = '999999999999999999';
@@ -55,6 +56,25 @@ function verifyCriticalPermissionScenario(guild: Guild): void {
   assert.ok(operations[1]?.allow.includes('Connect'));
   assert.ok(operations[1]?.allow.includes('Speak'));
   assert.ok(operations[1]?.allow.includes('Stream'));
+}
+
+function verifyVoiceDisconnectLanguage(): void {
+  assert.equal(
+    detectArabicIntent('عطه دسكنوكت = طرد من الروم @Omar من الروم الي انا فيه'),
+    'VOICE_DISCONNECT'
+  );
+  assert.equal(resolvePermission('Stream') !== null, true, 'Stream permission alias should resolve');
+}
+
+function verifyVoiceHierarchyKnowledgeRule(guild: Guild): void {
+  const actorMember = { roles: { highest: { position: 1 } } } as any;
+  const targetMember = { id: '222222222222222222', roles: { highest: { position: 99 } } } as any;
+  (guild as any).members = { cache: new Map([[targetMember.id, targetMember]]) };
+  const result = validateToolKnowledgeRules('manage_members', {
+    action: 'voicekick',
+    memberId: targetMember.id,
+  }, guild, actorMember);
+  assert.equal(result.allowed, true, 'voicekick should not be blocked as a server punishment hierarchy check');
 }
 
 function verifyEntityMemory(guild: Guild): void {
@@ -241,6 +261,8 @@ function verifyEntityTombstone(): void {
 function main(): void {
   const guild = createGuild();
   verifyCriticalPermissionScenario(guild);
+  verifyVoiceDisconnectLanguage();
+  verifyVoiceHierarchyKnowledgeRule(guild);
   verifyEntityMemory(guild);
   verifyAtomicChannelWorkflow();
   verifyLanguagePersistence(guild);
@@ -248,7 +270,7 @@ function main(): void {
   verifyKnowledgeSkillLoader();
   verifyAntiPatternValidator();
   verifyEntityTombstone();
-  console.log('[Verify] 8/8 critical scenarios passed.');
+  console.log('[Verify] 10/10 critical scenarios passed.');
 }
 
 main();

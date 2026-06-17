@@ -32,6 +32,19 @@ function normalizeWords(value: string): string[] {
 }
 
 function findNamedMatches(rawText: string, entities: NamedEntity[]): string[] {
+  const normalizedText = normalizeText(rawText);
+  const exactMatchedEntities = entities
+    .map((entity) => ({ entity, normalizedName: normalizeText(entity.name) }))
+    .filter(({ normalizedName }) =>
+      normalizedName.length >= 2 && new RegExp(`(?:^|\\s)${escapeRegExp(normalizedName)}(?:\\s|$)`, 'i').test(normalizedText)
+    );
+  if (exactMatchedEntities.length > 0) {
+    const longest = Math.max(...exactMatchedEntities.map(({ normalizedName }) => normalizedName.length));
+    return exactMatchedEntities
+      .filter(({ normalizedName }) => normalizedName.length === longest)
+      .map(({ entity }) => entity.id);
+  }
+
   const textWords = new Set(normalizeWords(rawText));
   return entities
     .filter((entity) => {
@@ -43,6 +56,10 @@ function findNamedMatches(rawText: string, entities: NamedEntity[]): string[] {
 
 function normalizeText(value: string): string {
   return normalizeWords(value).join(' ');
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function findExcludedChannelIds(rawText: string, entities: NamedEntity[]): string[] {
@@ -180,7 +197,12 @@ export function applyExplicitTargets(
 ): { args: Record<string, any>; error?: string } {
   const resolvedArgs = { ...args };
 
-  if (toolName === 'edit_permissions' || toolName === 'bulk_delete_messages' || toolName === 'send_embed') {
+  if (
+    toolName === 'edit_permissions' ||
+    toolName === 'bulk_delete_messages' ||
+    toolName === 'send_embed' ||
+    toolName === 'channel_operations'
+  ) {
     if (targets.channelIds.length > 1) {
       return { args: resolvedArgs, error: 'لقيت أكثر من روم مطابق. منشن الروم المطلوب بشكل مباشر.' };
     }
@@ -214,13 +236,16 @@ export function applyExplicitTargets(
   if (toolName === 'create_channels' && !resolvedArgs.categoryId && targets.categoryIds.length === 1) {
     resolvedArgs.categoryId = targets.categoryIds[0];
   }
-  if (toolName === 'bulk_permission_update') {
+  if (toolName === 'bulk_permission_update' || toolName === 'sweep_permission_overwrites') {
     if (!resolvedArgs.categoryId && targets.categoryIds.length === 1) {
       resolvedArgs.categoryId = targets.categoryIds[0];
     }
     if (!resolvedArgs.channelIds && targets.channelIds.length > 0) {
       resolvedArgs.channelIds = targets.channelIds;
     }
+  }
+  if (toolName === 'channel_operations' && targets.channelIds.length === 1) {
+    resolvedArgs.channelId = targets.channelIds[0];
   }
 
   return { args: resolvedArgs };

@@ -23,6 +23,7 @@ export interface ConversationSummary {
   lastInteraction: number;
   musicHistory: string[];
   errorHistory: string[];
+  lastActions?: string[];
   userProfile?: UserProfile;
 }
 
@@ -176,7 +177,7 @@ export class MemoryManager {
               messages: item.entry.messages || [],
               summary: item.entry.summary || {
                 topics: [], userPreferences: {}, interactionCount: 0,
-                lastInteraction: Date.now(), musicHistory: [], errorHistory: []
+                lastInteraction: Date.now(), musicHistory: [], errorHistory: [], lastActions: []
               },
               entities,
               lastEntityIds,
@@ -222,6 +223,7 @@ export class MemoryManager {
         lastInteraction: Date.now(),
         musicHistory: [],
         errorHistory: [],
+        lastActions: [],
       };
     }
     return entry.summary;
@@ -241,6 +243,7 @@ export class MemoryManager {
           lastInteraction: Date.now(),
           musicHistory: [],
           errorHistory: [],
+          lastActions: [],
         },
         entities: [],
         lastEntityIds: {},
@@ -383,18 +386,41 @@ export class MemoryManager {
   }
 
   buildEntityContext(channelId: string): string {
+    const entry = this.memories.get(channelId);
     const entities = this.getRecentEntities(channelId).slice(0, 20);
     const pointers = this.getLastEntityIds(channelId);
-    if (entities.length === 0) return '[SESSION_ENTITIES]\nnone';
+    const actions = entry?.summary.lastActions?.slice(-6) ?? [];
     return [
       '[SESSION_ENTITIES]',
       `last_channel_id=${pointers.last_channel_id ?? 'none'}`,
       `last_role_id=${pointers.last_role_id ?? 'none'}`,
       `last_category_id=${pointers.last_category_id ?? 'none'}`,
-      ...entities.map((entity) =>
-        `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`
-      ),
+      ...(entities.length > 0
+        ? entities.map((entity) => `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`)
+        : ['none']),
       'Use these exact IDs for follow-up references to entities created in this conversation.',
+      '[RECENT_ACTIONS]',
+      ...(actions.length > 0 ? actions.map((action) => `- ${action}`) : ['none']),
+    ].join('\n');
+  }
+
+  rememberAction(channelId: string, actionSummary: string): void {
+    const summary = actionSummary.replace(/\s+/g, ' ').trim();
+    if (!summary) return;
+    this.ensureEntry(channelId);
+    const entry = this.memories.get(channelId)!;
+    entry.summary.lastActions = [...(entry.summary.lastActions ?? []), summary.slice(0, 800)].slice(-10);
+    entry.lastAccessed = Date.now();
+    this.saveMemoryToDisk().catch(() => null);
+  }
+
+  buildUserPreferenceContext(userId: string): string {
+    const profile = this.getUserProfile(userId);
+    if (!profile) return '[USER_PROFILE]\npreferred_language=unknown';
+    return [
+      '[USER_PROFILE]',
+      `preferred_language=${profile.preferredDialect || 'unknown'}`,
+      `total_messages=${profile.totalMessagesSent}`,
     ].join('\n');
   }
 
@@ -584,6 +610,7 @@ export class MemoryManager {
         lastInteraction: now,
         musicHistory: [],
         errorHistory: [],
+        lastActions: [],
       },
       entities: [],
       lastEntityIds: {},
