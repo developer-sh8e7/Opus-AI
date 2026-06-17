@@ -983,7 +983,7 @@ client.once(Events.ClientReady, async () => {
   contextCleanupTimer.unref();
   Logger.info(
     'System',
-    `AI routing ready: Groq primary (${config.groqModel} / ${config.groqFastModel}), Cerebras fallback (${config.cerebrasModel})`
+    `AI routing ready: OpenCode Zen primary (${config.qwenModel}), Cerebras fallback (${config.cerebrasModel})`
   );
   
   // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية
@@ -1718,7 +1718,7 @@ function formatUserError(error: unknown): string {
   }
 
   if (msg.includes('مفاتيح الذكاء الاصطناعي غير صالحة')) {
-    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Groq وCerebras في Render.';
+    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Qwen Zen وCerebras في Railway.';
   }
 
   if (msg.includes('API error') || msg.includes('fetch') || msg.includes('ECONNREFUSED')) {

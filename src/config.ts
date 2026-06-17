@@ -12,11 +12,9 @@ export interface Config {
   clientId: string;
   guildId: string;
   authorizedRoleId: string;
-  aiProvider: 'groq';
-  ollamaEnabled: boolean;
-  groqApiKey: string;
-  groqModel: string;
-  groqFastModel: string;
+  qwenApiKey: string;
+  qwenModel: string;
+  qwenApiBaseUrl: string;
   cerebrasApiKey: string;
   cerebrasModel: string;
   aiTimeoutMs: number;
@@ -40,11 +38,9 @@ export function getEnvConfig(): Config {
   const clientId = process.env.CLIENT_ID;
   const guildId = process.env.GUILD_ID;
   const authorizedRoleId = process.env.AUTHORIZED_ROLE_ID;
-  const aiProvider = process.env.AI_PROVIDER || 'groq';
-  const ollamaEnabled = process.env.OLLAMA_ENABLED === 'true';
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const groqModel = useAllowedModel(process.env.GROQ_MODEL, 'llama-3.3-70b-versatile', 'GROQ_MODEL');
-  const groqFastModel = useAllowedModel(process.env.GROQ_FAST_MODEL, 'llama-3.1-8b-instant', 'GROQ_FAST_MODEL');
+  const qwenApiKey = process.env.QWEN_API_KEY;
+  const qwenModel = process.env.QWEN_MODEL || 'qwen3.6-plus';
+  const qwenApiBaseUrl = process.env.QWEN_API_BASE_URL || 'https://opencode.ai/zen/v1';
   const cerebrasApiKey = process.env.CEREBRAS_API_KEY;
   const cerebrasModel = useAllowedModel(process.env.CEREBRAS_MODEL, 'zai-glm-4.7', 'CEREBRAS_MODEL');
   const aiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 25000);
@@ -54,12 +50,7 @@ export function getEnvConfig(): Config {
   if (!clientId) missingVars.push('CLIENT_ID');
   if (!guildId) missingVars.push('GUILD_ID');
   if (!authorizedRoleId) missingVars.push('AUTHORIZED_ROLE_ID');
-  if (!groqApiKey) missingVars.push('GROQ_API_KEY');
-  else if (!groqApiKey.startsWith('gsk_')) missingVars.push('GROQ_API_KEY (invalid format)');
-  if (!cerebrasApiKey) missingVars.push('CEREBRAS_API_KEY');
-  else if (!cerebrasApiKey.startsWith('csk-')) missingVars.push('CEREBRAS_API_KEY (invalid format)');
-  if (aiProvider !== 'groq') missingVars.push('AI_PROVIDER=groq');
-  if (ollamaEnabled) missingVars.push('OLLAMA_ENABLED=false');
+  if (!qwenApiKey) missingVars.push('QWEN_API_KEY (OpenCode Zen)');
   if (!Number.isFinite(aiTimeoutMs) || aiTimeoutMs <= 0) missingVars.push('AI_TIMEOUT_MS');
   if (!Number.isInteger(aiMaxRetries) || aiMaxRetries < 0) missingVars.push('AI_MAX_RETRIES');
 
@@ -72,11 +63,9 @@ export function getEnvConfig(): Config {
     clientId: clientId!,
     guildId: guildId!,
     authorizedRoleId: authorizedRoleId!,
-    aiProvider: 'groq',
-    ollamaEnabled: false,
-    groqApiKey: groqApiKey!,
-    groqModel,
-    groqFastModel,
+    qwenApiKey: qwenApiKey!,
+    qwenModel,
+    qwenApiBaseUrl,
     cerebrasApiKey: cerebrasApiKey!,
     cerebrasModel,
     aiTimeoutMs,

@@ -59,6 +59,226 @@ interface ProviderMessage {
   tool_calls?: AIMessage['tool_calls'];
 }
 
+// ─── Anthropic ↔ OpenAI Adapter for OpenCode Zen ───────
+
+interface AnthropicContentBlock {
+  type: 'text' | 'tool_use' | 'tool_result';
+  text?: string;
+  id?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+  tool_use_id?: string;
+  content?: string;
+}
+
+interface AnthropicRequest {
+  model: string;
+  max_tokens: number;
+  system?: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }>;
+  tools?: Array<{
+    name: string;
+    description: string;
+    input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
+  }>;
+  tool_choice?: { type: 'auto' };
+  temperature: number;
+}
+
+interface AnthropicResponse {
+  id: string;
+  type: 'message';
+  role: 'assistant';
+  content: AnthropicContentBlock[];
+  stop_reason: string | null;
+  usage: { input_tokens: number; output_tokens: number };
+}
+
+/** Build Anthropic-format request from internal messages */
+function buildAnthropicBody(
+  messages: AIMessage[],
+  options: GenerateAIOptions,
+  model: string
+): AnthropicRequest {
+  const systemParts: string[] = [];
+  const anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }> = [];
+
+  const sanitized = AIPromptBuilder.sanitizeMessages(messages);
+  for (const msg of sanitized) {
+    if (msg.role === 'system' && typeof msg.content === 'string') {
+      systemParts.push(msg.content);
+    }
+  }
+
+  let pendingToolResults: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }> | null = null;
+
+  for (const msg of sanitized) {
+    if (msg.role === 'system') continue;
+
+    if (msg.role === 'tool') {
+      if (!pendingToolResults) {
+        pendingToolResults = [{ role: 'user', content: [] }];
+      }
+      pendingToolResults[0].content.push({
+        type: 'tool_result',
+        tool_use_id: msg.tool_call_id!,
+        content: typeof msg.content === 'string' ? msg.content : '',
+      });
+      continue;
+    }
+
+    if (pendingToolResults) {
+      anthropicMessages.push(...pendingToolResults);
+      pendingToolResults = null;
+    }
+
+    if (msg.role === 'assistant') {
+      const blocks: AnthropicContentBlock[] = [];
+      if (typeof msg.content === 'string' && msg.content.length > 0) {
+        blocks.push({ type: 'text', text: msg.content });
+      }
+      if (msg.tool_calls) {
+        for (const tc of msg.tool_calls) {
+          blocks.push({
+            type: 'tool_use',
+            id: tc.id,
+            name: tc.function.name,
+            input: JSON.parse(tc.function.arguments),
+          });
+        }
+      }
+      anthropicMessages.push({ role: 'assistant', content: blocks });
+    } else if (msg.role === 'user') {
+      const text = typeof msg.content === 'string' ? msg.content : '';
+      anthropicMessages.push({ role: 'user', content: [{ type: 'text', text }] });
+    }
+  }
+
+  if (pendingToolResults) {
+    anthropicMessages.push(...pendingToolResults);
+  }
+
+  const selectedTools = compactTools(messages, options.toolsEnabled ?? true);
+  const anthropicTools = selectedTools?.map((t) => ({
+    name: t.function.name,
+    description: t.function.description,
+    input_schema: {
+      type: 'object' as const,
+      properties: t.function.parameters.properties,
+      required: t.function.parameters.required,
+    },
+  }));
+
+  return {
+    model,
+    max_tokens: options.maxTokens ?? 1_200,
+    system: systemParts.length > 0 ? systemParts.join('\n') : undefined,
+    messages: anthropicMessages,
+    tools: anthropicTools,
+    tool_choice: anthropicTools?.length ? { type: 'auto' as const } : undefined,
+    temperature: options.temperature ?? 0.2,
+  };
+}
+
+/** Convert Anthropic response to internal ProviderMessage (OpenAI-format tool_calls) */
+function fromAnthropicResponse(response: AnthropicResponse): ProviderMessage {
+  let content: string | null = null;
+  const toolCalls: AIMessage['tool_calls'] = [];
+
+  for (const block of response.content) {
+    if (block.type === 'text' && typeof block.text === 'string') {
+      content = (content ?? '') + block.text;
+    } else if (block.type === 'tool_use' && block.id && block.name) {
+      toolCalls.push({
+        id: block.id,
+        type: 'function',
+        function: {
+          name: block.name,
+          arguments: JSON.stringify(block.input ?? {}),
+        },
+      });
+    }
+  }
+
+  return {
+    role: 'assistant',
+    content,
+    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+  };
+}
+
+/** Post a request to OpenCode Zen (Anthropic format) */
+async function postAnthropicCompletion(
+  endpoint: string,
+  apiKey: string,
+  body: AnthropicRequest
+): Promise<ProviderMessage> {
+  const startedAt = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.min(config.aiTimeoutMs, 8_000));
+  let outcome = 'error';
+  let status: number | null = null;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    status = response.status;
+
+    if (!response.ok) {
+      const detail = safeErrorDetail(await response.text());
+      throw new AIProviderError(
+        'opencode-zen',
+        `OpenCode Zen request failed with status ${response.status}: ${detail}`,
+        response.status === 429 || response.status >= 500,
+        response.status,
+        parseRetryAfter(response.headers.get('retry-after'))
+      );
+    }
+
+    const payload = await response.json() as AnthropicResponse;
+    if (!payload.content || payload.content.length === 0) {
+      throw new AIProviderError('opencode-zen', 'OpenCode Zen returned empty response', true);
+    }
+
+    outcome = 'success';
+    const providerMsg = fromAnthropicResponse(payload);
+
+    // Handle stop_reason === 'tool_use' — strip text content when tool_use exists
+    if (payload.stop_reason === 'tool_use' && providerMsg.tool_calls?.length) {
+      providerMsg.content = null;
+    }
+
+    return providerMsg;
+  } catch (error) {
+    if (error instanceof AIProviderError) throw error;
+    const isAbort = error instanceof Error && error.name === 'AbortError';
+    throw new AIProviderError(
+      'opencode-zen',
+      `OpenCode Zen ${isAbort ? 'timed out' : 'network request failed'}`,
+      isAbort || error instanceof TypeError
+    );
+  } finally {
+    clearTimeout(timeout);
+    Logger.audit('ai_request', {
+      provider: 'opencode-zen',
+      model: body.model,
+      outcome,
+      status,
+      duration_ms: Date.now() - startedAt,
+      messages: body.messages.length,
+      tools: body.tools?.length ?? 0,
+    });
+  }
+}
+
 const stringProperty = (description: string): Record<string, unknown> => ({
   type: 'string',
   description,
@@ -643,12 +863,12 @@ export class AIResponseParser {
 }
 
 export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
-export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث GROQ_API_KEY و CEREBRAS_API_KEY في Render.';
+export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث QWEN_API_KEY في Railway.';
 export const EXTENDED_CONVERSATIONAL_SCENARIOS_DATABASE: readonly never[] = [];
 
 class AIProviderError extends Error {
   constructor(
-    readonly provider: 'groq' | 'cerebras',
+    readonly provider: 'opencode-zen' | 'cerebras',
     message: string,
     readonly retryable: boolean,
     readonly status?: number,
@@ -876,7 +1096,7 @@ function parseRetryAfter(value: string | null): number | undefined {
 }
 
 async function postChatCompletion(
-  provider: 'groq' | 'cerebras',
+  provider: 'cerebras',
   endpoint: string,
   apiKey: string,
   body: ChatCompletionBody
@@ -957,7 +1177,7 @@ function delay(ms: number): Promise<void> {
 }
 
 async function retryProvider(
-  provider: 'groq' | 'cerebras',
+  provider: 'opencode-zen' | 'cerebras',
   request: (attempt: number) => Promise<ProviderMessage>
 ): Promise<ProviderMessage> {
   let lastError: unknown;
@@ -981,24 +1201,19 @@ async function retryProvider(
   throw lastError;
 }
 
-export async function callGroq(
+export async function callQwenZen(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
-  const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
-  const model = intent === 'smart' ? config.groqModel : config.groqFastModel;
+  const endpoint = `${config.qwenApiBaseUrl}/messages`;
+  const model = config.qwenModel;
 
-  return retryProvider('groq', (attempt) => {
-    const body = buildCompletionBody(messages, {
+  return retryProvider('opencode-zen', (attempt) => {
+    const body = buildAnthropicBody(messages, {
       ...options,
       temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
     }, model);
-    return postChatCompletion(
-      'groq',
-      'https://api.groq.com/openai/v1/chat/completions',
-      config.groqApiKey,
-      body
-    );
+    return postAnthropicCompletion(endpoint, config.qwenApiKey, body);
   });
 }
 
@@ -1028,15 +1243,15 @@ export async function generateAIResponse(
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
   const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
-  let groqFailure: unknown;
+  let zenFailure: unknown;
 
   try {
-    return await callGroq(messages, { ...options, intent });
-  } catch (groqError) {
-    groqFailure = groqError;
+    return await callQwenZen(messages, { ...options, intent });
+  } catch (zenError) {
+    zenFailure = zenError;
     Logger.warn(
       'AI',
-      `Groq unavailable (${groqError instanceof AIProviderError ? groqError.status ?? 'network' : 'unknown'}); using Cerebras.`
+      `OpenCode Zen unavailable (${zenError instanceof AIProviderError ? zenError.status ?? 'network' : 'unknown'}); using Cerebras fallback.`
     );
   }
 
@@ -1047,12 +1262,12 @@ export async function generateAIResponse(
       'AI',
       cerebrasError instanceof Error ? cerebrasError.message : 'Cerebras request failed.'
     );
-    const groqAuthFailed = groqFailure instanceof AIProviderError &&
-      (groqFailure.status === 401 || groqFailure.status === 403);
+    const zenAuthFailed = zenFailure instanceof AIProviderError &&
+      (zenFailure.status === 401 || zenFailure.status === 403);
     const cerebrasAuthFailed = cerebrasError instanceof AIProviderError &&
       (cerebrasError.status === 401 || cerebrasError.status === 403);
     throw new Error(
-      groqAuthFailed && cerebrasAuthFailed
+      zenAuthFailed && cerebrasAuthFailed
         ? AI_CONFIGURATION_ERROR_MESSAGE
         : AI_TEMPORARY_ERROR_MESSAGE
     );
@@ -1073,7 +1288,7 @@ export function runAIDiagnostics(): {
   totalScenarios: number;
   logs: string[];
 } {
-  const success = Boolean(config.groqApiKey && config.cerebrasApiKey && tools.length >= 20);
+  const success = Boolean(config.qwenApiKey && tools.length >= 20);
   return {
     success,
     promptLength: SYSTEM_PROMPT.length,
@@ -1082,9 +1297,8 @@ export function runAIDiagnostics(): {
     logs: [
       `AI providers configured: ${success ? 'yes' : 'no'}`,
       `Executable AI tools: ${tools.length}`,
-      `Groq smart model: ${config.groqModel}`,
-      `Groq fast model: ${config.groqFastModel}`,
-      `Cerebras fallback model: ${config.cerebrasModel}`,
+      `Primary: OpenCode Zen (${config.qwenModel})`,
+      `Fallback: Cerebras (${config.cerebrasModel})`,
     ],
   };
 }
