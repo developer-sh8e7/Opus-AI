@@ -1,9 +1,9 @@
 ﻿/**
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- *  Ù†Ø¸Ø§Ù… Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© ÙˆØ§Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø°Ø§ØªÙŠØ© Ø§Ù„Ù…ØªÙ‚Ø¯Ù… - Advanced Autonomous Monitor
- *  ÙŠÙ‚ÙˆÙ… Ø¨Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø´Ø§ØªØŒ ÙƒØ´Ù Ø§Ù„Ø³Ø¨Ø§Ù…ØŒ Ø±ØµØ¯ Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ§Øª Ø§Ù„Ù…Ø®Ø§Ù„ÙØ©ØŒ Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø®Ø§Ø¯Ù… Ù…Ù† Ø§Ù„Ù‡Ø¬Ù…Ø§Øª (Anti-Raid)ØŒ
- *  ÙˆÙØ­Øµ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ù…Ø¹ Ø£Ø±Ø´ÙØ© ÙƒØ§ÙØ© Ø§Ù„Ø­Ø±ÙƒØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© ÙˆØ§Ù„Ø£Ù…Ù†ÙŠØ©.
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ * ════════════════════════════════════════════════════════════════
+ *  نظام الرقابة والحماية الذاتية المتقدم - Advanced Autonomous Monitor
+ *  يقوم بمراقبة الشات، كشف السبام، رصد روابط الدعوات المخالفة، حماية الخادم من الهجمات (Anti-Raid)،
+ *  وفحص المحتوى بالذكاء الاصطناعي مع أرشفة كافة الحركات الإدارية والأمنية.
+ * ════════════════════════════════════════════════════════════════
  */
 
 import { Client, Events, GuildMember, Message, TextChannel, EmbedBuilder, ChannelType, PermissionFlagsBits } from 'discord.js';
@@ -11,7 +11,7 @@ import { generateAIResponse, AIMessage } from '../services/ai.js';
 import { repairLegacyText } from '../utils/textEncoding.js';
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙÙŠ Ø§Ù„Ø°Ø§ÙƒØ±Ø© (Warn Database)
+//  نظام إدارة التحذيرات في الذاكرة (Warn Database)
 // ============================================================
 interface WarnRecord { count: number; lastWarn: number; reasons: string[]; }
 const warnings = new Map<string, WarnRecord>();
@@ -20,7 +20,7 @@ export function getWarningCount(userId: string): number {
   return warnings.get(userId)?.count ?? 0;
 }
 
-export function addWarning(userId: string, reason: string = 'Ù…Ø®Ø§Ù„ÙØ© Ø¹Ø§Ù…Ø©'): number {
+export function addWarning(userId: string, reason: string = 'مخالفة عامة'): number {
   const r = warnings.get(userId) ?? { count: 0, lastWarn: Date.now(), reasons: [] };
   r.count++;
   r.lastWarn = Date.now();
@@ -38,7 +38,7 @@ export function getUserWarningRecord(userId: string): { count: number; lastWarn:
 
 
 // ============================================================
-//  Ø³Ø¬Ù„ Ø§Ù„Ø£Ø­Ø¯Ø§Ø« ÙˆØ§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ§Ù„Ø£Ø±Ø´ÙØ© Ø§Ù„Ø¹Ø§Ù…Ø© (Audit Log Store)
+//  سجل الأحداث والمراقبة والأرشفة العامة (Audit Log Store)
 // ============================================================
 interface ModLog {
   timestamp: Date;
@@ -51,7 +51,7 @@ interface ModLog {
 export const moderationLog: ModLog[] = [];
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… ØªØ­Ø¯ÙŠØ¯ ÙˆÙƒØ´Ù Ø§Ù„Ø³Ø¨Ø§Ù… (Spam Detector / Rate Limiter)
+//  نظام تحديد وكشف السبام (Spam Detector / Rate Limiter)
 // ============================================================
 interface SpamRecord { count: number; lastReset: number; warned: boolean; }
 const spamTracker = new Map<string, SpamRecord>();
@@ -71,27 +71,27 @@ export function isSpamming(userId: string): boolean {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ù…Ù†Ø¹ Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ù…ØªÙƒØ±Ø± (Anti-Raid Shield System)
+//  نظام منع هجمات الانضمام المتكرر (Anti-Raid Shield System)
 // ============================================================
 export class AntiRaidShield {
   private static joinLog: number[] = [];
   private static lockDownActive = false;
-  private static MAX_JOINS_LIMIT = 5; // Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ø§Ù†Ø¶Ù…Ø§Ù… ÙÙŠ Ø§Ù„Ù†Ø§ÙØ°Ø© Ø§Ù„Ø²Ù…Ù†ÙŠØ©
-  private static WINDOW_MS = 10000; // 10 Ø«ÙˆØ§Ù†Ù
+  private static MAX_JOINS_LIMIT = 5; // الحد الأقصى للانضمام في النافذة الزمنية
+  private static WINDOW_MS = 10000; // 10 ثوانٍ
 
   /**
-   * ØªØ³Ø¬ÙŠÙ„ Ø§Ù†Ø¶Ù…Ø§Ù… Ø¬Ø¯ÙŠØ¯ ÙˆÙØ­Øµ Ù‡Ù„ Ø§Ù„Ø³ÙŠØ±ÙØ± ØªØ­Øª Ø§Ù„Ù‡Ø¬ÙˆÙ…
+   * تسجيل انضمام جديد وفحص هل السيرفر تحت الهجوم
    */
   static registerJoin(): boolean {
     const now = Date.now();
     this.joinLog.push(now);
     
-    // ÙÙ„ØªØ±Ø© Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù…Ø§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ø®Ø§Ø±Ø¬ Ø§Ù„Ù†Ø§ÙØ°Ø©
+    // فلترة الانضمامات القديمة خارج النافذة
     this.joinLog = this.joinLog.filter(t => now - t <= this.WINDOW_MS);
 
     if (this.joinLog.length > this.MAX_JOINS_LIMIT) {
       this.lockDownActive = true;
-      return true; // ØªÙ… Ø±ØµØ¯ Ù‡Ø¬ÙˆÙ…
+      return true; // تم رصد هجوم
     }
     return false;
   }
@@ -107,14 +107,14 @@ export class AntiRaidShield {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… ÙØ­Øµ Ø§Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠØ© ÙˆØ±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ§Øª (Invite Link Blocker)
+//  نظام فحص الروابط الخارجية وروابط الدعوات (Invite Link Blocker)
 // ============================================================
 export class InviteLinkFilter {
-  // ØªØ¹Ø¨ÙŠØ± Ù†Ù…Ø·ÙŠ Ù„Ù„ØªØ¹Ø±Ù Ø¹Ù„Ù‰ Ø±ÙˆØ§Ø¨Ø· Ø¯Ø¹ÙˆØ§Øª Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø§Ù„Ù…Ø®ØªÙ„ÙØ©
+  // تعبير نمطي للتعرف على روابط دعوات ديسكورد المختلفة
   private static discordInviteRegex = /(https?:\/\/)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com\/invite|discord\.com\/invite)\/[a-zA-Z0-9\-]+/gi;
 
   /**
-   * ÙØ­Øµ Ù‡Ù„ Ø§Ù„Ù†Øµ ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ ÙƒÙˆØ¯ Ø¯Ø¹ÙˆØ© Ù„Ø³ÙŠØ±ÙØ± Ø¢Ø®Ø±
+   * فحص هل النص يحتوي على كود دعوة لسيرفر آخر
    */
   static containsInvite(text: string): boolean {
     return this.discordInviteRegex.test(text);
@@ -122,7 +122,7 @@ export class InviteLinkFilter {
 }
 
 // ============================================================
-//  ÙØ­Øµ Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ (AI Prompt Guard)
+//  فحص المحتوى بالذكاء الاصطناعي (AI Prompt Guard)
 // ============================================================
 interface ModerationResult {
   isOffensive: boolean;
@@ -137,24 +137,24 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
       messages: [
         {
           role: 'system',
-          content: `Ø£Ù†Øª Ù†Ø¸Ø§Ù… Ù…Ø±Ø§Ù‚Ø¨Ø© Ù…Ø­ØªÙˆÙ‰ Ø°ÙƒÙŠ ÙˆÙ…Ø­ØªØ±Ù Ù„Ø³ÙŠØ±ÙØ± Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯. Ù…Ù‡Ù…ØªÙƒ ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ ÙˆØªØ­Ø¯ÙŠØ¯ Ù‡Ù„ ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰:
-- Ø³Ø¨Ø§Ø¨ Ø£Ùˆ Ø´ØªØ§Ø¦Ù… (Ø¹Ø±Ø¨ÙŠØ© Ø£Ùˆ Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ© Ø£Ùˆ Ø£ÙŠ Ù„ØºØ©)
-- ØªÙ‡Ø¯ÙŠØ¯Ø§Øª Ø£Ùˆ ØªØ­Ø±ÙŠØ¶ Ø¹Ù„Ù‰ Ø§Ù„Ø¹Ù†Ù
-- Ù…Ø­ØªÙˆÙ‰ Ù…Ø³ÙŠØ¡ Ù„Ù„Ø¢Ø¯Ø§Ø¨ Ø§Ù„Ø¹Ø§Ù…Ø©
-- ØªØ­Ø±Ø´ ÙˆÙ…Ø¶Ø§ÙŠÙ‚Ø§Øª Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¢Ø®Ø±ÙŠÙ†
-- Ø¹Ù†ØµØ±ÙŠØ©ØŒ ØªÙ…ÙŠÙŠØ² Ø£Ùˆ Ø·Ø§Ø¦ÙÙŠØ©
-- Ù…Ø­ØªÙˆÙ‰ ØºÙŠØ± Ù„Ø§Ø¦Ù‚ Ø£Ùˆ Ø¥Ø¨Ø§Ø­ÙŠ
+          content: `أنت نظام مراقبة محتوى ذكي ومحترف لسيرفر ديسكورد. مهمتك تحليل الرسائل وتحديد هل تحتوي على:
+- سباب أو شتائم (عربية أو إنجليزية أو أي لغة)
+- تهديدات أو تحريض على العنف
+- محتوى مسيء للآداب العامة
+- تحرش ومضايقات للأعضاء الآخرين
+- عنصرية، تمييز أو طائفية
+- محتوى غير لائق أو إباحي
 
-Ø£Ø¬Ø¨ Ø¨Ù€ JSON ÙÙ‚Ø· Ø¨Ø¯ÙˆÙ† Ø£ÙŠ Ù†Øµ ØªÙØ³ÙŠØ±ÙŠ Ø¥Ø¶Ø§ÙÙŠ. Ù…Ø«Ø§Ù„ Ù„Ù„Ø±Ø¯ÙˆØ¯ Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©:
-{"isOffensive": false, "category": "clean", "reason": "Ø±Ø³Ø§Ù„Ø© Ø¹Ø§Ø¯ÙŠØ© ÙˆØ·Ø¨ÙŠØ¹ÙŠØ©", "suggestedAction": "none"}
-{"isOffensive": true, "category": "offensive", "reason": "ØªØ­ØªÙˆÙŠ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¹Ù„Ù‰ Ø³Ø¨Ø§Ø¨ Ø¨Ø°ÙŠØ¡", "suggestedAction": "delete"}
+أجب بـ JSON فقط بدون أي نص تفسيري إضافي. مثال للردود المعتمدة:
+{"isOffensive": false, "category": "clean", "reason": "رسالة عادية وطبيعية", "suggestedAction": "none"}
+{"isOffensive": true, "category": "offensive", "reason": "تحتوي الرسالة على سباب بذيء", "suggestedAction": "delete"}
 
-Ø§Ù„ÙØ¦Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©: clean, mild, offensive, severe
-Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©: none, warn, delete, mute, ban`,
+الفئات المتاحة: clean, mild, offensive, severe
+الإجراءات المتاحة: none, warn, delete, mute, ban`,
         },
         {
           role: 'user',
-          content: `Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…: ${authorName}\nØ§Ù„Ø±Ø³Ø§Ù„Ø©: "${text}"`,
+          content: `المستخدم: ${authorName}\nالرسالة: "${text}"`,
         },
       ],
       max_tokens: 150,
@@ -176,7 +176,7 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
     );
     const content = aiMessage.content?.trim() ?? '';
 
-    // Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ø§Ù„Ù€ JSON Ù…Ù† Ø§Ù„Ø±Ø¯
+    // استخراج الـ JSON من الرد
     const jsonMatch = content.match(/\{[^}]+\}/);
     if (!jsonMatch) throw new Error('The moderation provider did not return valid JSON.');
 
@@ -184,7 +184,7 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
     return result;
   } catch (err) {
     console.error('[AI Moderation] Content analysis failed:', err);
-    // ÙÙŠ Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø·Ø£: Ø¥Ø±Ø¬Ø§Ø¹ Ù†ØªÙŠØ¬Ø© Ø¢Ù…Ù†Ø© ØªØ¬Ù†Ø¨Ø§Ù‹ Ù„Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠØ©
+    // في حالة الخطأ: إرجاع نتيجة آمنة تجنباً للأخطاء العشوائية
     return {
       isOffensive: false,
       category: 'clean',
@@ -195,13 +195,13 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
 }
 
 // ============================================================
-//  Ø¥ÙŠØ¬Ø§Ø¯ ÙˆØªØ­Ø¯ÙŠØ¯ Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© ÙˆØ§Ù„ØªØ±Ø­ÙŠØ¨ (Utility Channel Finders)
+//  إيجاد وتحديد قنوات الإدارة والترحيب (Utility Channel Finders)
 // ============================================================
 export function findLogChannel(guild: any): TextChannel | null {
   return guild.channels.cache.find(
     (ch: any) =>
       ch.isTextBased() &&
-      ['Ø³Ø¬Ù„', 'Ø³Ø¬Ù„-Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª', 'log', 'logs', 'audit-log', 'Ù„ÙˆØ­Ø©-Ø§Ù„ØªØ­ÙƒÙ…', 'Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨'].some(
+      ['سجل', 'سجل-الإجراءات', 'log', 'logs', 'audit-log', 'لوحة-التحكم', 'المراقب'].some(
         (name) => (ch.name as string).toLowerCase().includes(name)
       )
   ) as TextChannel | null;
@@ -213,7 +213,7 @@ export function findWelcomeChannel(guild: any): TextChannel | null {
     guild.channels.cache.find(
       (ch: any) =>
         ch.isTextBased() &&
-        ['welcome', 'Ø§Ù„ØªØ±Ø­ÙŠØ¨', 'ØªØ±Ø­ÙŠØ¨', 'general', 'Ø¹Ø§Ù…', 'Ø§Ù„Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø¹Ø§Ù…Ø©'].some(
+        ['welcome', 'الترحيب', 'ترحيب', 'general', 'عام', 'الدردشة-العامة'].some(
           (name) => (ch.name as string).toLowerCase().includes(name)
         )
     )
@@ -221,7 +221,7 @@ export function findWelcomeChannel(guild: any): TextChannel | null {
 }
 
 // ============================================================
-//  Ù…Ø¹Ø§Ù„Ø¬Ø© ÙˆØªÙ†ÙÙŠØ° Ø§Ù„Ø¹Ù‚ÙˆØ¨Ø§Øª ÙˆØ§Ù„Ø¬Ø²Ø§Ø¡Ø§Øª Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© (Rule Enforcer)
+//  معالجة وتنفيذ العقوبات والجزاءات التلقائية (Rule Enforcer)
 // ============================================================
 async function takeModerationAction(
   message: Message,
@@ -232,7 +232,7 @@ async function takeModerationAction(
 
   const channel = message.channel as TextChannel;
 
-  // Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø© ÙÙˆØ±Ø§Ù‹ ÙƒØ¥Ø¬Ø±Ø§Ø¡ Ø£ÙˆÙ„ÙŠ
+  // حذف الرسالة فوراً كإجراء أولي
   if (result.suggestedAction !== 'none') {
     await message.delete().catch(() => null);
   }
@@ -242,10 +242,10 @@ async function takeModerationAction(
   const warnCount = addWarning(message.author.id, result.reason);
 
   const actionLabels: Record<string, string> = {
-    warn: 'âš ï¸ ØªØ­Ø°ÙŠØ± Ø¥Ø¯Ø§Ø±ÙŠ',
-    delete: 'ðŸ—‘ï¸ Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø©',
-    mute: 'ðŸ”‡ ÙƒØªÙ… Ù…Ø¤Ù‚Øª',
-    ban: 'ðŸ”¨ Ø­Ø¸Ø± Ù†Ù‡Ø§Ø¦ÙŠ',
+    warn: '⚠️ تحذير إداري',
+    delete: '🗑️ حذف الرسالة',
+    mute: '🔇 كتم مؤقت',
+    ban: '🔨 حظر نهائي',
   };
 
   const colorMap: Record<string, number> = {
@@ -256,14 +256,14 @@ async function takeModerationAction(
 
   const embed = new EmbedBuilder()
     .setColor(colorMap[result.category] ?? 0xE74C3C)
-    .setTitle(`${actionLabels[result.suggestedAction] ?? 'âš ï¸ ØªØ­Ø°ÙŠØ±'} - Ù…Ø®Ø§Ù„ÙØ© Ø§Ù„Ù…Ø¹Ø§ÙŠÙŠØ±`)
-    .setDescription(`ÙŠØ§ ${member}ØŒ ØªÙ… Ø­Ø°Ù Ø±Ø³Ø§Ù„ØªÙƒ Ù„Ù…Ø®Ø§Ù„ÙØªÙ‡Ø§ Ø§Ù„Ø¢Ø¯Ø§Ø¨ Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆÙ‚ÙˆØ§Ù†ÙŠÙ† Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ø±Ø³Ù…ÙŠØ©.`)
+    .setTitle(`${actionLabels[result.suggestedAction] ?? '⚠️ تحذير'} - مخالفة المعايير`)
+    .setDescription(`يا ${member}، تم حذف رسالتك لمخالفتها الآداب العامة وقوانين السيرفر الرسمية.`)
     .addFields(
-      { name: 'ðŸ¤– Ø³Ø¨Ø¨ Ø§Ù„Ù…Ø®Ø§Ù„ÙØ© Ø§Ù„Ù…ÙƒØªØ´Ù', value: result.reason, inline: false },
-      { name: 'ðŸ”¢ Ø¹Ø¯Ø¯ ØªØ­Ø°ÙŠØ±Ø§ØªÙƒ Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ', value: `${warnCount}/3 ØªØ­Ø°ÙŠØ±Ø§Øª`, inline: true },
-      { name: 'ðŸ“Š Ù…Ø³ØªÙˆÙ‰ Ø§Ù„Ø®Ø·ÙˆØ±Ø© Ø§Ù„Ù…Ø¹ÙŠÙ†', value: result.category.toUpperCase(), inline: true },
+      { name: '🤖 سبب المخالفة المكتشف', value: result.reason, inline: false },
+      { name: '🔢 عدد تحذيراتك الإجمالي', value: `${warnCount}/3 تحذيرات`, inline: true },
+      { name: '📊 مستوى الخطورة المعين', value: result.category.toUpperCase(), inline: true },
     )
-    .setFooter({ text: 'Ù†Ø¸Ø§Ù… Ø§Ù„Ø­Ù…Ø§ÙŠØ© ÙˆØ§Ù„Ø±Ù‚Ø§Ø¨Ø© Ø§Ù„Ø°ÙƒÙŠ - Opus Guard' })
+    .setFooter({ text: 'نظام الحماية والرقابة الذكي - Opus Guard' })
     .setTimestamp();
 
   const warnMsg = await channel.send({ content: `${member}`, embeds: [embed] }).catch(() => null);
@@ -271,29 +271,29 @@ async function takeModerationAction(
     setTimeout(() => warnMsg.delete().catch(() => null), 15_000);
   }
 
-  // ÙÙŠ Ø­Ø§Ù„ ÙˆØµÙˆÙ„ Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª Ù„Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ø£Ùˆ ÙƒØ§Ù† Ø§Ù„ØªÙˆØ¬ÙŠÙ‡ Ù‡Ùˆ Ø§Ù„ÙƒØªÙ… Ø£Ùˆ ÙƒØ§Ù†Øª Ø§Ù„Ù…Ø®Ø§Ù„ÙØ© Ø´Ø¯ÙŠØ¯Ø© Ø¬Ø¯Ø§Ù‹
+  // في حال وصول التحذيرات للحد الأقصى أو كان التوجيه هو الكتم أو كانت المخالفة شديدة جداً
   if (warnCount >= 3 || result.suggestedAction === 'mute' || result.category === 'severe') {
-    const duration = result.category === 'severe' ? 60 * 60 * 1000 : 15 * 60 * 1000; // Ø³Ø§Ø¹Ø© Ù„Ù„Ø§Ù†ØªÙ‡Ø§ÙƒØ§Øª Ø§Ù„Ø®Ø·ÙŠØ±Ø© Ùˆ15 Ø¯Ù‚ÙŠÙ‚Ø© Ù„Ù„Ø¹Ø§Ø¯ÙŠØ©
+    const duration = result.category === 'severe' ? 60 * 60 * 1000 : 15 * 60 * 1000; // ساعة للانتهاكات الخطيرة و15 دقيقة للعادية
     try {
-      await member.timeout(duration, `ØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ù…Ø®Ø§Ù„ÙØ§Øª: ${result.reason}`);
+      await member.timeout(duration, `تجاوز الحد الأقصى للمخالفات: ${result.reason}`);
       
-      // ØªØµÙÙŠØ± Ø§Ù„Ù…Ø®Ø§Ù„ÙØ§Øª Ø¨Ø¹Ø¯ ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø¹Ù‚ÙˆØ¨Ø© Ø§Ù„ÙƒØªÙ…
+      // تصفير المخالفات بعد تطبيق العقوبة الكتم
       clearUserWarnings(message.author.id);
 
       const muteEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('ðŸ”‡ ÙƒØªÙ… ÙˆØ¹Ø²Ù„ ØªÙ„Ù‚Ø§Ø¦ÙŠ')
-        .setDescription(`ØªÙ… ÙƒØªÙ… Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø®Ø§Ù„Ù ${member} ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù„Ù…Ø¯Ø© ${duration / 60000} Ø¯Ù‚ÙŠÙ‚Ø© Ù„Ø¶Ù…Ø§Ù† Ø³Ù„Ø§Ù…Ø© Ø§Ù„Ø´Ø§Øª.`)
-        .addFields({ name: 'ðŸ“ Ø§Ù„Ø³Ø¨Ø¨ Ø§Ù„Ù…Ø¬Ù…Ø¹', value: `ØªØ±Ø§ÙƒÙ… Ø§Ù„Ù…Ø®Ø§Ù„ÙØ§Øª (${result.reason})` })
+        .setTitle('🔇 كتم وعزل تلقائي')
+        .setDescription(`تم كتم العضو المخالف ${member} تلقائياً لمدة ${duration / 60000} دقيقة لضمان سلامة الشات.`)
+        .addFields({ name: '📝 السبب المجمع', value: `تراكم المخالفات (${result.reason})` })
         .setTimestamp();
 
       await channel.send({ embeds: [muteEmbed] }).catch(() => null);
     } catch (e: any) {
-      console.warn(`[Moderator] ØªØ¹Ø°Ø± ÙƒØªÙ… Ø§Ù„Ø¹Ø¶Ùˆ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹: ${e.message}`);
+      console.warn(`[Moderator] تعذر كتم العضو تلقائياً: ${e.message}`);
     }
   }
 
-  // ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ù…Ø®Ø§Ù„ÙØ© ÙÙŠ Ø³Ø¬Ù„ Ø§Ù„Ø°Ø§ÙƒØ±Ø© Ø§Ù„Ø¹Ø§Ù…
+  // تسجيل المخالفة في سجل الذاكرة العام
   moderationLog.push({
     timestamp: new Date(),
     userId: message.author.id,
@@ -303,18 +303,18 @@ async function takeModerationAction(
     channelId: message.channelId,
   });
 
-  // Ø¥Ø±Ø³Ø§Ù„ ØªÙ‚Ø±ÙŠØ± ÙÙˆØ±ÙŠ Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ø³Ø¬Ù„Ø§Øª (Logs)
+  // إرسال تقرير فوري لقناة السجلات (Logs)
   const logChannel = findLogChannel(message.guild!);
   if (logChannel) {
     const logEmbed = new EmbedBuilder()
       .setColor(0x992D22)
-      .setTitle('ðŸš¨ ØªÙ‚Ø±ÙŠØ± Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© Ù„Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ')
+      .setTitle('🚨 تقرير الرقابة التلقائية للذكاء الاصطناعي')
       .addFields(
-        { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…Ø®Ø§Ù„Ù', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
-        { name: 'ðŸ“º Ù‚Ù†Ø§Ø© Ø§Ù„Ù…Ø®Ø§Ù„ÙØ©', value: `<#${message.channelId}>`, inline: true },
-        { name: 'ðŸ¤– Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ù…Ù‚ØªØ±Ø­', value: result.suggestedAction.toUpperCase(), inline: true },
-        { name: 'ðŸ“ Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø­Ø°ÙˆÙØ©', value: `\`\`\`${message.content.slice(0, 500) || '(Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù†Øµ)'}\`\`\`` },
-        { name: 'ðŸ” Ø§Ù„Ø³Ø¨Ø¨ Ø§Ù„Ù…ÙˆØ¶Ø­ Ù„Ù„ØªØ­Ù„ÙŠÙ„', value: result.reason },
+        { name: '👤 العضو المخالف', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
+        { name: '📺 قناة المخالفة', value: `<#${message.channelId}>`, inline: true },
+        { name: '🤖 الإجراء المقترح', value: result.suggestedAction.toUpperCase(), inline: true },
+        { name: '📝 محتوى الرسالة المحذوفة', value: `\`\`\`${message.content.slice(0, 500) || '(لا يوجد نص)'}\`\`\`` },
+        { name: '🔍 السبب الموضح للتحليل', value: result.reason },
       )
       .setTimestamp();
     await logChannel.send({ embeds: [logEmbed] }).catch(() => null);
@@ -322,12 +322,12 @@ async function takeModerationAction(
 }
 
 // ============================================================
-//  ØªÙ‡ÙŠØ¦Ø© ÙˆØªØ´ØºÙŠÙ„ Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ© Ù„Ù„Ø±Ø³Ø§Ø¦Ù„ ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† (Core Monitor Initialization)
+//  تهيئة وتشغيل المراقبة التلقائية للرسائل والمستخدمين (Core Monitor Initialization)
 // ============================================================
 export function startAutonomousMonitor(client: Client): void {
   console.log('[Opus Ai] Autonomous moderation monitor started.');
 
-  // 1. Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù†Ø¶Ù…Ø§Ù… Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¬Ø¯Ø¯ ÙˆØ§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆÙ…ÙƒØ§ÙØ­Ø© Ø§Ù„ØºØ²Ùˆ (Anti-Raid)
+  // 1. مراقبة انضمام الأعضاء الجدد والترحيب ومكافحة الغزو (Anti-Raid)
   client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
     const isAttackDetected = AntiRaidShield.registerJoin();
     const logChannel = findLogChannel(member.guild);
@@ -337,10 +337,10 @@ export function startAutonomousMonitor(client: Client): void {
       if (logChannel) {
         const raidAlertEmbed = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('ðŸš¨ Ø¥Ù†Ø°Ø§Ø± Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø³ÙŠØ±ÙØ± - Anti-Raid Mode')
+          .setTitle('🚨 إنذار حماية السيرفر - Anti-Raid Mode')
           .setDescription(
-            `ØªÙ… Ø±ØµØ¯ Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù†Ø¶Ù…Ø§Ù… Ù…ÙƒØ«ÙØ© Ù„Ù„Ø­Ø³Ø§Ø¨Ø§Øª ÙÙŠ ÙØªØ±Ø© Ù‚ØµÙŠØ±Ø©.\n` +
-            `ØªÙ… ØªÙØ¹ÙŠÙ„ ÙˆØ¶Ø¹ Ø§Ù„Ø­Ù…Ø§ÙŠØ© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ ÙˆØ¹Ø²Ù„ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…Ù†Ø¶Ù…Ø© Ø­Ø¯ÙŠØ«Ø§Ù‹.`
+            `تم رصد محاولة انضمام مكثفة للحسابات في فترة قصيرة.\n` +
+            `تم تفعيل وضع الحماية التلقائي وعزل الحسابات المنضمة حديثاً.`
           )
           .setTimestamp();
         await logChannel.send({ embeds: [raidAlertEmbed] }).catch(() => null);
@@ -352,30 +352,30 @@ export function startAutonomousMonitor(client: Client): void {
 
     const welcomeEmbed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle('ðŸŽ‰ Ø¹Ø¶Ùˆ Ø¬Ø¯ÙŠØ¯ ÙÙŠ Ù…Ø¬ØªÙ…Ø¹Ù†Ø§!')
+      .setTitle('🎉 عضو جديد في مجتمعنا!')
       .setDescription(
-        `Ø£Ù‡Ù„Ø§Ù‹ ÙˆØ³Ù‡Ù„Ø§Ù‹ Ø¨Ùƒ ÙŠØ§ **${member.user.username}** ÙÙŠ Ø®Ø§Ø¯Ù… **${member.guild.name}**!\n\n` +
-        `ÙŠØ³Ø¹Ø¯Ù†Ø§ ØªÙˆØ§Ø¬Ø¯Ùƒ ÙˆÙ†ØªÙ…Ù†Ù‰ Ù„Ùƒ Ø±Ø­Ù„Ø© Ù…Ù…ØªØ¹Ø© Ù…Ø¹Ù†Ø§ ðŸš€`
+        `أهلاً وسهلاً بك يا **${member.user.username}** في خادم **${member.guild.name}**!\n\n` +
+        `يسعدنا تواجدك ونتمنى لك رحلة ممتعة معنا 🚀`
       )
       .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
       .addFields(
-        { name: 'ðŸ“… Ø¹Ù…Ø± Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„Ø´Ø®ØµÙŠ', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
-        { name: 'ðŸ‘¥ ØªØ±ØªÙŠØ¨Ùƒ ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±', value: `${member.guild.memberCount.toLocaleString('ar-EG')}`, inline: true },
+        { name: '📅 عمر الحساب الشخصي', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+        { name: '👥 ترتيبك في السيرفر', value: `${member.guild.memberCount.toLocaleString('ar-EG')}`, inline: true },
       )
-      .setFooter({ text: `Ø§Ù„Ø±Ù…Ø² Ø§Ù„ØªØ¹Ø±ÙŠÙÙŠ: ${member.id}` })
+      .setFooter({ text: `الرمز التعريفي: ${member.id}` })
       .setTimestamp();
 
     await channel.send({ content: `${member}`, embeds: [welcomeEmbed] }).catch(() => null);
   });
 
-  // 2. Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…ÙƒØªÙˆØ¨Ø© ÙˆØªØ­Ù„ÙŠÙ„Ù‡Ø§ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ ÙˆÙƒØ´Ù Ø§Ù„Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¶Ø§Ø±Ø© ÙˆØ§Ù„Ø³Ø¨Ø§Ù…
+  // 2. مراقبة الرسائل المكتوبة وتحليلها بالذكاء الاصطناعي وكشف الروابط الضارة والسبام
   const analysisCache = new Map<string, number>();
 
   client.on(Events.MessageCreate, async (message: Message) => {
     if (message.author.bot) return;
     if (!message.guild || !message.member) return;
 
-    // Ø§Ø³ØªØ«Ù†Ø§Ø¡ Ø·Ø§Ù‚Ù… Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© Ù…Ù† Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠØ©
+    // استثناء طاقم الإدارة من الرقابة التلقائية
     if (message.member.permissions.has(PermissionFlagsBits.Administrator) || message.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
       return;
     }
@@ -383,14 +383,14 @@ export function startAutonomousMonitor(client: Client): void {
     const content = message.content.trim();
     if (!content || content.length < 2) return;
 
-    // Ø£ÙˆÙ„Ø§Ù‹: Ø±ØµØ¯ ÙˆÙ…Ù†Ø¹ Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ§Øª Ù„Ø®ÙˆØ§Ø¯Ù… Ø£Ø®Ø±Ù‰
+    // أولاً: رصد ومنع روابط الدعوات لخوادم أخرى
     if (InviteLinkFilter.containsInvite(content)) {
       await message.delete().catch(() => null);
       
       const inviteEmbed = new EmbedBuilder()
         .setColor(0xE74C3C)
-        .setTitle('ðŸš« Ù…Ù†Ø¹ Ù†Ø´Ø± Ø§Ù„Ø±ÙˆØ§Ø¨Ø·')
-        .setDescription(`ÙŠØ§ ${message.member}ØŒ ÙŠÙ…Ù†Ø¹ Ù…Ù†Ø¹Ø§Ù‹ Ø¨Ø§ØªØ§Ù‹ Ù†Ø´Ø± Ø±ÙˆØ§Ø¨Ø· Ø¯Ø¹ÙˆØ§Øª Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ ÙÙŠ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø¹Ø§Ù…Ø© Ù„Ù…ÙƒØ§ÙØ­Ø© Ø§Ù„ØªØ±ÙˆÙŠØ¬ Ø§Ù„Ø¹Ø´ÙˆØ§Ø¦ÙŠ.`)
+        .setTitle('🚫 منع نشر الروابط')
+        .setDescription(`يا ${message.member}، يمنع منعاً باتاً نشر روابط دعوات ديسكورد في القنوات العامة لمكافحة الترويج العشوائي.`)
         .setTimestamp();
       
       const inviteMsg = await (message.channel as any).send({ content: `${message.member}`, embeds: [inviteEmbed] }).catch(() => null);
@@ -398,16 +398,16 @@ export function startAutonomousMonitor(client: Client): void {
         setTimeout(() => inviteMsg.delete().catch(() => null), 8000);
       }
 
-      // Ø¥Ø±Ø³Ø§Ù„ Ø¨Ù„Ø§Øº ÙÙŠ Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ
+      // إرسال بلاغ في السجل الإداري
       const logChannel = findLogChannel(message.guild);
       if (logChannel) {
         const inviteLog = new EmbedBuilder()
           .setColor(0xE67E22)
-          .setTitle('ðŸ›¡ï¸ Ù…Ø­Ø§ÙˆÙ„Ø© Ù†Ø´Ø± Ø±Ø§Ø¨Ø· Ø¯Ø¹ÙˆØ© Ù…Ø®ÙÙŠ')
+          .setTitle('🛡️ محاولة نشر رابط دعوة مخفي')
           .addFields(
-            { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
-            { name: 'ðŸ“º Ø§Ù„Ù‚Ù†Ø§Ø©', value: `<#${message.channelId}>`, inline: true },
-            { name: 'ðŸ“ Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø§Ø¨Ø·', value: `\`\`\`${content}\`\`\`` }
+            { name: '👤 العضو', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
+            { name: '📺 القناة', value: `<#${message.channelId}>`, inline: true },
+            { name: '📝 محتوى الرابط', value: `\`\`\`${content}\`\`\`` }
           )
           .setTimestamp();
         await logChannel.send({ embeds: [inviteLog] }).catch(() => null);
@@ -415,15 +415,15 @@ export function startAutonomousMonitor(client: Client): void {
       return;
     }
 
-    // Ø«Ø§Ù†ÙŠØ§Ù‹: ÙØ­Øµ ÙˆÙƒØ´Ù Ø§Ù„Ø³Ø¨Ø§Ù… ÙˆØ§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…ØªÙƒØ±Ø±Ø© Ø§Ù„Ø³Ø±ÙŠØ¹Ø©
+    // ثانياً: فحص وكشف السبام والرسائل المتكررة السريعة
     if (isSpamming(message.author.id)) {
       const spamRecord = spamTracker.get(message.author.id)!;
       if (!spamRecord.warned) {
         spamRecord.warned = true;
         const embed = new EmbedBuilder()
           .setColor(0xF39C12)
-          .setTitle('ðŸš¨ Ø¥Ù†Ø°Ø§Ø± Ø³Ø¨Ø§Ù… ÙˆØ¥ØºØ±Ø§Ù‚ Ø´Ø§Øª')
-          .setDescription(`ÙŠØ§ ${message.member}ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„ØªÙˆÙ‚Ù Ø¹Ù† Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø¨Ø³Ø±Ø¹Ø© ÙƒØ¨ÙŠØ±Ø© Ù„ØªØ¬Ù†Ø¨ Ø§Ù„ØªØ¹Ø±Ø¶ Ù„ÙƒØªÙ… ÙÙˆØ±ÙŠ!`)
+          .setTitle('🚨 إنذار سبام وإغراق شات')
+          .setDescription(`يا ${message.member}، يرجى التوقف عن إرسال الرسائل بسرعة كبيرة لتجنب التعرض لكتم فوري!`)
           .setTimestamp();
         
         const spamMsg = await (message.channel as any).send({ content: `${message.member}`, embeds: [embed] }).catch(() => null);
@@ -431,21 +431,21 @@ export function startAutonomousMonitor(client: Client): void {
           setTimeout(() => spamMsg.delete().catch(() => null), 7000);
         }
       }
-      // Ù…Ø³Ø­ Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ø³Ø¨Ø§Ù… Ø§Ù„Ù…ÙƒØ±Ø±Ø© ÙÙˆØ±Ø§Ù‹
+      // مسح رسائل السبام المكررة فوراً
       await message.delete().catch(() => null);
       return;
     }
 
-    // ØªØ¬Ù†Ø¨ Ø§Ø³ØªÙ‡Ù„Ø§Ùƒ API Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ø¨Ø´ÙƒÙ„ Ù…ÙØ±Ø· (Throttle: ØªØ­Ù„ÙŠÙ„ ÙˆØ§Ø­Ø¯ ÙƒÙ„ Ø«Ø§Ù†ÙŠØªÙŠÙ† Ù„ÙƒÙ„ Ù…Ø³ØªØ®Ø¯Ù…)
+    // تجنب استهلاك API الذكاء الاصطناعي بشكل مفرط (Throttle: تحليل واحد كل ثانيتين لكل مستخدم)
     const lastAnalysis = analysisCache.get(message.author.id) ?? 0;
     const now = Date.now();
     if (now - lastAnalysis < 2000) return;
     
-    // ÙØ­Øµ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø°Ø§Øª Ø§Ù„Ø­Ø¬Ù… Ø§Ù„Ù…Ù†Ø§Ø³Ø¨ Ù„ØªÙØ§Ø¯ÙŠ ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø¬Ù…Ù„ Ø§Ù„Ø¨Ø³ÙŠØ·Ø© Ù…Ø«Ù„ "Ù‡Ù„Ø§" Ø£Ùˆ "Ø´ÙƒØ±Ø§"
+    // فحص الرسائل ذات الحجم المناسب لتفادي تحليل الجمل البسيطة مثل "هلا" أو "شكرا"
     if (content.length < 5) return;
     analysisCache.set(message.author.id, now);
 
-    // Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„ÙØ¹Ù„ÙŠ Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
+    // التحليل الفعلي لمحتوى الرسالة بالذكاء الاصطناعي
     const result = await analyzeContentWithAI(content, message.author.username);
 
     if (result.isOffensive && result.suggestedAction !== 'none') {
@@ -453,7 +453,7 @@ export function startAutonomousMonitor(client: Client): void {
     }
   });
 
-  // 3. Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØªØ³Ø¬ÙŠÙ„ Ø¹Ù…Ù„ÙŠØ§Øª Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ (Message Delete Auditor)
+  // 3. مراقبة وتسجيل عمليات حذف الرسائل (Message Delete Auditor)
   client.on(Events.MessageDelete, async (message) => {
     if (!message.guild || message.author?.bot) return;
 
@@ -462,19 +462,19 @@ export function startAutonomousMonitor(client: Client): void {
 
     const embed = new EmbedBuilder()
       .setColor(0xE67E22)
-      .setTitle('ðŸ—‘ï¸ Ø£Ø±Ø´ÙØ© Ø­Ø°Ù Ø±Ø³Ø§Ù„Ø©')
+      .setTitle('🗑️ أرشفة حذف رسالة')
       .addFields(
-        { name: 'ðŸ‘¤ ÙƒØ§ØªØ¨ Ø§Ù„Ø±Ø³Ø§Ù„Ø©', value: message.author?.tag ?? 'ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ', inline: true },
-        { name: 'ðŸ“º Ù‚Ù†Ø§Ø© Ø§Ù„ÙƒØªØ§Ø¨Ø©', value: `<#${message.channelId}>`, inline: true },
-        { name: 'ðŸ“ Ù†Øµ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø­Ø°ÙˆÙØ©', value: `\`\`\`${message.content?.slice(0, 800) || '(Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù†Øµ Ù„Ù„Ø±Ø³Ø§Ù„Ø© Ø£Ùˆ Ù…ÙŠØ¯ÙŠØ§ ÙÙ‚Ø·)'}\`\`\`` }
+        { name: '👤 كاتب الرسالة', value: message.author?.tag ?? 'غير معروف', inline: true },
+        { name: '📺 قناة الكتابة', value: `<#${message.channelId}>`, inline: true },
+        { name: '📝 نص الرسالة المحذوفة', value: `\`\`\`${message.content?.slice(0, 800) || '(لا يوجد نص للرسالة أو ميديا فقط)'}\`\`\`` }
       )
-      .setFooter({ text: `Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„Ø±Ù‚Ù…ÙŠ Ù„Ù„Ù…Ø±Ø³Ù„: ${message.author?.id ?? 'ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ'}` })
+      .setFooter({ text: `المعرف الرقمي للمرسل: ${message.author?.id ?? 'غير معروف'}` })
       .setTimestamp();
 
     await logChannel.send({ embeds: [embed] }).catch(() => null);
   });
 
-  // 4. Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØªØ³Ø¬ÙŠÙ„ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ (Message Update Auditor)
+  // 4. مراقبة وتسجيل تعديل الرسائل (Message Update Auditor)
   client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
     if (!newMsg.guild || newMsg.author?.bot) return;
     if (!oldMsg.content || !newMsg.content || oldMsg.content === newMsg.content) return;
@@ -484,20 +484,20 @@ export function startAutonomousMonitor(client: Client): void {
 
     const embed = new EmbedBuilder()
       .setColor(0x3498DB)
-      .setTitle('âœï¸ Ø£Ø±Ø´ÙØ© ØªØ¹Ø¯ÙŠÙ„ Ø±Ø³Ø§Ù„Ø©')
+      .setTitle('✏️ أرشفة تعديل رسالة')
       .addFields(
-        { name: 'ðŸ‘¤ Ø§Ù„ÙƒØ§ØªØ¨ Ø§Ù„Ù…Ø³Ø¤ÙˆÙ„', value: newMsg.author?.tag ?? 'ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ', inline: true },
-        { name: 'ðŸ“º Ù‚Ù†Ø§Ø© Ø§Ù„Ø±Ø³Ø§Ù„Ø©', value: `<#${newMsg.channelId}>`, inline: true },
-        { name: 'ðŸ“ Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ù‚Ø¨Ù„ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„', value: `\`\`\`${oldMsg.content.slice(0, 450)}\`\`\`` },
-        { name: 'ðŸ“ Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ø¨Ø¹Ø¯ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„', value: `\`\`\`${newMsg.content.slice(0, 450)}\`\`\`` }
+        { name: '👤 الكاتب المسؤول', value: newMsg.author?.tag ?? 'غير معروف', inline: true },
+        { name: '📺 قناة الرسالة', value: `<#${newMsg.channelId}>`, inline: true },
+        { name: '📝 محتوى الرسالة قبل التعديل', value: `\`\`\`${oldMsg.content.slice(0, 450)}\`\`\`` },
+        { name: '📝 محتوى الرسالة بعد التعديل', value: `\`\`\`${newMsg.content.slice(0, 450)}\`\`\`` }
       )
-      .setFooter({ text: `Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„Ø±Ù‚Ù…ÙŠ Ù„Ù„Ù…Ø±Ø³Ù„: ${newMsg.author?.id ?? 'ØºÙŠØ± Ù…Ø¹Ø±ÙˆÙ'}` })
+      .setFooter({ text: `المعرف الرقمي للمرسل: ${newMsg.author?.id ?? 'غير معروف'}` })
       .setTimestamp();
 
     await logChannel.send({ embeds: [embed] }).catch(() => null);
   });
 
-  // 5. Ù…Ø±Ø§Ù‚Ø¨Ø© Ø¯Ø®ÙˆÙ„ ÙˆØ®Ø±ÙˆØ¬ Ø§Ù„ØºØ±Ù Ø§Ù„ØµÙˆØªÙŠØ© ÙˆØ£Ù†Ø´Ø·Ø© Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ (Voice State Auditor)
+  // 5. مراقبة دخول وخروج الغرف الصوتية وأنشطة الأعضاء (Voice State Auditor)
   client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
     if (newState.member?.user.bot) return;
     
@@ -506,39 +506,39 @@ export function startAutonomousMonitor(client: Client): void {
     if (!logChannel) return;
 
     if (!oldState.channelId && newState.channelId) {
-      // Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ù‚Ù†Ø§Ø© ØµÙˆØªÙŠØ©
+      // انضمام لقناة صوتية
       const embed = new EmbedBuilder()
         .setColor(0x2ECC71)
-        .setTitle('ðŸŽ¤ Ø§Ù†Ø¶Ù…Ø§Ù… Ù„Ù‚Ù†Ø§Ø© ØµÙˆØªÙŠØ©')
-        .setDescription(`Ø¯Ø®Ù„ Ø§Ù„Ø¹Ø¶Ùˆ **${newState.member?.user.tag}** Ø¥Ù„Ù‰ ØµØ§Ù„ÙˆÙ† Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ø§Ù„ØµÙˆØªÙŠØ© Ø¨Ù†Ø¬Ø§Ø­.`)
+        .setTitle('🎤 انضمام لقناة صوتية')
+        .setDescription(`دخل العضو **${newState.member?.user.tag}** إلى صالون المحادثة الصوتية بنجاح.`)
         .addFields(
-          { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…ØªØµÙ„', value: `${newState.member?.displayName}`, inline: true },
-          { name: 'ðŸ”Š Ø§Ø³Ù… Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„ØµÙˆØªÙŠØ©', value: `<#${newState.channelId}>`, inline: true }
+          { name: '👤 العضو المتصل', value: `${newState.member?.displayName}`, inline: true },
+          { name: '🔊 اسم القناة الصوتية', value: `<#${newState.channelId}>`, inline: true }
         )
         .setTimestamp();
       await logChannel.send({ embeds: [embed] }).catch(() => null);
     } else if (oldState.channelId && !newState.channelId) {
-      // Ù…ØºØ§Ø¯Ø±Ø© Ù‚Ù†Ø§Ø© ØµÙˆØªÙŠØ©
+      // مغادرة قناة صوتية
       const embed = new EmbedBuilder()
         .setColor(0xE74C3C)
-        .setTitle('ðŸš¶ Ù…ØºØ§Ø¯Ø±Ø© Ù‚Ù†Ø§Ø© ØµÙˆØªÙŠØ©')
-        .setDescription(`Ø®Ø±Ø¬ Ø§Ù„Ø¹Ø¶Ùˆ **oldState.member?.user.tag** Ø£Ùˆ Ø§Ù†Ù‚Ø·Ø¹ Ø§ØªØµØ§Ù„Ù‡ Ø¨Ø§Ù„ØµØ§Ù„ÙˆÙ† Ø§Ù„ØµÙˆØªÙŠ.`)
+        .setTitle('🚶 مغادرة قناة صوتية')
+        .setDescription(`خرج العضو **oldState.member?.user.tag** أو انقطع اتصاله بالصالون الصوتي.`)
         .addFields(
-          { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…ØºØ§Ø¯Ø±', value: `${oldState.member?.displayName}`, inline: true },
-          { name: 'ðŸ”Š Ø§Ø³Ù… Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù…ØºØ§Ø¯ÙŽØ±Ø©', value: `<#${oldState.channelId}>`, inline: true }
+          { name: '👤 العضو المغادر', value: `${oldState.member?.displayName}`, inline: true },
+          { name: '🔊 اسم القناة المغادَرة', value: `<#${oldState.channelId}>`, inline: true }
         )
         .setTimestamp();
       await logChannel.send({ embeds: [embed] }).catch(() => null);
     } else if (oldState.channelId && newState.channelId && oldState.channelId !== newState.channelId) {
-      // Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ø¨ÙŠÙ† Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„ØµÙˆØªÙŠØ©
+      // الانتقال بين القنوات الصوتية
       const embed = new EmbedBuilder()
         .setColor(0xF39C12)
-        .setTitle('ðŸ”€ Ø§Ù†ØªÙ‚Ø§Ù„ Ø¨ÙŠÙ† Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„ØµÙˆØªÙŠØ©')
-        .setDescription(`Ø§Ù†ØªÙ‚Ù„ Ø§Ù„Ø¹Ø¶Ùˆ **${newState.member?.user.tag}** Ù…Ù† ØµØ§Ù„ÙˆÙ† Ø¥Ù„Ù‰ Ø¢Ø®Ø±.`)
+        .setTitle('🔀 انتقال بين القنوات الصوتية')
+        .setDescription(`انتقل العضو **${newState.member?.user.tag}** من صالون إلى آخر.`)
         .addFields(
-          { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ', value: `${newState.member?.displayName}`, inline: true },
-          { name: 'ðŸ”Š Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©', value: `<#${oldState.channelId}>`, inline: true },
-          { name: 'ðŸ”Š Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©', value: `<#${newState.channelId}>`, inline: true }
+          { name: '👤 العضو', value: `${newState.member?.displayName}`, inline: true },
+          { name: '🔊 القناة السابقة', value: `<#${oldState.channelId}>`, inline: true },
+          { name: '🔊 القناة الجديدة', value: `<#${newState.channelId}>`, inline: true }
         )
         .setTimestamp();
       await logChannel.send({ embeds: [embed] }).catch(() => null);
@@ -547,60 +547,60 @@ export function startAutonomousMonitor(client: Client): void {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ø§Ù„ÙØ­ÙˆØµØ§Øª ÙˆØ§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ø°Ø§ØªÙŠ Ù„ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© (Self-Diagnostics Suite)
+//  نظام الفحوصات والتشخيص الذاتي لوحدة المراقبة (Self-Diagnostics Suite)
 // ============================================================
 export function runMonitorDiagnostics(): { success: boolean; log: string[] } {
   const log: string[] = [];
   let success = true;
 
   try {
-    log.push('[Diagnostic-Monitor] Ø¨Ø¯Ø¡ Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† ØªØ´ØºÙŠÙ„ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ§Ù„Ø­Ù…Ø§ÙŠØ©...');
+    log.push('[Diagnostic-Monitor] بدء التحقق من تشغيل وحدة المراقبة والحماية...');
 
-    // 1. Ø§Ø®ØªØ¨Ø§Ø± ÙƒØ§Ø´Ù Ø§Ù„Ø³Ø¨Ø§Ù… ÙˆØ§Ù„Ù…Ø¹Ø¯Ù„
+    // 1. اختبار كاشف السبام والمعدل
     const testUserId = 'mock_user_123';
     let spamResult = false;
     for (let i = 0; i < 8; i++) {
       spamResult = isSpamming(testUserId);
     }
     if (!spamResult) {
-      log.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 1: ÙƒØ§Ø´Ù Ø§Ù„Ø³Ø¨Ø§Ù… Ù„Ù… ÙŠØ³Ø¬Ù„ ØªØ¬Ø§ÙˆØ²Ø§Ù‹ Ù„Ù„Ù…Ø¹Ø¯Ù„.');
+      log.push('❌ فشل اختبار 1: كاشف السبام لم يسجل تجاوزاً للمعدل.');
       success = false;
     } else {
-      log.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 1: ÙƒØ§Ø´Ù Ø§Ù„Ø³Ø¨Ø§Ù… Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ ÙŠØ¹Ù…Ù„ Ø¨Ø¯Ù‚Ø©.');
+      log.push('✅ نجاح اختبار 1: كاشف السبام التلقائي يعمل بدقة.');
     }
 
-    // 2. Ø§Ø®ØªØ¨Ø§Ø± ØªØµÙÙŠØ© Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ§Øª Ø§Ù„Ù…Ù…Ù†ÙˆØ¹Ø©
-    const sampleInvite = 'Ø§Ù†Ø¶Ù… Ù„Ø³ÙŠØ±ÙØ±Ù†Ø§ Ù‡Ù†Ø§: https://discord.gg/test-invite-link';
+    // 2. اختبار تصفية روابط الدعوات الممنوعة
+    const sampleInvite = 'انضم لسيرفرنا هنا: https://discord.gg/test-invite-link';
     if (!InviteLinkFilter.containsInvite(sampleInvite)) {
-      log.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 2: ÙÙ„ØªØ± Ø§Ù„Ø¯Ø¹ÙˆØ§Øª Ù„Ù… ÙŠØ­Ø¯Ø¯ Ø±Ø§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ© Ø§Ù„ØµØ§Ù„Ø­.');
+      log.push('❌ فشل اختبار 2: فلتر الدعوات لم يحدد رابط الدعوة الصالح.');
       success = false;
     } else {
-      log.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 2: ÙÙ„ØªØ± Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ø¯Ø¹ÙˆØ§Øª ÙŠØªØ¹Ø±Ù Ø¹Ù„ÙŠÙ‡Ø§ Ø¨Ù†Ø¬Ø§Ø­.');
+      log.push('✅ نجاح اختبار 2: فلتر روابط الدعوات يتعرف عليها بنجاح.');
     }
 
-    // 3. Ø§Ø®ØªØ¨Ø§Ø± ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙˆØªØ±Ø§ÙƒÙ…Ù‡Ø§
+    // 3. اختبار تسجيل التحذيرات وتراكمها
     const dummyUserId = 'dummy_user_999';
     clearUserWarnings(dummyUserId);
-    addWarning(dummyUserId, 'Ø¥Ø²Ø¹Ø§Ø¬ Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡');
-    addWarning(dummyUserId, 'Ø§Ø³ØªØ®Ø¯Ø§Ù… ÙƒÙ„Ù…Ø§Øª ØºÙŠØ± Ù„Ø§Ø¦Ù‚Ø©');
+    addWarning(dummyUserId, 'إزعاج الأعضاء');
+    addWarning(dummyUserId, 'استخدام كلمات غير لائقة');
     const totalWarns = getWarningCount(dummyUserId);
     if (totalWarns !== 2) {
-      log.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 3: Ù†Ø¸Ø§Ù… ØªØ±Ø§ÙƒÙ… ÙˆØ­Ø³Ø§Ø¨ ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ ØºÙŠØ± Ø¯Ù‚ÙŠÙ‚.');
+      log.push('❌ فشل اختبار 3: نظام تراكم وحساب تحذيرات الأعضاء غير دقيق.');
       success = false;
     } else {
-      log.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 3: Ù†Ø¸Ø§Ù… Ø§Ø­ØªØ³Ø§Ø¨ ÙˆØªØ±Ø§ÙƒÙ… Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙŠØ¹Ù…Ù„ Ø¨Ù†Ø¬Ø§Ø­.');
+      log.push('✅ نجاح اختبار 3: نظام احتساب وتراكم التحذيرات يعمل بنجاح.');
     }
 
-    // 4. Ø§Ø®ØªØ¨Ø§Ø± ØªØµÙÙŠØ± Ø³Ø¬Ù„ ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡
+    // 4. اختبار تصفير سجل تحذيرات الأعضاء
     clearUserWarnings(dummyUserId);
     if (getWarningCount(dummyUserId) !== 0) {
-      log.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 4: Ù†Ø¸Ø§Ù… ØªÙØ±ÙŠØº ÙˆØªØµÙÙŠØ± ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ù„Ù… ÙŠÙ†Ø¬Ø­.');
+      log.push('❌ فشل اختبار 4: نظام تفريغ وتصفير تحذيرات الأعضاء لم ينجح.');
       success = false;
     } else {
-      log.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 4: Ù†Ø¸Ø§Ù… ØªØµÙÙŠØ± Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª ÙŠØ¹Ù…Ù„ Ø¨Ø¯ÙˆÙ† Ø£Ø®Ø·Ø§Ø¡.');
+      log.push('✅ نجاح اختبار 4: نظام تصفير التحذيرات يعمل بدون أخطاء.');
     }
 
-    // 5. Ø§Ø®ØªØ¨Ø§Ø± Ø¯Ø±Ø¹ Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø³ÙŠØ±ÙØ± Ù…Ù† Ù‡Ø¬Ù…Ø§Øª Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù… (Anti-Raid)
+    // 5. اختبار درع حماية السيرفر من هجمات الانضمام (Anti-Raid)
     AntiRaidShield.liftLockdown();
     let raidDetected = false;
     for (let i = 0; i < 10; i++) {
@@ -609,28 +609,28 @@ export function runMonitorDiagnostics(): { success: boolean; log: string[] } {
       }
     }
     if (!raidDetected || !AntiRaidShield.isLockdown()) {
-      log.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 5: Ø¯Ø±Ø¹ Anti-Raid Ù„Ù… ÙŠÙƒØªØ´Ù Ù…Ø­Ø§ÙƒØ§Ø© Ù‡Ø¬ÙˆÙ… Ø§Ù„Ø§Ù†Ø¶Ù…Ø§Ù….');
+      log.push('❌ فشل اختبار 5: درع Anti-Raid لم يكتشف محاكاة هجوم الانضمام.');
       success = false;
     } else {
-      log.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 5: Ø¯Ø±Ø¹ Ø­Ù…Ø§ÙŠØ© Ø§Ù„Ø³ÙŠØ±ÙØ± Anti-Raid ÙŠØ¹Ù…Ù„ Ø¨Ù†Ø¬Ø§Ø­ Ø¹Ù†Ø¯ ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø¶ØºØ·.');
+      log.push('✅ نجاح اختبار 5: درع حماية السيرفر Anti-Raid يعمل بنجاح عند تفعيل الضغط.');
     }
 
-    // Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„ØªØ´Ø®ÙŠØµ ÙˆØ±ÙØ¹ Ø§Ù„Ù†ØªØ§Ø¦Ø¬
-    log.push(`[Diagnostic-Monitor] Ø§Ù†ØªÙ‡Øª Ø§Ù„ÙØ­ÙˆØµØ§Øª Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„Ø¹Ø§Ù…Ø©: ${success ? 'Ù†Ø§Ø¬Ø­' : 'ÙØ§Ø´Ù„'}`);
+    // إنهاء التشخيص ورفع النتائج
+    log.push(`[Diagnostic-Monitor] انتهت الفحوصات بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
   } catch (error: any) {
     success = false;
-    log.push(`âŒ Ø­Ø¯Ø« Ø®Ø·Ø£ ÙØ§Ø¯Ø­ Ø£Ø«Ù†Ø§Ø¡ ØªØ´ØºÙŠÙ„ ØªØ´Ø®ÙŠØµ Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø©: ${error.message}`);
+    log.push(`❌ حدث خطأ فادح أثناء تشغيل تشخيص المراقبة: ${error.message}`);
   }
 
   return { success, log };
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ø­Ø³Ø§Ø³Ø© ÙˆØ§Ù„Ø£Ù…Ù† (Role & Permission Guard)
+//  نظام مراقبة الصلاحيات الحساسة والأمن (Role & Permission Guard)
 // ============================================================
 export class RolePermsGuard {
   /**
-   * ÙØ­Øµ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ù…Ù…Ù†ÙˆØ­Ø© Ù„Ù„Ø±ØªØ¨Ø© ÙˆØªØ­Ø¯ÙŠØ¯ Ù…Ø¯Ù‰ Ø®Ø·ÙˆØ±ØªÙ‡Ø§
+   * فحص الصلاحيات الممنوحة للرتبة وتحديد مدى خطورتها
    */
   static isDangerousRole(permissionsBitfield: bigint): boolean {
     const dangerousPerms = [
@@ -652,7 +652,7 @@ export class RolePermsGuard {
   }
 
   /**
-   * Ø¥Ø±Ø³Ø§Ù„ ØªÙ†Ø¨ÙŠÙ‡ Ø£Ù…Ù†ÙŠ Ø¹Ù†Ø¯ ØªØ¹Ø¯ÙŠÙ„ ØµÙ„Ø§Ø­ÙŠØ§Øª Ø±ØªØ¨Ø© Ø£Ùˆ Ù…Ù†Ø­Ù‡Ø§ ØµÙ„Ø§Ø­ÙŠØ§Øª Ø¥Ø¯Ø§Ø±ÙŠØ©
+   * إرسال تنبيه أمني عند تعديل صلاحيات رتبة أو منحها صلاحيات إدارية
    */
   static async auditRoleUpdate(
     guild: any,
@@ -669,14 +669,14 @@ export class RolePermsGuard {
     if (!oldDangerous && newDangerous) {
       const securityEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('ðŸš¨ ØªØ­Ø°ÙŠØ± Ø£Ù…Ù†ÙŠ: ØµÙ„Ø§Ø­ÙŠØ§Øª Ø¥Ø¯Ø§Ø±ÙŠØ© Ù…Ù…Ù†ÙˆØ­Ø© Ø±ØªØ¨Ø©')
+        .setTitle('🚨 تحذير أمني: صلاحيات إدارية ممنوحة رتبة')
         .setDescription(
-          `ØªÙ… ØªØ­Ø¯ÙŠØ« ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ø±ØªØ¨Ø© **${newRole.name}** Ù„ØªØ´Ù…Ù„ ØµÙ„Ø§Ø­ÙŠØ§Øª Ø¥Ø¯Ø§Ø±ÙŠØ© Ø®Ø·ÙŠØ±Ø©.\n` +
-          `**Ø§Ù„Ù…Ø³Ø¤ÙˆÙ„ Ø¹Ù† Ø§Ù„ØªØ¹Ø¯ÙŠÙ„:** ${executorName}`
+          `تم تحديث صلاحيات الرتبة **${newRole.name}** لتشمل صلاحيات إدارية خطيرة.\n` +
+          `**المسؤول عن التعديل:** ${executorName}`
         )
         .addFields(
-          { name: 'Ø±Ù‚Ù… Ø§Ù„Ø±ØªØ¨Ø© (ID)', value: `\`${newRole.id}\``, inline: true },
-          { name: 'Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ù…Ø¹ÙŠÙ†', value: `${newRole.hexColor}`, inline: true }
+          { name: 'رقم الرتبة (ID)', value: `\`${newRole.id}\``, inline: true },
+          { name: 'اللون المعين', value: `${newRole.hexColor}`, inline: true }
         )
         .setTimestamp();
 
@@ -686,7 +686,7 @@ export class RolePermsGuard {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ù…Ù†Ø¹ ØªÙƒØ±Ø§Ø± Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ù…ØªØ·Ø§Ø¨Ù‚ (Message Deduplicator)
+//  نظام منع تكرار المحتوى المتطابق (Message Deduplicator)
 // ============================================================
 interface UserHistoryEntry {
   contentHash: string;
@@ -696,17 +696,17 @@ const userMessageHistory = new Map<string, UserHistoryEntry[]>();
 
 export class MessageDeduplicator {
   /**
-   * ÙØ­Øµ ØªÙƒØ±Ø§Ø± Ø§Ù„Ù…Ø­ØªÙˆÙ‰ ÙˆØ­Ø¸Ø± Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚Ø© Ø§Ù„Ù…ÙƒØ±Ø±Ø© ÙÙŠ Ù‚Ù†ÙˆØ§Øª Ù…Ø®ØªÙ„ÙØ©
+   * فحص تكرار المحتوى وحظر الرسائل المطابقة المكررة في قنوات مختلفة
    */
   static isDuplicate(userId: string, content: string, limitCount: number = 3): boolean {
     const now = Date.now();
     const cleanContent = content.trim().toLowerCase();
-    if (cleanContent.length < 10) return false; // ØªØ¬Ø§Ù‡Ù„ Ø§Ù„Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù‚ØµÙŠØ±Ø©
+    if (cleanContent.length < 10) return false; // تجاهل الرسائل القصيرة
 
-    const hash = cleanContent; // ØªØ¨Ø³ÙŠØ· Ù„ØªØ¬Ù†Ø¨ ØªØ¹Ù‚ÙŠØ¯ Ø§Ù„Ù‡Ø´
+    const hash = cleanContent; // تبسيط لتجنب تعقيد الهش
     const history = userMessageHistory.get(userId) ?? [];
 
-    // Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© (Ø£ÙƒØ¨Ø± Ù…Ù† 60 Ø«Ø§Ù†ÙŠØ©)
+    // إزالة السجلات القديمة (أكبر من 60 ثانية)
     const validHistory = history.filter(h => now - h.timestamp <= 60000);
 
     const matches = validHistory.filter(h => h.contentHash === hash);
@@ -718,7 +718,7 @@ export class MessageDeduplicator {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª ÙˆØ§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ØºÙŠØ± Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø© (Shadow Ban System)
+//  نظام الحجب الصامت والمراقبة غير المباشرة (Shadow Ban System)
 // ============================================================
 const shadowBannedUsers = new Set<string>();
 
@@ -736,25 +736,25 @@ export class ShadowBanSystem {
   }
 
   /**
-   * Ù…Ø¹Ø§Ù„Ø¬Ø© Ø±Ø³Ø§Ø¦Ù„ Ø§Ù„Ù…Ù†Ø¯Ø±Ø¬ÙŠÙ† ØªØ­Øª Ø§Ù„Ø­Ø¬Ø¨ Ø§Ù„ØµØ§Ù…Øª (Ø­Ø°Ù Ø±Ø³Ø§Ø¦Ù„Ù‡Ù… ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¨ØµÙ…Øª Ø¯ÙˆÙ† ØªÙ†Ø¨ÙŠÙ‡)
+   * معالجة رسائل المندرجين تحت الحجب الصامت (حذف رسائلهم تلقائياً بصمت دون تنبيه)
    */
   static async handleMessage(message: Message): Promise<boolean> {
     if (this.isShadowBanned(message.author.id)) {
       await message.delete().catch(() => null);
-      return true; // ØªÙ…Øª Ø§Ù„Ù…Ø¹Ø§Ù„Ø¬Ø© Ø¨Ù†Ø¬Ø§Ø­
+      return true; // تمت المعالجة بنجاح
     }
     return false;
   }
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØªØµÙÙŠØ© Ø§Ù„Ù…Ø±ÙÙ‚Ø§Øª ÙˆØ§Ù„ÙˆØ³Ø§Ø¦Ø· (Media Filter System)
+//  نظام مراقبة وتصفية المرفقات والوسائط (Media Filter System)
 // ============================================================
 export class MediaFilterSystem {
-  private static MAX_ATTACHMENT_SIZE_MB = 15; // 15 Ù…ÙŠØ¬Ø§Ø¨Ø§ÙŠØª ÙƒØ­Ø¯ Ø£Ù‚ØµÙ‰ Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡
+  private static MAX_ATTACHMENT_SIZE_MB = 15; // 15 ميجابايت كحد أقصى للأعضاء
 
   /**
-   * ÙØ­Øµ Ø­Ø¬Ù… Ø§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ù…Ø±ÙÙ‚Ø© ÙˆØªÙ†Ø¨ÙŠÙ‡ Ø§Ù„Ø¹Ø¶Ùˆ Ø¥Ø°Ø§ ØªØ¬Ø§ÙˆØ²Øª Ø§Ù„Ø­Ø¯
+   * فحص حجم الملفات المرفقة وتنبيه العضو إذا تجاوزت الحد
    */
   static async validateAttachments(message: Message): Promise<boolean> {
     if (message.attachments.size === 0) return true;
@@ -770,10 +770,10 @@ export class MediaFilterSystem {
       await message.delete().catch(() => null);
       const limitEmbed = new EmbedBuilder()
         .setColor(0xE74C3C)
-        .setTitle('âš ï¸ Ø­Ø¬Ù… Ø§Ù„Ù…Ø±ÙÙ‚Ø§Øª ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„Ù…Ø³Ù…ÙˆØ­')
+        .setTitle('⚠️ حجم المرفقات يتجاوز الحد المسموح')
         .setDescription(
-          `ÙŠØ§ ${message.member}ØŒ Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ù„Ù…Ø±ÙÙ‚Ø§Øª Ù‡Ùˆ \`${this.MAX_ATTACHMENT_SIZE_MB}MB\`.\n` +
-          `ØªÙ… Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø© Ù„Ø­ÙØ¸ Ø³Ø¹Ø© ØªØ­Ù…ÙŠÙ„ Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø®Ø§Ø¯Ù….`
+          `يا ${message.member}، الحد الأقصى للمرفقات هو \`${this.MAX_ATTACHMENT_SIZE_MB}MB\`.\n` +
+          `تم حذف الرسالة لحفظ سعة تحميل قنوات الخادم.`
         )
         .setTimestamp();
       
@@ -788,13 +788,13 @@ export class MediaFilterSystem {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ù…ÙƒØ§ÙØ­Ø© ØªØ³Ø±ÙŠØ¨ Ø§Ù„ØªÙˆÙƒÙ†Ø§Øª ÙˆØ§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø³Ø© (Credential Protection)
+//  نظام مكافحة تسريب التوكنات والبيانات الحساسة (Credential Protection)
 // ============================================================
 export class CredentialProtection {
   private static tokenRegex = /[a-zA-Z0-9_\-]{24,28}\.[a-zA-Z0-9_\-]{6}\.[a-zA-Z0-9_\-]{27,38}/g;
 
   /**
-   * ÙØ­Øµ Ø§Ù„Ø´Ø§Øª Ù„Ù…Ù†Ø¹ ØªØ³Ø±ÙŠØ¨ Ø±Ù…ÙˆØ² Ø§Ù„Ø§ØªØµØ§Ù„ Ø§Ù„Ø®Ø§ØµØ© Ø¨Ø§Ù„Ø¨ÙˆØªØ§Øª (Bot Tokens)
+   * فحص الشات لمنع تسريب رموز الاتصال الخاصة بالبوتات (Bot Tokens)
    */
   static async scanForLeaks(message: Message): Promise<boolean> {
     if (this.tokenRegex.test(message.content)) {
@@ -802,10 +802,10 @@ export class CredentialProtection {
 
       const alertEmbed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('ðŸš¨ ØªØ­Ø°ÙŠØ±: ØªØ³Ø±ÙŠØ¨ Ø±Ù…Ø² Ø§ØªØµØ§Ù„ Ø¨ÙˆØª (Bot Token Leak)')
+        .setTitle('🚨 تحذير: تسريب رمز اتصال بوت (Bot Token Leak)')
         .setDescription(
-          `ÙŠØ§ ${message.member}ØŒ ØªÙ… Ø±ØµØ¯ Ù…Ø­Ø§ÙˆÙ„Ø© Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§ØªØµØ§Ù„ Ø¨ÙˆØª Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯.\n` +
-          `ØªÙ… Ø­Ø°Ù Ø§Ù„Ø±Ø³Ø§Ù„Ø© ÙÙˆØ±Ø§Ù‹ Ù„Ø­Ù…Ø§ÙŠØ© Ø£Ù…Ø§Ù† Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØ§Ù„Ø¨ÙˆØªØ§Øª Ø§Ù„ØªØ§Ø¨Ø¹Ø© Ù„Ù‡.`
+          `يا ${message.member}، تم رصد محاولة إرسال رمز اتصال بوت ديسكورد.\n` +
+          `تم حذف الرسالة فوراً لحماية أمان السيرفر والبوتات التابعة له.`
         )
         .setTimestamp();
 
@@ -814,42 +814,42 @@ export class CredentialProtection {
         setTimeout(() => msg.delete().catch(() => null), 10000);
       }
 
-      // Ø¥Ø±Ø³Ø§Ù„ ØªÙ†Ø¨ÙŠÙ‡ ÙÙŠ Ø§Ù„Ø³Ø¬Ù„ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ
+      // إرسال تنبيه في السجل الإداري
       const logChannel = findLogChannel(message.guild);
       if (logChannel) {
         const securityAlert = new EmbedBuilder()
           .setColor(0xFF0000)
-          .setTitle('ðŸš¨ Ø®Ø±Ù‚ Ø£Ù…Ù†ÙŠ: ØªØ³Ø±ÙŠØ¨ Ø±Ù…Ø² Ø§ØªØµØ§Ù„ Ø¨ÙˆØª')
+          .setTitle('🚨 خرق أمني: تسريب رمز اتصال بوت')
           .addFields(
-            { name: 'ðŸ‘¤ Ø§Ù„Ø¹Ø¶Ùˆ Ø§Ù„Ù…ØªØ³Ø¨Ø¨', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
-            { name: 'ðŸ“º Ø§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØ©', value: `<#${message.channelId}>`, inline: true },
-            { name: 'ðŸ“ Ù†ÙˆØ¹ Ø§Ù„ØªØ³Ø±ÙŠØ¨ Ø§Ù„Ù…ÙƒØªØ´Ù', value: 'Discord Bot Token Pattern' }
+            { name: '👤 العضو المتسبب', value: `${message.author.tag} (\`${message.author.id}\`)`, inline: true },
+            { name: '📺 القناة المستهدفة', value: `<#${message.channelId}>`, inline: true },
+            { name: '📝 نوع التسريب المكتشف', value: 'Discord Bot Token Pattern' }
           )
           .setTimestamp();
         await logChannel.send({ embeds: [securityAlert] }).catch(() => null);
       }
-      return true; // ØªÙ… Ø±ØµØ¯ ØªØ³Ø±ÙŠØ¨
+      return true; // تم رصد تسريب
     }
     return false;
   }
 }
 
 // ============================================================
-//  Ù…Ø¹Ø¬Ù… ØªØµÙÙŠØ© Ø§Ù„Ø£Ù„ÙØ§Ø¸ ÙˆØ§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…Ø­Ø¸ÙˆØ±Ø© (Bad Word Dictionary)
+//  معجم تصفية الألفاظ والكلمات المحظورة (Bad Word Dictionary)
 // ============================================================
 export class BadWordDictionary {
   private static bannedWords: Set<string> = new Set([
-    'ÙƒØ³Ø§Ø®ØªÙƒ', 'Ù…Ù†ÙŠÙˆÙƒ', 'ÙƒØ³Ù…Ùƒ', 'Ù‚Ø­Ø¨Ø©', 'Ø´Ø±Ù…ÙˆØ·Ø©', 'Ø¹Ø±Øµ', 'Ø®ÙˆÙ„',
+    'كساختك', 'منيوك', 'كسمك', 'قحبة', 'شرموطة', 'عرص', 'خول',
     'fack', 'bitch', 'asshole', 'dick', 'pussy'
   ]);
 
   static isBanned(text: string): boolean {
     const words = text.toLowerCase().split(/\s+/);
     for (const word of words) {
-      // Ø¥Ø²Ø§Ù„Ø© Ø¹Ù„Ø§Ù…Ø§Øª Ø§Ù„ØªØ´ÙƒÙŠÙ„ ÙˆØ§Ù„Ø­Ø±ÙˆÙ Ø§Ù„Ø²Ø§Ø¦Ø¯Ø©
+      // إزالة علامات التشكيل والحروف الزائدة
       const cleanWord = word
-        .replace(/[\u064B-\u065F]/g, '') // Ø¥Ø²Ø§Ù„Ø© Ø§Ù„ØªØ´ÙƒÙŠÙ„ Ø§Ù„Ø¹Ø±Ø¨ÙŠ
-        .replace(/(.)\1+/g, '$1');       // Ø¥Ø²Ø§Ù„Ø© Ø§Ù„ØªÙƒØ±Ø§Ø± (Ù…Ø«Ø§Ù„: ÙƒØ³Ù…Ù…Ù…Ùƒ -> ÙƒØ³Ù…Ùƒ)
+        .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل العربي
+        .replace(/(.)\1+/g, '$1');       // إزالة التكرار (مثال: كسمممك -> كسمك)
       
       if (this.bannedWords.has(cleanWord)) {
         return true;
@@ -868,7 +868,7 @@ export class BadWordDictionary {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ø§Ù„Ø±Ø¯ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ø³Ø¦Ù„Ø© Ø§Ù„Ø´Ø§Ø¦Ø¹Ø© (Auto Responder System)
+//  نظام الرد التلقائي على الأسئلة الشائعة (Auto Responder System)
 // ============================================================
 interface AutoResponse {
   keywords: string[];
@@ -878,26 +878,26 @@ interface AutoResponse {
 export class AutoResponder {
   private static responses: AutoResponse[] = [
     {
-      keywords: ['ÙƒÙŠÙ', 'Ø§Ø´ØªØ±ÙŠ', 'Ù…ØªØ¬Ø±', 'Ø§Ù„Ø·Ù„Ø¨'],
-      reply: 'ðŸ›’ Ù„Ø´Ø±Ø§Ø¡ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ù…Ù† Ù…ØªØ¬Ø±Ù†Ø§ Ø§Ù„Ù…ØªÙ…ÙŠØ²ØŒ ÙŠØ±Ø¬Ù‰ ÙØªØ­ ØªØ°ÙƒØ±Ø© Ø¯Ø¹Ù… Ù…Ø§Ù„ÙŠ ÙÙŠ Ù‚Ù†Ø§Ø© ðŸŽ«-ØªØ°Ø§ÙƒØ±-Ø§Ù„Ø¯Ø¹Ù… ÙˆØ³ÙŠÙ‚ÙˆÙ… Ø§Ù„Ù…Ø´Ø±Ù Ø§Ù„Ù…Ø®ØªØµ Ø¨Ø®Ø¯Ù…ØªÙƒ ÙÙˆØ±Ø§Ù‹.'
+      keywords: ['كيف', 'اشتري', 'متجر', 'الطلب'],
+      reply: '🛒 لشراء المنتجات من متجرنا المتميز، يرجى فتح تذكرة دعم مالي في قناة 🎫-تذاكر-الدعم وسيقوم المشرف المختص بخدمتك فوراً.'
     },
     {
-      keywords: ['Ù‚ÙˆØ§Ù†ÙŠÙ†', 'Ø§Ù„Ù‚Ø§Ù†ÙˆÙ†', 'Ù‚Ø§Ù†ÙˆÙ†'],
-      reply: 'ðŸ“œ ÙŠØ±Ø¬Ù‰ Ù‚Ø±Ø§Ø¡Ø© ÙˆØ§Ø­ØªØ±Ø§Ù… Ù‚ÙˆØ§Ù†ÙŠÙ† Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ù…ØªÙˆØ§Ø¬Ø¯Ø© ÙÙŠ Ù‚Ù†Ø§Ø© ðŸ“œ-Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ† Ù„ØªØ¬Ù†Ø¨ Ø§Ù„ØªØ¹Ø±Ø¶ Ù„Ø£ÙŠ Ø¹Ù‚ÙˆØ¨Ø§Øª Ø¥Ø¯Ø§Ø±ÙŠØ©.'
+      keywords: ['قوانين', 'القانون', 'قانون'],
+      reply: '📜 يرجى قراءة واحترام قوانين السيرفر المتواجدة في قناة 📜-القوانين لتجنب التعرض لأي عقوبات إدارية.'
     },
     {
-      keywords: ['Ù…Ø³Ø§Ø¹Ø¯Ø©', 'ÙƒÙŠÙ', 'Ø§Ø³ÙˆÙŠ', 'Ø·Ø±ÙŠÙ‚Ø©'],
-      reply: 'ðŸ’¡ Ø¥Ø°Ø§ ÙƒÙ†Øª Ø¨Ø­Ø§Ø¬Ø© Ù„Ù„Ù…Ø³Ø§Ø¹Ø¯Ø©ØŒ ÙŠÙ…ÙƒÙ†Ùƒ Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ØªØ§Ø­Ø© Ø£Ùˆ ÙƒØªØ§Ø¨Ø© Ø§Ø³ØªÙØ³Ø§Ø±Ùƒ Ù‡Ù†Ø§ Ù…Ø¨Ø§Ø´Ø±Ø© Ø£Ùˆ Ø§Ù„ØªØ­Ø¯Ø« Ù„Ø£Ø­Ø¯ Ø§Ù„Ù…Ø´Ø±ÙÙŠÙ† Ø§Ù„Ù…ØªÙˆØ§Ø¬Ø¯ÙŠÙ†.'
+      keywords: ['مساعدة', 'كيف', 'اسوي', 'طريقة'],
+      reply: '💡 إذا كنت بحاجة للمساعدة، يمكنك استخدام الأوامر المتاحة أو كتابة استفسارك هنا مباشرة أو التحدث لأحد المشرفين المتواجدين.'
     }
   ];
 
   /**
-   * Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ø±Ø¯ ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù…Ù†Ø§Ø³Ø¨ Ù„Ù„Ø±Ø³Ø§Ù„Ø©
+   * البحث عن رد تلقائي مناسب للرسالة
    */
   static findResponse(text: string): string | null {
     const cleanText = text.toLowerCase();
     for (const item of this.responses) {
-      // Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ù…Ø·Ø§Ø¨Ù‚Ø© ÙƒØ§ÙØ© Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…ÙØªØ§Ø­ÙŠØ© ÙÙŠ Ø§Ù„Ø¬Ù…Ù„Ø©
+      // التحقق من مطابقة كافة الكلمات المفتاحية في الجملة
       const matchesAll = item.keywords.every(kw => cleanText.includes(kw));
       if (matchesAll) {
         return item.reply;
@@ -908,25 +908,25 @@ export class AutoResponder {
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… ØªØªØ¨Ø¹ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø´Ø§Ø¦Ø¹Ø© ÙˆØ§Ù„Ù…ÙˆØ§Ø¶ÙŠØ¹ Ø§Ù„Ù†Ø´Ø·Ø© (Word Frequency Tracker)
+//  نظام تتبع الكلمات الشائعة والمواضيع النشطة (Word Frequency Tracker)
 // ============================================================
 const wordFrequencyMap = new Map<string, number>();
 
 export class WordFrequencyTracker {
   /**
-   * ØªØªØ¨Ø¹ Ø§Ù„ÙƒÙ„Ù…Ø© ÙˆØ²ÙŠØ§Ø¯Ø© ØªÙƒØ±Ø§Ø±Ù‡Ø§
+   * تتبع الكلمة وزيادة تكرارها
    */
   static trackMessage(text: string): void {
     const words = text.toLowerCase().split(/\s+/);
     for (const word of words) {
-      if (word.length < 4) continue; // ØªØ¬Ø§Ù‡Ù„ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù‚ØµÙŠØ±Ø© Ø¬Ø¯Ø§Ù‹
+      if (word.length < 4) continue; // تجاهل الكلمات القصيرة جداً
       const current = wordFrequencyMap.get(word) ?? 0;
       wordFrequencyMap.set(word, current + 1);
     }
   }
 
   /**
-   * Ø¬Ù„Ø¨ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø£ÙƒØ«Ø± Ø´ÙŠÙˆØ¹Ø§Ù‹ ÙˆØªÙƒØ±Ø§Ø±Ø§Ù‹ Ø¨Ø§Ù„Ø³ÙŠØ±ÙØ±
+   * جلب الكلمات الأكثر شيوعاً وتكراراً بالسيرفر
    */
   static getTrendingWords(limit: number = 5): Array<{ word: string; count: number }> {
     const sorted = [...wordFrequencyMap.entries()]
@@ -937,7 +937,7 @@ export class WordFrequencyTracker {
   }
 
   /**
-   * ØªØµÙÙŠØ± ÙˆØªØ·Ù‡ÙŠØ± Ø°Ø§ÙƒØ±Ø© Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ø´Ø§Ø¦Ø¹Ø©
+   * تصفير وتطهير ذاكرة الكلمات الشائعة
    */
   static clearCache(): void {
     wordFrequencyMap.clear();
@@ -945,46 +945,46 @@ export class WordFrequencyTracker {
 }
 
 // ============================================================
-//  ØªÙ‚Ø±ÙŠØ± Ø­Ø§Ù„Ø© Ù†Ø¸Ø§Ù… Ø§Ù„Ø­Ù…Ø§ÙŠØ© ÙˆØ§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© (AutoMod Summary Report)
+//  تقرير حالة نظام الحماية والمراقبة (AutoMod Summary Report)
 // ============================================================
 export class AutoModSummaryReport {
   /**
-   * ØªÙˆÙ„ÙŠØ¯ ØªÙ‚Ø±ÙŠØ± ÙÙ†ÙŠ Ø´Ø§Ù…Ù„ Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© ÙˆØ³Ø¬Ù„Ø§Øª Ø§Ù„Ù…Ø®Ø§Ù„ÙØ§Øª
+   * توليد تقرير فني شامل لحالة المراقبة وسجلات المخالفات
    */
   static generateAutomatedSummary(guild: any): string {
     const totalWarns = [...warnings.values()].reduce((sum, w) => sum + w.count, 0);
     const trending = WordFrequencyTracker.getTrendingWords(3).map(w => `${w.word} (${w.count})`).join(', ');
 
-    return `ðŸ›¡ï¸ **ØªÙ‚Ø±ÙŠØ± Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø°ÙƒÙŠ Ù„Ø®Ø§Ø¯Ù… ${guild.name}**
-â€¢ Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø®Ø§Ù„ÙØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ø§Ù„Ù…Ø³Ø¬Ù„Ø©: ${moderationLog.length} Ù…Ø®Ø§Ù„ÙØ©
-â€¢ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø¹Ø¯Ø¯ Ø§Ù„ØªØ­Ø°ÙŠØ±Ø§Øª Ø§Ù„Ù†Ø´Ø·Ø©: ${totalWarns} ØªØ­Ø°ÙŠØ±
-â€¢ Ø­Ø§Ù„Ø© ÙˆØ¶Ø¹ Ø§Ù„Ø­Ù…Ø§ÙŠØ© (Anti-Raid): ${AntiRaidShield.isLockdown() ? 'âš ï¸ ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø·ÙˆØ§Ø±Ø¦' : 'âœ… Ø¢Ù…Ù† ÙˆÙ…Ø³ØªÙ‚Ø±'}
-â€¢ Ø§Ù„ÙƒÙ„Ù…Ø§Øª Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø© Ø§Ù„Ù…ÙƒØªØ´ÙØ©: ${trending || 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª ÙƒØ§ÙÙŠØ©'}
-â€¢ ØªÙ… Ø§Ù„Ø§Ø³ØªØ®Ø±Ø§Ø¬ ÙÙŠ: ${new Date().toLocaleString('ar-EG')}`;
+    return `🛡️ **تقرير نظام المراقبة الذكي لخادم ${guild.name}**
+• عدد المخالفات الإدارية المسجلة: ${moderationLog.length} مخالفة
+• إجمالي عدد التحذيرات النشطة: ${totalWarns} تحذير
+• حالة وضع الحماية (Anti-Raid): ${AntiRaidShield.isLockdown() ? '⚠️ تفعيل الطوارئ' : '✅ آمن ومستقر'}
+• الكلمات المتداولة المكتشفة: ${trending || 'لا توجد بيانات كافية'}
+• تم الاستخراج في: ${new Date().toLocaleString('ar-EG')}`;
   }
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… ØªØ·Ù‡ÙŠØ± ÙˆØªØ­Ø³ÙŠÙ† Ø§Ù„Ù†ØµÙˆØµ Ø§Ù„Ø£Ù…Ù† (Advanced Content Sanitizer)
+//  نظام تطهير وتحسين النصوص الأمن (Advanced Content Sanitizer)
 // ============================================================
 export class AdvancedContentSanitizer {
   private static homoglyphsMap: Record<string, string> = {
-    'Ð°': 'a', 'Ðµ': 'e', 'Ð¾': 'o', 'Ñ€': 'p', 'Ø³': 's', 'Ø´': 'sh',
-    'Ø§': 'a', 'Ø£': 'a', 'Ø¥': 'a', 'Ø¢': 'a', 'Ù‰': 'y', 'ÙŠ': 'y',
-    'Ø©': 'h', 'Ù‡': 'h'
+    'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'س': 's', 'ش': 'sh',
+    'ا': 'a', 'أ': 'a', 'إ': 'a', 'آ': 'a', 'ى': 'y', 'ي': 'y',
+    'ة': 'h', 'ه': 'h'
   };
 
   /**
-   * Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø±Ù…ÙˆØ² Ø§Ù„ØªØ¹Ø¨ÙŠØ±ÙŠØ© Ø§Ù„Ù…Ø®ÙÙŠØ© ÙˆØ§Ù„Ù…Ø³Ø§ÙØ§Øª Ø§Ù„ØµÙØ±ÙŠØ© Ù„Ù…Ù†Ø¹ ØªØ¬Ø§ÙˆØ² Ø§Ù„ÙÙ„Ø§ØªØ±
+   * إزالة الرموز التعبيرية المخفية والمسافات الصفرية لمنع تجاوز الفلاتر
    */
   static removeZeroWidthChars(text: string): string {
     return text
-      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Ù…Ø³Ø­ zero-width spaces
-      .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, ''); // Ù…Ø³Ø­ control characters
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // مسح zero-width spaces
+      .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, ''); // مسح control characters
   }
 
   /**
-   * Ù…Ø¹Ø§Ù„Ø¬Ø© ÙˆØªØ­ÙˆÙŠÙ„ Ø§Ù„Ø­Ø±ÙˆÙ Ø§Ù„Ù…ØªØ´Ø§Ø¨Ù‡Ø© Ø¨ØµØ±ÙŠØ§Ù‹ (Homoglyphs) Ø¥Ù„Ù‰ Ù†Ø¸ÙŠØ±Ø§ØªÙ‡Ø§ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©
+   * معالجة وتحويل الحروف المتشابهة بصرياً (Homoglyphs) إلى نظيراتها الأساسية
    */
   static normalizeHomoglyphs(text: string): string {
     let normalized = '';
@@ -995,7 +995,7 @@ export class AdvancedContentSanitizer {
   }
 
   /**
-   * ØªØ·Ù‡ÙŠØ± Ø§Ù„Ù†Øµ Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ù„Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„ÙØ­Øµ Ø§Ù„Ø£Ù…Ù†ÙŠ Ø§Ù„Ø¯Ù‚ÙŠÙ‚
+   * تطهير النص بالكامل لإجراء الفحص الأمني الدقيق
    */
   static sanitizeAll(text: string): string {
     const withoutZeroWidth = this.removeZeroWidthChars(text);

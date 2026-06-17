@@ -1,9 +1,9 @@
-﻿/**
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
- *  Ø¨Ø§Ù†ÙŠ ÙˆÙ…ØµÙ…Ù… Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª Ø§Ù„Ø°ÙƒÙŠ Ø§Ù„Ù…ØªØ·ÙˆØ± - Advanced Server & Community Builder
- *  ÙŠÙ‚ÙˆÙ… Ø¨Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ±ÙØ±Ø§Øª Ù…ØªÙƒØ§Ù…Ù„Ø© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ Ø£Ùˆ Ù‚ÙˆØ§Ù„Ø¨ Ù…Ø¹ØªÙ…Ø¯Ø©
- *  ÙŠØ¯Ø¹Ù… Ø¥Ø¯Ø§Ø±Ø© ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ù…ØªÙ‚Ø¯Ù…Ø© ÙˆÙ‡ÙŠØ§ÙƒÙ„ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù…Ø²ÙŠÙ†Ø© Ø¨Ø§Ù„Ø¥ÙŠÙ…ÙˆØ¬ÙŠ ÙˆØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¨Ù†Ø§Ø¡
- * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/**
+ * ════════════════════════════════════════════════════════════════
+ *  باني ومصمم السيرفرات الذكي المتطور - Advanced Server & Community Builder
+ *  يقوم ببناء سيرفرات متكاملة باستخدام الذكاء الاصطناعي أو قوالب معتمدة
+ *  يدعم إدارة صلاحيات الرتب المتقدمة وهياكل القنوات المزينة بالإيموجي وتأكيد البناء
+ * ════════════════════════════════════════════════════════════════
  */
 
 import {
@@ -23,14 +23,14 @@ import {
 import { generateAIResponse, AIMessage } from '../services/ai.js';
 
 // ============================================================
-//  Ù…Ø³Ø§Ø¹Ø¯Ø§Øª Ø§Ù„ØªØ£Ø®ÙŠØ± Ø§Ù„Ø²Ù…Ù†ÙŠ ÙˆØ§Ù„ÙˆÙ‚Øª
+//  مساعدات التأخير الزمني والوقت
 // ============================================================
 async function delay(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
 // ============================================================
-//  ÙˆØ§Ø¬Ù‡Ø§Øª Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ ÙˆÙ‡ÙŠØ§ÙƒÙ„ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª
+//  واجهات القوالب وهياكل السيرفرات
 // ============================================================
 export interface ChannelBlueprint {
   name: string;
@@ -40,7 +40,7 @@ export interface ChannelBlueprint {
   readOnly?: boolean;
   staffOnly?: boolean;
   userLimit?: number;
-  rateLimitPerUser?: number; // Ø§Ù„Ø¨Ø·Ø¡ ÙÙŠ Ø§Ù„ÙƒØªØ§Ø¨Ø© (Slowmode)
+  rateLimitPerUser?: number; // البطء في الكتابة (Slowmode)
 }
 
 export interface CategoryBlueprint {
@@ -65,158 +65,158 @@ export interface ServerBlueprint {
 }
 
 // ============================================================
-//  Ù‚Ø§Ø¹Ø¯Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø«Ø§Ø¨ØªØ© ÙˆØ§Ù„Ù…Ø²ÙŠÙ†Ø© (Static Blueprints)
+//  قاعدة بيانات القوالب الثابتة والمزينة (Static Blueprints)
 // ============================================================
 export const DETAILED_BLUEPRINTS: Record<string, ServerBlueprint> = {
   gaming: {
-    serverType: 'Ø³ÙŠØ±ÙØ± Ø£Ù„Ø¹Ø§Ø¨ ØªØ±ÙÙŠÙ‡ÙŠ (Gaming Server)',
-    description: 'Ù‚Ø§Ù„Ø¨ Ø³ÙŠØ±ÙØ± Ø£Ù„Ø¹Ø§Ø¨ Ø§Ø­ØªØ±Ø§ÙÙŠ ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ ØºØ±Ù ØªÙˆØ§ØµÙ„ØŒ Ø¨Ø·ÙˆÙ„Ø§ØªØŒ ÙˆØ±ÙˆÙ…Ø§Øª ØµÙˆØªÙŠØ© Ø°Ø§Øª Ø¬ÙˆØ¯Ø© Ø¹Ø§Ù„ÙŠØ©.',
+    serverType: 'سيرفر ألعاب ترفيهي (Gaming Server)',
+    description: 'قالب سيرفر ألعاب احترافي يحتوي على غرف تواصل، بطولات، ورومات صوتية ذات جودة عالية.',
     roles: [
-      { name: 'ðŸ‘‘â”ƒØ§Ù„Ù…Ø¤Ø³Ø³', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
-      { name: 'ðŸ›¡ï¸â”ƒØ§Ù„Ø¥Ø¯Ø§Ø±Ø©', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers, PermissionFlagsBits.MuteMembers] },
-      { name: 'âš¡â”ƒØ§Ù„Ù…Ø´Ø±ÙÙŠÙ†', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers, PermissionFlagsBits.MoveMembers] },
-      { name: 'ðŸŽ–ï¸â”ƒÙ…Ù†Ø¸Ù… Ø§Ù„Ø¨Ø·ÙˆÙ„Ø§Øª', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.MentionEveryone] },
-      { name: 'ðŸŽ®â”ƒÙ„Ø§Ø¹Ø¨ Ù…Ø­ØªØ±Ù', color: 0x1ABC9C, hoist: true, permissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.Speak] },
-      { name: 'ðŸ‘¤â”ƒÙ„Ø§Ø¹Ø¨ÙŠÙ† Ø§Ù„Ø³ÙŠØ±ÙØ±', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '🛡️┃الإدارة', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers, PermissionFlagsBits.MuteMembers] },
+      { name: '⚡┃المشرفين', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers, PermissionFlagsBits.MoveMembers] },
+      { name: '🎖️┃منظم البطولات', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.MentionEveryone] },
+      { name: '🎮┃لاعب محترف', color: 0x1ABC9C, hoist: true, permissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.Speak] },
+      { name: '👤┃لاعبين السيرفر', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
     ],
     categories: [
       {
-        name: 'ðŸ“¢â”ƒØ§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆØ§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª',
+        name: '📢┃الترحيب والإعلانات',
         channels: [
-          { name: 'ðŸ“‹â”ƒØ§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†', type: 'text', sendEmbed: 'rules', readOnly: true },
-          { name: 'ðŸ“¢â”ƒØ§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª', type: 'text', readOnly: true },
-          { name: 'ðŸ‘‹â”ƒØ§Ù„ØªØ±Ø­ÙŠØ¨-ÙˆØ§Ù„ØªÙˆØ¯ÙŠØ¹', type: 'text', sendEmbed: 'welcome', readOnly: true },
-          { name: 'ðŸ†â”ƒØ§Ù„Ø¨Ø·ÙˆÙ„Ø§Øª-ÙˆØ§Ù„ÙØ§Ø¦Ø²ÙŠÙ†', type: 'text', readOnly: true }
+          { name: '📋┃القوانين', type: 'text', sendEmbed: 'rules', readOnly: true },
+          { name: '📢┃الإعلانات', type: 'text', readOnly: true },
+          { name: '👋┃الترحيب-والتوديع', type: 'text', sendEmbed: 'welcome', readOnly: true },
+          { name: '🏆┃البطولات-والفائزين', type: 'text', readOnly: true }
         ]
       },
       {
-        name: 'ðŸ’¬â”ƒØ§Ù„Ø¯Ø±Ø¯Ø´Ø© Ø§Ù„Ø¹Ø§Ù…Ø©',
+        name: '💬┃الدردشة العامة',
         channels: [
-          { name: 'ðŸ’¬â”ƒØ´Ø§Øª-Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨', type: 'text', topic: 'Ø§Ù„Ø¯Ø±Ø¯Ø´Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØªØ¨Ø§Ø¯Ù„ Ø§Ù„Ø£ÙÙƒØ§Ø±' },
-          { name: 'ðŸ–¼ï¸â”ƒÙ…ÙŠØ¯ÙŠØ§-ÙˆÙ„Ù‚Ø·Ø§Øª-Ø§Ù„Ø´Ø§Ø´Ø©', type: 'text', topic: 'Ø´Ø§Ø±ÙƒÙ†Ø§ ØµÙˆØ± Ù„Ù‚Ø·Ø§Øª Ù„Ø¹Ø¨Ùƒ ÙˆØ§Ù„Ø¬Ù„Ø¯' },
-          { name: 'ðŸ¤–â”ƒØ£ÙˆØ§Ù…Ø±-Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨', type: 'text', rateLimitPerUser: 3 },
-          { name: 'ðŸ’¡â”ƒØ§Ù‚ØªØ±Ø§Ø­Ø§Øª-Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡', type: 'text', rateLimitPerUser: 5 }
+          { name: '💬┃شات-الألعاب', type: 'text', topic: 'الدردشة العامة لأعضاء السيرفر وتبادل الأفكار' },
+          { name: '🖼️┃ميديا-ولقطات-الشاشة', type: 'text', topic: 'شاركنا صور لقطات لعبك والجلد' },
+          { name: '🤖┃أوامر-الألعاب', type: 'text', rateLimitPerUser: 3 },
+          { name: '💡┃اقتراحات-الأعضاء', type: 'text', rateLimitPerUser: 5 }
         ]
       },
       {
-        name: 'ðŸŽ™ï¸â”ƒØ§Ù„Ø±ÙˆÙ…Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø©',
+        name: '🎙️┃الرومات الصوتية العامة',
         channels: [
-          { name: 'ðŸ”Šâ”ƒØµÙˆØªÙŠ-Ø¹Ø§Ù…-1', type: 'voice', userLimit: 15 },
-          { name: 'ðŸ”Šâ”ƒØµÙˆØªÙŠ-Ø¹Ø§Ù…-2', type: 'voice', userLimit: 15 },
-          { name: 'ðŸŽ™ï¸â”ƒØ§Ø³ØªØ±Ø§Ø­Ø©-Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡', type: 'voice', userLimit: 5 }
+          { name: '🔊┃صوتي-عام-1', type: 'voice', userLimit: 15 },
+          { name: '🔊┃صوتي-عام-2', type: 'voice', userLimit: 15 },
+          { name: '🎙️┃استراحة-الأعضاء', type: 'voice', userLimit: 5 }
         ]
       },
       {
-        name: 'ðŸŽ®â”ƒØ±ÙˆÙ…Ø§Øª Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨ Ø§Ù„ØªÙ†Ø§ÙØ³ÙŠØ©',
+        name: '🎮┃رومات الألعاب التنافسية',
         channels: [
-          { name: 'âš”ï¸â”ƒÙØ§Ù„ÙˆØ±Ø§Ù†Øª-Squad', type: 'voice', userLimit: 5 },
-          { name: 'ðŸš—â”ƒÙ‚Ø±Ø§Ù†Ø¯-GTA-V', type: 'voice', userLimit: 10 },
-          { name: 'â›ï¸â”ƒÙ…Ø§ÙŠÙ†ÙƒØ±Ø§ÙØª-Craft', type: 'voice', userLimit: 20 },
-          { name: 'ðŸ”«â”ƒØ¨Ø¨Ø¬ÙŠ-PUBG', type: 'voice', userLimit: 4 }
+          { name: '⚔️┃فالورانت-Squad', type: 'voice', userLimit: 5 },
+          { name: '🚗┃قراند-GTA-V', type: 'voice', userLimit: 10 },
+          { name: '⛏️┃ماينكرافت-Craft', type: 'voice', userLimit: 20 },
+          { name: '🔫┃ببجي-PUBG', type: 'voice', userLimit: 4 }
         ]
       },
       {
-        name: 'ðŸ›¡ï¸â”ƒØ§Ù„Ø¥Ø´Ø±Ø§Ù ÙˆØ§Ù„Ø¥Ø¯Ø§Ø±Ø©',
+        name: '🛡️┃الإشراف والإدارة',
         staffOnly: true,
         channels: [
-          { name: 'ðŸ“Šâ”ƒØºØ±ÙØ©-Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©', type: 'text', staffOnly: true },
-          { name: 'ðŸ“â”ƒØ³Ø¬Ù„Ø§Øª-Ø§Ù„Ø±Ù‚Ø§Ø¨Ø©', type: 'text', staffOnly: true },
-          { name: 'ðŸŽ™ï¸â”ƒØ§Ø¬ØªÙ…Ø§Ø¹-Ø§Ù„Ø³ØªØ§Ù', type: 'voice', staffOnly: true }
+          { name: '📊┃غرفة-الإدارة', type: 'text', staffOnly: true },
+          { name: '📝┃سجلات-الرقابة', type: 'text', staffOnly: true },
+          { name: '🎙️┃اجتماع-الستاف', type: 'voice', staffOnly: true }
         ]
       }
     ]
   },
   store: {
-    serverType: 'Ù…ØªØ¬Ø± ØªØ¬Ø§Ø±ÙŠ (Online Store Server)',
-    description: 'Ù‚Ø§Ù„Ø¨ Ù…ØªØ¬Ø± Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø³Ù„Ø¹ Ø£Ùˆ Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ù…Ø¹ Ø±ÙˆÙ…Ø§Øª Ù…Ø®ØµØµØ© Ù„Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØ§Ù„Ø·Ù„Ø¨Ø§Øª ÙˆØ§Ù„ØªØ°Ø§ÙƒØ± Ø§Ù„Ù…Ø¶Ù…ÙˆÙ†Ø©.',
+    serverType: 'متجر تجاري (Online Store Server)',
+    description: 'قالب متجر إلكتروني لبيع السلع أو الحسابات مع رومات مخصصة للعملاء والطلبات والتذاكر المضمونة.',
     roles: [
-      { name: 'ðŸ‘‘â”ƒØµØ§Ø­Ø¨ Ø§Ù„Ù…ØªØ¬Ø±', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
-      { name: 'ðŸ’¼â”ƒØ¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
-      { name: 'ðŸ¤â”ƒØ®Ø¯Ù…Ø© Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
-      { name: 'ðŸ’Žâ”ƒØ¹Ù…ÙŠÙ„ ÙÙŠ Ø¢ÙŠ Ø¨ÙŠ', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
-      { name: 'ðŸ‘¤â”ƒØ²Ø¨Ø§Ø¦Ù† Ø§Ù„Ø³ÙŠØ±ÙØ±', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+      { name: '👑┃صاحب المتجر', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '💼┃إدارة المبيعات', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
+      { name: '🤝┃خدمة العملاء', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
+      { name: '💎┃عميل في آي بي', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
+      { name: '👤┃زبائن السيرفر', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
     ],
     categories: [
       {
-        name: 'â„¹ï¸â”ƒÙ…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ù…ØªØ¬Ø±',
+        name: 'ℹ️┃معلومات المتجر',
         channels: [
-          { name: 'ðŸ“‹â”ƒØ§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†-ÙˆØ§Ù„Ø´Ø±ÙˆØ·', type: 'text', sendEmbed: 'rules', readOnly: true },
-          { name: 'ðŸ“¢â”ƒØ¥Ø¹Ù„Ø§Ù†Ø§Øª-Ø§Ù„Ù…ØªØ¬Ø±', type: 'text', readOnly: true },
-          { name: 'â­â”ƒØ¢Ø±Ø§Ø¡-ÙˆØªÙ‚ÙŠÙŠÙ…-Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡', type: 'text', topic: 'Ø´Ø§Ø±ÙƒÙ†Ø§ Ø±Ø£ÙŠÙƒ Ø¨Ø§Ù„Ø®Ø¯Ù…Ø© Ø¨Ø¹Ø¯ Ø§Ù„Ø´Ø±Ø§Ø¡' },
-          { name: 'ðŸ’³â”ƒØ·Ø±Ù‚-Ø§Ù„Ø¯ÙØ¹-ÙˆØ§Ù„Ø´Ø­Ù†', type: 'text', readOnly: true }
+          { name: '📋┃القوانين-والشروط', type: 'text', sendEmbed: 'rules', readOnly: true },
+          { name: '📢┃إعلانات-المتجر', type: 'text', readOnly: true },
+          { name: '⭐┃آراء-وتقييم-العملاء', type: 'text', topic: 'شاركنا رأيك بالخدمة بعد الشراء' },
+          { name: '💳┃طرق-الدفع-والشحن', type: 'text', readOnly: true }
         ]
       },
       {
-        name: 'ðŸ›’â”ƒØ£Ù‚Ø³Ø§Ù… Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø¹Ø±ÙˆØ¶Ø©',
+        name: '🛒┃أقسام المنتجات المعروضة',
         channels: [
-          { name: 'ðŸŽâ”ƒØ¹Ø±ÙˆØ¶-Ø§Ù„ÙŠÙˆÙ…', type: 'text', readOnly: true },
-          { name: 'ðŸŽ®â”ƒØ­Ø³Ø§Ø¨Ø§Øª-Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨', type: 'text', readOnly: true },
-          { name: 'ðŸ’Žâ”ƒØ§Ø´ØªØ±Ø§ÙƒØ§Øª-ÙˆØ´Ø­Ù†Ø§Øª', type: 'text', readOnly: true },
-          { name: 'ðŸ“±â”ƒØ£ÙƒÙˆØ§Ø¯-ÙˆØ¨Ø±Ù…Ø¬ÙŠØ§Øª', type: 'text', readOnly: true }
+          { name: '🎁┃عروض-اليوم', type: 'text', readOnly: true },
+          { name: '🎮┃حسابات-الألعاب', type: 'text', readOnly: true },
+          { name: '💎┃اشتراكات-وشحنات', type: 'text', readOnly: true },
+          { name: '📱┃أكواد-وبرمجيات', type: 'text', readOnly: true }
         ]
       },
       {
-        name: 'ðŸ“©â”ƒÙ‚Ø³Ù… Ø§Ù„Ø´Ø±Ø§Ø¡ ÙˆÙØªØ­ ØªØ°Ø§ÙƒØ±',
+        name: '📩┃قسم الشراء وفتح تذاكر',
         channels: [
-          { name: 'ðŸŽŸï¸â”ƒØ·Ù„Ø¨-Ø´Ø±Ø§Ø¡-Ø¬Ø¯ÙŠØ¯', type: 'text', sendEmbed: 'tickets', topic: 'Ø§ÙØªØ­ ØªØ°ÙƒØ±Ø© Ø´Ø±Ø§Ø¡ Ù‡Ù†Ø§ Ù„Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø§Ù„Ø¯Ø¹Ù…' },
-          { name: 'ðŸ’¬â”ƒØ§Ù„Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø¹Ø§Ù…Ø©', type: 'text' },
-          { name: 'â“â”ƒØ£Ø³Ø¦Ù„Ø©-Ø´Ø§Ø¦Ø¹Ø©-FAQ', type: 'text', readOnly: true }
+          { name: '🎟️┃طلب-شراء-جديد', type: 'text', sendEmbed: 'tickets', topic: 'افتح تذكرة شراء هنا للتواصل مع الدعم' },
+          { name: '💬┃الدردشة-العامة', type: 'text' },
+          { name: '❓┃أسئلة-شائعة-FAQ', type: 'text', readOnly: true }
         ]
       },
       {
-        name: 'ðŸ’¼â”ƒÙØ±ÙŠÙ‚ Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© ÙˆØ§Ù„Ù…Ø§Ù„ÙŠØ©',
+        name: '💼┃فريق الإدارة والمالية',
         staffOnly: true,
         channels: [
-          { name: 'ðŸ“Šâ”ƒÙ„ÙˆØ­Ø©-Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª', type: 'text', staffOnly: true },
-          { name: 'ðŸ’°â”ƒØ§Ù„ØªÙ‚Ø§Ø±ÙŠØ±-Ø§Ù„Ù…Ø§Ù„ÙŠØ©', type: 'text', staffOnly: true },
-          { name: 'ðŸŽ™ï¸â”ƒÙ†Ù‚Ø§Ø´-Ø§Ù„Ø³ØªØ§Ù', type: 'voice', staffOnly: true }
+          { name: '📊┃لوحة-المبيعات', type: 'text', staffOnly: true },
+          { name: '💰┃التقارير-المالية', type: 'text', staffOnly: true },
+          { name: '🎙️┃نقاش-الستاف', type: 'voice', staffOnly: true }
         ]
       }
     ]
   },
   clan: {
-    serverType: 'ÙƒÙ„Ø§Ù† ÙˆÙØ±ÙŠÙ‚ Ù…Ù†Ø§ÙØ³ (Clan / Esports Server)',
-    description: 'Ø³ÙŠØ±ÙØ± ØªÙƒØªÙŠÙƒÙŠ Ù„Ù„ÙØ±Ù‚ Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ© ÙˆØ§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ© ÙŠØ¯Ø¹Ù… Ø§Ù„ØªØ®Ø·ÙŠØ· ÙˆØ§Ù„Ø§Ø³ØªÙ…Ø§Ø¹ ÙˆØ±ÙˆÙ…Ø§Øª Ù…ØºÙ„Ù‚Ø© Ù„Ù„ØªØ¯Ø±ÙŠØ¨.',
+    serverType: 'كلان وفريق منافس (Clan / Esports Server)',
+    description: 'سيرفر تكتيكي للفرق الرياضية والإلكترونية يدعم التخطيط والاستماع ورومات مغلقة للتدريب.',
     roles: [
-      { name: 'ðŸ‘‘â”ƒÙ‚Ø§Ø¦Ø¯ Ø§Ù„ÙƒÙ„Ø§Ù†', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
-      { name: 'ðŸ›¡ï¸â”ƒÙ†Ø§Ø¦Ø¨ Ø§Ù„Ù‚Ø§Ø¦Ø¯', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers] },
-      { name: 'ðŸŽ¯â”ƒÙƒØ§Ø¨ØªÙ† Ø§Ù„ÙØ±ÙŠÙ‚', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.MoveMembers, PermissionFlagsBits.Speak] },
-      { name: 'â­â”ƒØ§Ù„Ù„Ø§Ø¹Ø¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ', color: 0x1ABC9C, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
-      { name: 'ðŸŽ–ï¸â”ƒØ§Ù„Ø§Ø­ØªÙŠØ§Ø·', color: 0x34495E, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
-      { name: 'ðŸ‘¤â”ƒÙ…Ø´Ø¬Ø¹ÙŠÙ† Ø§Ù„ÙƒÙ„Ø§Ù†', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel] }
+      { name: '👑┃قائد الكلان', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '🛡️┃نائب القائد', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers] },
+      { name: '🎯┃كابتن الفريق', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.MoveMembers, PermissionFlagsBits.Speak] },
+      { name: '⭐┃اللاعب الأساسي', color: 0x1ABC9C, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
+      { name: '🎖️┃الاحتياط', color: 0x34495E, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
+      { name: '👤┃مشجعين الكلان', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel] }
     ],
     categories: [
       {
-        name: 'ðŸ“¢â”ƒØ§Ù„Ù…Ø±ÙƒØ² Ø§Ù„Ø¥Ø¹Ù„Ø§Ù…ÙŠ Ù„Ù„ÙƒÙ„Ø§Ù†',
+        name: '📢┃المركز الإعلامي للكلان',
         channels: [
-          { name: 'ðŸ“‹â”ƒØªØ¹Ù„ÙŠÙ…Ø§Øª-Ø§Ù„ÙƒÙ„Ø§Ù†', type: 'text', sendEmbed: 'rules', readOnly: true },
-          { name: 'ðŸ“¢â”ƒØ£Ø®Ø¨Ø§Ø±-ÙˆØªØ­Ø¯ÙŠØ«Ø§Øª', type: 'text', readOnly: true },
-          { name: 'ðŸ‘‹â”ƒÙ…Ø´Ø¬Ø¹ÙŠÙ†-Ø¬Ø¯Ø¯', type: 'text', sendEmbed: 'welcome', readOnly: true }
+          { name: '📋┃تعليمات-الكلان', type: 'text', sendEmbed: 'rules', readOnly: true },
+          { name: '📢┃أخبار-وتحديثات', type: 'text', readOnly: true },
+          { name: '👋┃مشجعين-جدد', type: 'text', sendEmbed: 'welcome', readOnly: true }
         ]
       },
       {
-        name: 'ðŸ’¬â”ƒØ§Ù„Ù…Ø¬Ù„Ø³ Ø§Ù„Ø¹Ø§Ù… Ù„Ù„Ø¯Ø±Ø¯Ø´Ø©',
+        name: '💬┃المجلس العام للدردشة',
         channels: [
-          { name: 'ðŸ’¬â”ƒØ´Ø§Øª-Ø§Ù„Ù…Ø´Ø¬Ø¹ÙŠÙ†', type: 'text' },
-          { name: 'ðŸ†â”ƒØ¥Ù†Ø¬Ø§Ø²Ø§Øª-Ø§Ù„ÙØ±ÙŠÙ‚', type: 'text', readOnly: true },
-          { name: 'ðŸ¤–â”ƒØ£ÙˆØ§Ù…Ø±-Ø§Ù„ÙƒÙ„Ø§Ù†', type: 'text' }
+          { name: '💬┃شات-المشجعين', type: 'text' },
+          { name: '🏆┃إنجازات-الفريق', type: 'text', readOnly: true },
+          { name: '🤖┃أوامر-الكلان', type: 'text' }
         ]
       },
       {
-        name: 'ðŸŽ¯â”ƒØºØ±ÙØ© Ø§Ù„ØªØ¯Ø±ÙŠØ¨ ÙˆØ§Ù„ØªØ­Ø¶ÙŠØ±',
+        name: '🎯┃غرفة التدريب والتحضير',
         channels: [
-          { name: 'ðŸ“Šâ”ƒØ§Ø³ØªØ±Ø§ØªÙŠØ¬ÙŠØ§Øª-ÙˆØªÙƒØªÙŠÙƒ', type: 'text', staffOnly: true },
-          { name: 'ðŸŽ™ï¸â”ƒÙÙˆÙŠØ³-Ø§Ù„ØªØ¯Ø±ÙŠØ¨-Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ', type: 'voice', userLimit: 5 },
-          { name: 'ðŸŽ™ï¸â”ƒÙÙˆÙŠØ³-Ø§Ù„ØªØ¯Ø±ÙŠØ¨-Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠ', type: 'voice', userLimit: 5 },
-          { name: 'ðŸ”Šâ”ƒØ§Ø³ØªØ±Ø§Ø­Ø©-ÙØ±ÙŠÙ‚-Ø§Ù„ÙƒÙ„Ø§Ù†', type: 'voice', userLimit: 10 }
+          { name: '📊┃استراتيجيات-وتكتيك', type: 'text', staffOnly: true },
+          { name: '🎙️┃فويس-التدريب-الأساسي', type: 'voice', userLimit: 5 },
+          { name: '🎙️┃فويس-التدريب-الاحتياطي', type: 'voice', userLimit: 5 },
+          { name: '🔊┃استراحة-فريق-الكلان', type: 'voice', userLimit: 10 }
         ]
       },
       {
-        name: 'ðŸ›¡ï¸â”ƒØ´Ø¤ÙˆÙ† Ù‚ÙŠØ§Ø¯Ø© Ø§Ù„ÙƒÙ„Ø§Ù†',
+        name: '🛡️┃شؤون قيادة الكلان',
         staffOnly: true,
         channels: [
-          { name: 'ðŸ“Šâ”ƒØ´Ø§Øª-Ø§Ù„Ù‚Ø§Ø¯Ø©', type: 'text', staffOnly: true },
-          { name: 'ðŸ“â”ƒÙ…Ø­Ø¶Ø±-Ø§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹Ø§Øª', type: 'text', staffOnly: true }
+          { name: '📊┃شات-القادة', type: 'text', staffOnly: true },
+          { name: '📝┃محضر-الاجتماعات', type: 'text', staffOnly: true }
         ]
       }
     ]
@@ -224,28 +224,28 @@ export const DETAILED_BLUEPRINTS: Record<string, ServerBlueprint> = {
 };
 
 // ============================================================
-//  Ø¨Ù†Ø§Ø¡ ÙˆØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø¨Ù„ÙˆØ¨Ø±ÙŠÙ†Øª Ø§Ù„Ù…Ø®ØµØµ Ø¹Ø¨Ø± Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
+//  بناء وتوليد البلوبرينت المخصص عبر الذكاء الاصطناعي
 // ============================================================
 async function generateBlueprintWithAI(description: string, guildName: string): Promise<ServerBlueprint> {
-  const prompt = `Ø£Ù†Øª Ù…ØµÙ…Ù… Ø³ÙŠØ±ÙØ±Ø§Øª Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ø®Ø¨ÙŠØ± ÙˆÙ…ØµÙ…Ù… Ù…Ø¬ØªÙ…Ø¹Ø§Øª Ø®Ø§Ø±Ù‚.
-Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ±ÙŠØ¯ Ø¥Ù†Ø´Ø§Ø¡ Ø³ÙŠØ±ÙØ± Ø¨Ù‡Ø°Ø§ Ø§Ù„ÙˆØµÙ Ø§Ù„Ù„ØºÙˆÙŠ: "${description}"
+  const prompt = `أنت مصمم سيرفرات ديسكورد خبير ومصمم مجتمعات خارق.
+المستخدم يريد إنشاء سيرفر بهذا الوصف اللغوي: "${description}"
 
-Ø§Ø³Ù… Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ø­Ø§Ù„ÙŠ: "${guildName}"
+اسم السيرفر الحالي: "${guildName}"
 
-Ù‚Ù… Ø¨ØªØµÙ…ÙŠÙ… Ø³ÙŠØ±ÙØ± Ø¯ÙŠØ³ÙƒÙˆØ±Ø¯ Ù…ØªÙƒØ§Ù…Ù„ ÙˆØ¬Ù…ÙŠÙ„ ÙˆÙ…Ù†Ø¸Ù… Ù„Ù„ØºØ§ÙŠØ©. Ø£Ø¬Ø¨ Ø¨Ù€ JSON ÙÙ‚Ø· Ø¨Ù‡Ø°Ø§ Ø§Ù„Ù‡ÙŠÙƒÙ„ Ø§Ù„Ø¯Ù‚ÙŠÙ‚:
+قم بتصميم سيرفر ديسكورد متكامل وجميل ومنظم للغاية. أجب بـ JSON فقط بهذا الهيكل الدقيق:
 
 {
-  "serverType": "Ø§Ø³Ù… Ù†ÙˆØ¹ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©",
-  "description": "ÙˆØµÙ Ù…Ø®ØªØµØ± Ù„Ù„Ø¬Ù…Ù‡ÙˆØ± ÙˆØ§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ù…Ù‚ØªØ±Ø­",
+  "serverType": "اسم نوع السيرفر باللغة العربية",
+  "description": "وصف مختصر للجمهور والسيرفر المقترح",
   "categories": [
     {
-      "name": "Ø§Ø³Ù… Ø§Ù„ÙØ¦Ø© Ù…Ø¹ Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ù…Ù…ÙŠØ² Ù…ØªÙ†Ø§Ø³Ù‚",
+      "name": "اسم الفئة مع إيموجي مميز متناسق",
       "staffOnly": false,
       "channels": [
         {
-          "name": "Ø§Ø³Ù… Ø§Ù„Ù‚Ù†Ø§Ø© Ù…Ø¹ Ø¥ÙŠÙ…ÙˆØ¬ÙŠ ÙŠÙØµÙ„ Ø¨ÙŠÙ†Ù‡Ù…Ø§ Ø´Ø±Ø·Ø© Ø£Ùˆ Ø±Ù…Ø²",
+          "name": "اسم القناة مع إيموجي يفصل بينهما شرطة أو رمز",
           "type": "text",
-          "topic": "ÙˆØµÙ Ø¯Ù‚ÙŠÙ‚ Ù„Ù…ÙˆØ¶ÙˆØ¹ Ø§Ù„Ù‚Ù†Ø§Ø© ÙˆÙ…Ø±Ø§Ø¯ ÙƒØªØ§Ø¨ØªÙ‡ ÙÙŠÙ‡Ø§",
+          "topic": "وصف دقيق لموضوع القناة ومراد كتابته فيها",
           "sendEmbed": "rules",
           "readOnly": false,
           "staffOnly": false
@@ -255,7 +255,7 @@ async function generateBlueprintWithAI(description: string, guildName: string): 
   ],
   "roles": [
     {
-      "name": "Ø§Ø³Ù… Ø§Ù„Ø±ØªØ¨Ø© Ù…Ø¹ Ø¥ÙŠÙ…ÙˆØ¬ÙŠ Ø¬Ø°Ø§Ø¨",
+      "name": "اسم الرتبة مع إيموجي جذاب",
       "color": 16766720,
       "hoist": true,
       "mentionable": false
@@ -263,18 +263,18 @@ async function generateBlueprintWithAI(description: string, guildName: string): 
   ]
 }
 
-Ù‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ø¨Ù†Ø§Ø¡ ÙˆØ§Ù„ØªÙ†Ø¸ÙŠÙ… Ø§Ù„Ø¥Ø¬Ø¨Ø§Ø±ÙŠØ©:
-1. Ø§Ù„ÙØ¦Ø§Øª ÙˆØ§Ù„Ù‚Ù†ÙˆØ§Øª Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© ÙˆÙ…Ø²ÙŠÙ†Ø© Ø¨Ø±Ù…ÙˆØ² ØªØ¹Ø¨ÙŠØ±ÙŠØ© Ø±Ø§Ù‚ÙŠØ© ÙˆÙ…ØªØ·Ø§Ø¨Ù‚Ø© (Ù…Ø«Ù„: ðŸ“‹â”ƒØ§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†ØŒ ðŸ’¬â”ƒØ§Ù„Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø¹Ø§Ù…Ø©).
-2. Ø£ÙˆÙ„ ÙØ¦Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† ÙØ¦Ø© Ø§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆØ§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©. ÙˆØ§Ù„Ù‚Ù†Ø§Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ ÙÙŠÙ‡Ø§ ØªØ­Ù…Ù„ Ø®ÙŠØ§Ø± (sendEmbed: "rules") ÙˆÙ‚Ù†Ø§Ø© Ø§Ù„ØªØ±Ø­ÙŠØ¨ (sendEmbed: "welcome").
-3. Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ† ÙˆØ§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† (readOnly: true) Ù„ØªÙØ§Ø¯ÙŠ Ø§Ù„ÙÙˆØ¶Ù‰.
-4. Ø§Ù„Ø³ÙŠØ±ÙØ± ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ ÙØ¦Ø© Ø®Ø§ØµØ© Ø¨Ø§Ù„Ø¥Ø¯Ø§Ø±Ø© ÙˆÙØ±ÙŠÙ‚ Ø§Ù„Ø¹Ù…Ù„ ØªÙƒÙˆÙ† (staffOnly: true).
-5. ØµÙ…Ù… Ù…Ø§ Ø¨ÙŠÙ† 4 Ø¥Ù„Ù‰ 6 ÙØ¦Ø§Øª Ø±Ø¦ÙŠØ³ÙŠØ©ØŒ ÙˆÙ…Ø§ Ø¨ÙŠÙ† 3 Ø¥Ù„Ù‰ 5 Ù‚Ù†ÙˆØ§Øª Ø¯Ø§Ø®Ù„ ÙƒÙ„ ÙØ¦Ø© Ù„ØªØ£Ù…ÙŠÙ† Ø³ÙŠØ±ÙØ± ØºÙ†ÙŠ.
-6. ØµÙ…Ù… Ù…Ø§ Ø¨ÙŠÙ† 4 Ø¥Ù„Ù‰ 8 Ø±ØªØ¨ Ø¥Ø¯Ø§Ø±ÙŠØ© ÙˆØ§Ø¬ØªÙ…Ø§Ø¹ÙŠØ© Ù…Ù„ÙˆÙ†Ø© Ù…ØªÙ†Ø§Ø³Ù‚Ø©. Ø§Ù„Ø£Ù„ÙˆØ§Ù† Ø§Ù„Ù…ÙƒØªÙˆØ¨Ø© ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ø£Ø±Ù‚Ø§Ù… Ø¹Ø´Ø±ÙŠØ© ØµØ­ÙŠØ­Ø© (Decimal) ØªÙ…Ø«Ù„ ÙƒÙˆØ¯ Ø§Ù„Ù„ÙˆÙ† Hex (Ù…Ø«Ø§Ù„: Ø§Ù„Ø°Ù‡Ø¨ÙŠ #FFD700 ÙŠØªÙ… ÙƒØªØ§Ø¨ØªÙ‡ ÙƒÙ€ 16766720).
-7. Ù„Ø§ ØªØ¶Ø¹ Ù…Ø³Ø§ÙØ§Øª ÙÙŠ Ø£Ø³Ù…Ø§Ø¡ Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù†ØµÙŠØ© ÙˆØ§Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø´Ø±Ø·Ø© (-) Ø¯Ø§Ø¦Ù…Ø§Ù‹ Ù„Ù„ÙØµÙ„ Ø¨ÙŠÙ† Ø§Ù„ÙƒÙ„Ù…Ø§Øª.
-8. Ù†ÙˆØ¹ Ø§Ù„Ù‚Ù†Ø§Ø© Ø¥Ù…Ø§ "text" Ø£Ùˆ "voice" ÙÙ‚Ø·.
-9. ÙØ¦Ø© Ø§Ù„ØµÙˆØªÙŠØ§Øª ÙˆØ§Ù„Ø¯Ø±Ø¯Ø´Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ© ÙŠØ¬Ø¨ Ø£Ù† ØªØ¶Ù… Ù‚Ù†ÙˆØ§Øª ØµÙˆØªÙŠØ© (type: "voice") ÙÙ‚Ø·.
+قواعد البناء والتنظيم الإجبارية:
+1. الفئات والقنوات باللغة العربية ومزينة برموز تعبيرية راقية ومتطابقة (مثل: 📋┃القوانين، 💬┃الدردشة-العامة).
+2. أول فئة يجب أن تكون فئة الترحيب والمعلومات الإدارية. والقناة الأولى فيها تحمل خيار (sendEmbed: "rules") وقناة الترحيب (sendEmbed: "welcome").
+3. قنوات القوانين والإعلانات يجب أن تكون (readOnly: true) لتفادي الفوضى.
+4. السيرفر يجب أن يحتوي على فئة خاصة بالإدارة وفريق العمل تكون (staffOnly: true).
+5. صمم ما بين 4 إلى 6 فئات رئيسية، وما بين 3 إلى 5 قنوات داخل كل فئة لتأمين سيرفر غني.
+6. صمم ما بين 4 إلى 8 رتب إدارية واجتماعية ملونة متناسقة. الألوان المكتوبة يجب أن تكون أرقام عشرية صحيحة (Decimal) تمثل كود اللون Hex (مثال: الذهبي #FFD700 يتم كتابته كـ 16766720).
+7. لا تضع مسافات في أسماء القنوات النصية واستخدم الشرطة (-) دائماً للفصل بين الكلمات.
+8. نوع القناة إما "text" أو "voice" فقط.
+9. فئة الصوتيات والدردشات الصوتية يجب أن تضم قنوات صوتية (type: "voice") فقط.
 
-Ø£Ø¬Ø¨ Ø¨Ø§Ù„Ù€ JSON ÙÙ‚Ø· Ø¯ÙˆÙ† ÙˆØ¶Ø¹ Ø£ÙŠ Ù†ØµÙˆØµ Ø£Ùˆ ØªØ¹Ù„ÙŠÙ‚Ø§Øª Ø¨Ø±Ù…Ø¬ÙŠØ© Ø®Ø§Ø±Ø¬ Ù‡ÙŠÙƒÙ„ Ø§Ù„Ù€ JSON Ù„ÙƒÙŠ Ù„Ø§ ÙŠÙ†ÙƒØ³Ø± Ù…Ø­Ø±Ùƒ ÙÙƒ Ø§Ù„ØªØ±Ù…ÙŠØ².`;
+أجب بالـ JSON فقط دون وضع أي نصوص أو تعليقات برمجية خارج هيكل الـ JSON لكي لا ينكسر محرك فك الترميز.`;
 
   try {
     const aiMessage = await generateAIResponse(
@@ -289,7 +289,7 @@ async function generateBlueprintWithAI(description: string, guildName: string): 
     );
     const content = aiMessage.content?.trim() ?? '';
 
-    // Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ø¬ÙŠØ³ÙˆÙ† Ù…Ù† Ø§Ù„Ø±Ø¯
+    // استخراج جيسون من الرد
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON match found in AI response text');
 
@@ -303,88 +303,88 @@ async function generateBlueprintWithAI(description: string, guildName: string): 
 }
 
 // ============================================================
-//  Ø§Ù„Ø¨Ù„ÙˆØ¨Ø±ÙŠÙ†Øª Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠ (Fallback Blueprint)
+//  البلوبرينت الافتراضي الاحتياطي (Fallback Blueprint)
 // ============================================================
 export function getDefaultBlueprint(description: string): ServerBlueprint {
-  // Ù…Ø·Ø§Ø¨Ù‚Ø© ØªÙØ§ØµÙŠÙ„ Ø¨Ø³ÙŠØ·Ø© Ù„Ù„Ø§Ø®ØªÙŠØ§Ø±
+  // مطابقة تفاصيل بسيطة للاختيار
   const lowerDesc = description.toLowerCase();
-  if (lowerDesc.includes('Ù‚ÙŠÙ…Ù†Ù‚') || lowerDesc.includes('Ù„Ø¹Ø¨') || lowerDesc.includes('Ø§Ù„Ø¹Ø§Ø¨') || lowerDesc.includes('gaming')) {
+  if (lowerDesc.includes('قيمنق') || lowerDesc.includes('لعب') || lowerDesc.includes('العاب') || lowerDesc.includes('gaming')) {
     return DETAILED_BLUEPRINTS.gaming;
   }
-  if (lowerDesc.includes('Ù…ØªØ¬Ø±') || lowerDesc.includes('Ø¨ÙŠØ¹') || lowerDesc.includes('Ø´ÙˆØ¨') || lowerDesc.includes('store')) {
+  if (lowerDesc.includes('متجر') || lowerDesc.includes('بيع') || lowerDesc.includes('شوب') || lowerDesc.includes('store')) {
     return DETAILED_BLUEPRINTS.store;
   }
-  if (lowerDesc.includes('ÙƒÙ„Ø§Ù†') || lowerDesc.includes('ØªÙŠÙ…') || lowerDesc.includes('ÙØ±ÙŠÙ‚') || lowerDesc.includes('clan')) {
+  if (lowerDesc.includes('كلان') || lowerDesc.includes('تيم') || lowerDesc.includes('فريق') || lowerDesc.includes('clan')) {
     return DETAILED_BLUEPRINTS.clan;
   }
 
-  // Ù‚Ø§Ù„Ø¨ Ù…Ø¬ØªÙ…Ø¹ÙŠ Ø§ÙØªØ±Ø§Ø¶ÙŠ Ù…ØªÙƒØ§Ù…Ù„
+  // قالب مجتمعي افتراضي متكامل
   return {
     serverType: description,
-    description: `Ø³ÙŠØ±ÙØ± Ù…Ø¬ØªÙ…Ø¹ÙŠ Ø°ÙƒÙŠ Ù…Ø®ØµØµ Ù„Ù„Ø¯Ø±Ø¯Ø´Ø© ÙˆØªÙ†Ø³ÙŠÙ‚ Ø§Ù„Ø£ÙÙƒØ§Ø± Ù„Ù€: ${description}`,
+    description: `سيرفر مجتمعي ذكي مخصص للدردشة وتنسيق الأفكار لـ: ${description}`,
     categories: [
       {
-        name: 'ðŸ“¢â”ƒØ§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆØ§Ù„Ù…Ø¹Ù„ÙˆÙ…Ø§Øª',
+        name: '📢┃الترحيب والمعلومات',
         channels: [
-          { name: 'ðŸ“‹â”ƒØ§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†-ÙˆØ§Ù„ØªØ¹Ù„ÙŠÙ…Ø§Øª', type: 'text', sendEmbed: 'rules', readOnly: true },
-          { name: 'ðŸ“¢â”ƒØ¥Ø¹Ù„Ø§Ù†Ø§Øª-Ø§Ù„Ø®Ø§Ø¯Ù…', type: 'text', readOnly: true },
-          { name: 'ðŸ‘‹â”ƒØ§Ù„ØªØ±Ø­ÙŠØ¨-Ø¨Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡', type: 'text', sendEmbed: 'welcome', readOnly: true },
+          { name: '📋┃القوانين-والتعليمات', type: 'text', sendEmbed: 'rules', readOnly: true },
+          { name: '📢┃إعلانات-الخادم', type: 'text', readOnly: true },
+          { name: '👋┃الترحيب-بالأعضاء', type: 'text', sendEmbed: 'welcome', readOnly: true },
         ],
       },
       {
-        name: 'ðŸ’¬â”ƒØ§Ù„Ø¯Ø±Ø¯Ø´Ø© Ø§Ù„Ø¹Ø§Ù…Ø© ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹',
+        name: '💬┃الدردشة العامة والاجتماع',
         channels: [
-          { name: 'ðŸ’¬â”ƒØ§Ù„Ø¯Ø±Ø¯Ø´Ø©-Ø§Ù„Ø¹Ø§Ù…Ø©', type: 'text', topic: 'Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ø³ÙˆØ§Ù„Ù ÙˆØ§Ù„Ø¯Ø±Ø¯Ø´Ø© Ø§Ù„Ø¹Ø§Ù…Ø© Ù„ÙƒÙ„ Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡' },
-          { name: 'ðŸ–¼ï¸â”ƒØ§Ù„ØµÙˆØ±-ÙˆØ§Ù„Ù…ÙŠØ¯ÙŠØ§', type: 'text', topic: 'Ø´Ø§Ø±ÙƒÙ†Ø§ Ø¥Ø¨Ø¯Ø§Ø¹Ø§ØªÙƒ ÙˆØµÙˆØ±Ùƒ Ø§Ù„ÙŠÙˆÙ…ÙŠØ©' },
-          { name: 'ðŸ¤–â”ƒØ£ÙˆØ§Ù…Ø±-Ø§Ù„Ø¨ÙˆØªØ§Øª', type: 'text', topic: 'Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙˆØªØ§Øª Ø§Ù„ØªØ±ÙÙŠÙ‡ÙŠØ© ÙˆØ§Ù„ØªÙ†Ø¸ÙŠÙ…ÙŠØ©' },
+          { name: '💬┃الدردشة-العامة', type: 'text', topic: 'منطقة السوالف والدردشة العامة لكل الأعضاء' },
+          { name: '🖼️┃الصور-والميديا', type: 'text', topic: 'شاركنا إبداعاتك وصورك اليومية' },
+          { name: '🤖┃أوامر-البوتات', type: 'text', topic: 'استدعاء أوامر البوتات الترفيهية والتنظيمية' },
         ],
       },
       {
-        name: 'ðŸŽ™ï¸â”ƒØ§Ù„ØµØ§Ù„ÙˆÙ†Ø§Øª Ø§Ù„ØµÙˆØªÙŠØ© Ø§Ù„Ø¹Ø§Ù…Ø©',
+        name: '🎙️┃الصالونات الصوتية العامة',
         channels: [
-          { name: 'ðŸŽ¤â”ƒØ¯ÙŠÙˆØ§Ù†ÙŠØ©-Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡', type: 'voice', userLimit: 20 },
-          { name: 'ðŸŽµâ”ƒØ¬Ù„Ø³Ø©-Ù…ÙˆØ³ÙŠÙ‚Ù‰-ÙˆØ·Ø±Ø¨', type: 'voice', userLimit: 10 },
-          { name: 'ðŸŽ™ï¸â”ƒØºØ±ÙØ©-Ø´Ø®ØµÙŠÙ†-ÙÙ‚Ø·', type: 'voice', userLimit: 2 },
+          { name: '🎤┃ديوانية-الأعضاء', type: 'voice', userLimit: 20 },
+          { name: '🎵┃جلسة-موسيقى-وطرب', type: 'voice', userLimit: 10 },
+          { name: '🎙️┃غرفة-شخصين-فقط', type: 'voice', userLimit: 2 },
         ],
       },
       {
-        name: 'ðŸ›¡ï¸â”ƒØºØ±ÙØ© ÙØ±ÙŠÙ‚ Ø§Ù„Ø¹Ù…Ù„',
+        name: '🛡️┃غرفة فريق العمل',
         staffOnly: true,
         channels: [
-          { name: 'ðŸ“Šâ”ƒØ¥Ø¯Ø§Ø±Ø©-Ø§Ù„Ø®Ø§Ø¯Ù…', type: 'text', staffOnly: true },
-          { name: 'ðŸ“â”ƒØ³Ø¬Ù„-Ø§Ù„Ø±Ù‚Ø§Ø¨Ø©-ÙˆØ§Ù„Ø£Ø¹Ø·Ø§Ù„', type: 'text', staffOnly: true },
+          { name: '📊┃إدارة-الخادم', type: 'text', staffOnly: true },
+          { name: '📝┃سجل-الرقابة-والأعطال', type: 'text', staffOnly: true },
         ],
       },
     ],
     roles: [
-      { name: 'ðŸ‘‘â”ƒØ§Ù„Ù…Ø¤Ø³Ø³', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
-      { name: 'ðŸ›¡ï¸â”ƒØ§Ù„Ø¥Ø¯Ø§Ø±Ø©', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
-      { name: 'âš¡â”ƒØ§Ù„Ù…Ø´Ø±ÙÙŠÙ†', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
-      { name: 'ðŸ‘¤â”ƒØ¹Ø¶Ùˆ Ø§Ù„Ø³ÙŠØ±ÙØ±', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
+      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '🛡️┃الإدارة', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
+      { name: '⚡┃المشرفين', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
+      { name: '👤┃عضو السيرفر', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
     ],
   };
 }
 
 // ============================================================
-//  Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© Ø¨Ø´ÙƒÙ„ ÙƒØ§Ù…Ù„
+//  إزالة القنوات القديمة بشكل كامل
 // ============================================================
 async function clearExistingChannels(guild: Guild, protectedId: string, log: string[]): Promise<void> {
   const toDelete = guild.channels.cache.filter((ch) => ch.id !== protectedId);
   let count = 0;
   for (const [, ch] of toDelete) {
     try {
-      await ch.delete('Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø¨Ù†Ø§Ø¡ ÙˆØ§Ù„ØªÙ†Ø¸ÙŠÙ… Ø§Ù„Ø´Ø§Ù…Ù„ - Opus Bot');
+      await ch.delete('إعادة البناء والتنظيم الشامل - Opus Bot');
       count++;
       await delay(250);
     } catch (e: any) {
-      console.warn(`[Builder] ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„Ù‚Ù†Ø§Ø© ${ch.name}: ${e.message}`);
+      console.warn(`[Builder] تعذر حذف القناة ${ch.name}: ${e.message}`);
     }
   }
-  log.push(`ðŸ—‘ï¸ ØªÙ… Ù…Ø³Ø­ ÙˆØªÙ†Ø¸ÙŠÙ ${count} Ù‚Ù†Ø§Ø©/ÙØ¦Ø© Ø³Ø§Ø¨Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­.`);
+  log.push(`🗑️ تم مسح وتنظيف ${count} قناة/فئة سابقة بنجاح.`);
 }
 
 // ============================================================
-//  Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© ÙˆØªØ¬Ù†Ø¨ Ø­Ø°Ù Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© Ø§Ù„Ø¹Ù„ÙŠØ§
+//  إزالة الرتب القديمة وتجنب حذف الرتب الإدارية العليا
 // ============================================================
 async function clearExistingRoles(guild: Guild, log: string[]): Promise<void> {
   const botPos = guild.members.me?.roles.highest.position ?? 0;
@@ -394,23 +394,23 @@ async function clearExistingRoles(guild: Guild, log: string[]): Promise<void> {
   let count = 0;
   for (const [, r] of toDelete) {
     try {
-      await r.delete('ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø±ØªØ¨ ÙˆØ¨Ù†Ø§Ø¡ Ø§Ù„Ø³ÙŠØ±ÙØ± - Opus Bot');
+      await r.delete('تحديث الرتب وبناء السيرفر - Opus Bot');
       count++;
       await delay(250);
     } catch (e: any) {
-      console.warn(`[Builder] ØªØ¹Ø°Ø± Ø­Ø°Ù Ø§Ù„Ø±ØªØ¨Ø© ${r.name}: ${e.message}`);
+      console.warn(`[Builder] تعذر حذف الرتبة ${r.name}: ${e.message}`);
     }
   }
-  log.push(`ðŸ—‘ï¸ ØªÙ… ØªÙ†Ø¸ÙŠÙ ${count} Ø±ØªØ¨Ø© Ø³Ø§Ø¨Ù‚Ø© Ø¨Ù†Ø¬Ø§Ø­.`);
+  log.push(`🗑️ تم تنظيف ${count} رتبة سابقة بنجاح.`);
 }
 
 // ============================================================
-//  Ø¥Ù†Ø´Ø§Ø¡ Ø±ØªØ¨ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙˆÙ‡ÙŠÙƒÙ„ØªÙ‡Ø§
+//  إنشاء رتب السيرفر الجديدة وهيكلتها
 // ============================================================
 async function buildRoles(guild: Guild, roleBlueprints: RoleBlueprint[], log: string[]): Promise<Map<string, Role>> {
   const created = new Map<string, Role>();
 
-  // Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø±ØªØ¨ ØªÙ†Ø§Ø²Ù„ÙŠØ§Ù‹ Ù„Ø¶Ù…Ø§Ù† ØªØ±ØªÙŠØ¨ Ø§Ù„Ù‡Ø±Ù… Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠ Ø§Ù„ØµØ­ÙŠØ­
+  // إنشاء الرتب تنازلياً لضمان ترتيب الهرم الإداري الصحيح
   for (let i = roleBlueprints.length - 1; i >= 0; i--) {
     const rb = roleBlueprints[i];
     try {
@@ -425,30 +425,30 @@ async function buildRoles(guild: Guild, roleBlueprints: RoleBlueprint[], log: st
         hoist: rb.hoist ?? false,
         mentionable: rb.mentionable ?? false,
         permissions: perms,
-        reason: 'Ø¨Ù†Ø§Ø¡ Ø±ØªØ¨ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯ - Opus Bot',
+        reason: 'بناء رتب السيرفر الجديد - Opus Bot',
       });
 
       created.set(rb.name, role);
-      log.push(`  âœ… ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø±ØªØ¨Ø©: ${rb.name}`);
+      log.push(`  ✅ تم إنشاء الرتبة: ${rb.name}`);
       await delay(300);
     } catch (err: any) {
-      log.push(`  âŒ ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø±ØªØ¨Ø© ${rb.name}: ${err.message}`);
+      log.push(`  ❌ تعذر إنشاء الرتبة ${rb.name}: ${err.message}`);
     }
   }
   return created;
 }
 
 // ============================================================
-//  ØªØµÙÙŠØ© Ø±ØªØ¨ ÙØ±ÙŠÙ‚ Ø§Ù„Ø¹Ù…Ù„ ÙˆØ§Ù„Ø¥Ø¯Ø§Ø±Ø©
+//  تصفية رتب فريق العمل والإدارة
 // ============================================================
 function getStaffRoles(allRoles: Map<string, Role>, blueprint: ServerBlueprint): Role[] {
-  // Ø£ÙˆÙ„ Ø±ØªØ¨ØªÙŠÙ† ÙÙŠ Ø§Ù„ØªØ±ØªÙŠØ¨ Ù†Ø¹ØªØ¨Ø±Ù‡Ù…Ø§ Ø±ØªØ¨ Ø·Ø§Ù‚Ù… Ø§Ù„Ø¹Ù…Ù„ ÙˆØ§Ù„Ù…Ø³Ø¤ÙˆÙ„ÙŠÙ†
+  // أول رتبتين في الترتيب نعتبرهما رتب طاقم العمل والمسؤولين
   const roleNames = blueprint.roles.slice(0, 2).map((r) => r.name);
   return roleNames.map((n) => allRoles.get(n)).filter(Boolean) as Role[];
 }
 
 // ============================================================
-//  Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ÙØ¦Ø§Øª ÙˆÙ‚Ù†ÙˆØ§ØªÙ‡Ø§ ÙˆØ¥Ø¹Ø¯Ø§Ø¯ ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ÙˆØ§Ù„ÙƒØªØ§Ø¨Ø©
+//  إنشاء الفئات وقنواتها وإعداد صلاحيات القراءة والكتابة
 // ============================================================
 async function buildCategoriesAndChannels(
   guild: Guild,
@@ -459,13 +459,19 @@ async function buildCategoriesAndChannels(
   for (const catBp of blueprint.categories) {
     const catPerms: OverwriteResolvable[] = [];
     
-    // Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ø®Ø§ØµØ© Ø¨Ù€ StaffOnly
+    // الصلاحيات الخاصة بـ StaffOnly
     if (catBp.staffOnly) {
       catPerms.push({ id: guild.id, deny: [PermissionFlagsBits.ViewChannel] });
       for (const sr of staffRoles) {
         catPerms.push({
           id: sr.id,
           allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+        });
+      }
+      if (guild.client.user) {
+        catPerms.push({
+          id: guild.client.user.id,
+          allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
         });
       }
     }
@@ -476,12 +482,12 @@ async function buildCategoriesAndChannels(
         name: catBp.name,
         type: ChannelType.GuildCategory,
         permissionOverwrites: catPerms.length > 0 ? catPerms : undefined,
-        reason: 'Ø¨Ù†Ø§Ø¡ ÙØ¦Ø§Øª Ø§Ù„Ø³ÙŠØ±ÙØ± - Opus Bot',
+        reason: 'بناء فئات السيرفر - Opus Bot',
       }) as CategoryChannel;
-      log.push(`ðŸ“ ÙØ¦Ø©: ${catBp.name}`);
+      log.push(`📁 فئة: ${catBp.name}`);
       await delay(300);
     } catch (err: any) {
-      log.push(`âŒ ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ ÙØ¦Ø© ${catBp.name}: ${err.message}`);
+      log.push(`❌ فشل إنشاء فئة ${catBp.name}: ${err.message}`);
       continue;
     }
 
@@ -494,6 +500,12 @@ async function buildCategoriesAndChannels(
           chPerms.push({
             id: sr.id,
             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory],
+          });
+        }
+        if (guild.client.user) {
+          chPerms.push({
+            id: guild.client.user.id,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels],
           });
         }
       } else if (chBp.readOnly) {
@@ -515,13 +527,13 @@ async function buildCategoriesAndChannels(
           userLimit: chBp.userLimit,
           rateLimitPerUser: chBp.rateLimitPerUser,
           permissionOverwrites: chPerms.length > 0 ? chPerms : undefined,
-          reason: 'Ø¨Ù†Ø§Ø¡ Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ø³ÙŠØ±ÙØ± - Opus Bot',
+          reason: 'بناء قنوات السيرفر - Opus Bot',
         });
 
-        log.push(`  âœ… ${chBp.type === 'voice' ? 'ðŸ”Š' : 'ðŸ’¬'} ${chBp.name}`);
+        log.push(`  ✅ ${chBp.type === 'voice' ? '🔊' : '💬'} ${chBp.name}`);
         await delay(250);
 
-        // Ø¥Ø±Ø³Ø§Ù„ ÙƒØ±ÙˆØª Ø§Ù„ØªØ±Ø­ÙŠØ¨ ÙˆØ§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†
+        // إرسال كروت الترحيب والقوانين
         if (chBp.sendEmbed && chBp.type === 'text') {
           try {
             const textCh = ch as TextChannel;
@@ -532,25 +544,25 @@ async function buildCategoriesAndChannels(
                 await textCh.send({ embeds: [e] });
                 await delay(250);
               }
-              log.push(`    ðŸ“œ ØªÙ… ØªØ¹ÙŠÙŠÙ† Ù„ÙˆØ­Ø© Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ† ÙˆØ§Ù„ØªØ¹Ù„ÙŠÙ…Ø§Øª Ø§Ù„Ø±Ø³Ù…ÙŠØ©.`);
+              log.push(`    📜 تم تعيين لوحة القوانين والتعليمات الرسمية.`);
             } else if (chBp.sendEmbed === 'welcome') {
               const e = createWelcomeEmbed(guild.name);
               await textCh.send({ embeds: [e] });
-              log.push(`    ðŸ‘‹ ØªÙ… ØªØ¹ÙŠÙŠÙ† Ù„ÙˆØ­Ø© Ø§Ù„ØªØ±Ø­ÙŠØ¨ Ø¨Ø§Ù„Ø£Ø¹Ø¶Ø§Ø¡ Ø§Ù„Ø¬Ø¯Ø¯.`);
+              log.push(`    👋 تم تعيين لوحة الترحيب بالأعضاء الجدد.`);
             }
           } catch (e: any) {
-            console.error(`[Builder] ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ ÙƒØ§Ø±Øª Ø§Ù„ØªØ±Ø­ÙŠØ¨/Ø§Ù„Ù‚ÙˆØ§Ù†ÙŠÙ†: ${e.message}`);
+            console.error(`[Builder] فشل إرسال كارت الترحيب/القوانين: ${e.message}`);
           }
         }
       } catch (err: any) {
-        log.push(`  âŒ ÙØ´Ù„ Ø¥Ù†Ø´Ø§Ø¡ Ù‚Ù†Ø§Ø© ${chBp.name}: ${err.message}`);
+        log.push(`  ❌ فشل إنشاء قناة ${chBp.name}: ${err.message}`);
       }
     }
   }
 }
 
 // ============================================================
-//  Ø§Ù„Ø£Ø¯Ø§Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©: Ø¨Ù†Ø§Ø¡ Ø³ÙŠØ±ÙØ± Ù…Ø®ØµØµ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
+//  الأداة الرئيسية: بناء سيرفر مخصص بالذكاء الاصطناعي
 // ============================================================
 export async function buildCustomServer(
   guild: Guild,
@@ -558,48 +570,48 @@ export async function buildCustomServer(
   protectedChannelId: string
 ): Promise<{ success: boolean; message: string; details: string[] }> {
   const log: string[] = [];
-  log.push(`ðŸ¤– Ø¬Ø§Ø±ÙŠ ØªØµÙ…ÙŠÙ… Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù…ØªØ·Ù„Ø¨Ø§Øª Ù„Ù„ÙˆØµÙ: "${description}"...`);
+  log.push(`🤖 جاري تصميم السيرفر وتحليل المتطلبات للوصف: "${description}"...`);
 
   try {
-    // Ø§Ù„Ù…Ø±Ø­Ù„Ø© 1: ØªÙˆÙ„ÙŠØ¯ Ø§Ù„Ø¨Ù„ÙˆØ¨Ø±ÙŠÙ†Øª Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ
-    log.push('\nðŸ“ Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰: ØªÙˆÙ„ÙŠØ¯ Ù‡ÙŠÙƒÙ„ Ø§Ù„Ù‚Ù†ÙˆØ§Øª ÙˆØ§Ù„Ø±ØªØ¨...');
+    // المرحلة 1: توليد البلوبرينت بالذكاء الاصطناعي
+    log.push('\n📍 المرحلة الأولى: توليد هيكل القنوات والرتب...');
     const blueprint = await generateBlueprintWithAI(description, guild.name);
-    log.push(`âœ… ØªÙ… Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø¨Ù†Ø¬Ø§Ø­: ${blueprint.serverType}`);
-    log.push(`ðŸ“ ØªÙØ§ØµÙŠÙ„: ${blueprint.description}`);
-    log.push(`ðŸ“Š Ø§Ù„Ù‡ÙŠÙƒÙ„ÙŠØ©: ${blueprint.categories.length} ÙØ¦Ø© Ø±Ø¦ÙŠØ³ÙŠØ© | ${blueprint.roles.length} Ø±ØªØ¨Ø©.`);
+    log.push(`✅ تم التوليد بنجاح: ${blueprint.serverType}`);
+    log.push(`📝 تفاصيل: ${blueprint.description}`);
+    log.push(`📊 الهيكلية: ${blueprint.categories.length} فئة رئيسية | ${blueprint.roles.length} رتبة.`);
 
-    // Ø§Ù„Ù…Ø±Ø­Ù„Ø© 2: Ù…Ø³Ø­ ÙˆØªÙ†Ø¸ÙŠÙ Ø§Ù„Ù‚Ù†ÙˆØ§Øª
-    log.push('\nðŸ“ Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ø«Ø§Ù†ÙŠØ©: Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© ÙˆØ§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠØ©...');
+    // المرحلة 2: مسح وتنظيف القنوات
+    log.push('\n📍 المرحلة الثانية: إزالة القنوات القديمة والافتراضية...');
     await clearExistingChannels(guild, protectedChannelId, log);
 
-    // Ø§Ù„Ù…Ø±Ø­Ù„Ø© 3: Ù…Ø³Ø­ ÙˆØªÙ†Ø¸ÙŠÙ Ø§Ù„Ø±ØªØ¨
-    log.push('\nðŸ“ Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ø«Ø§Ù„Ø«Ø©: Ø¥Ø²Ø§Ù„Ø© Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ø³Ø§Ø¨Ù‚Ø©...');
+    // المرحلة 3: مسح وتنظيف الرتب
+    log.push('\n📍 المرحلة الثالثة: إزالة الرتب السابقة...');
     await clearExistingRoles(guild, log);
 
-    // Ø§Ù„Ù…Ø±Ø­Ù„Ø© 4: Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø±ØªØ¨
-    log.push('\nðŸ“ Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ø±Ø§Ø¨Ø¹Ø©: Ø¨Ù†Ø§Ø¡ Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙˆØµÙ„Ø§Ø­ÙŠØ§ØªÙ‡Ø§...');
+    // المرحلة 4: إنشاء الرتب
+    log.push('\n📍 المرحلة الرابعة: بناء الرتب الجديدة وصلاحياتها...');
     const createdRoles = await buildRoles(guild, blueprint.roles, log);
 
-    // Ø§Ù„Ù…Ø±Ø­Ù„Ø© 5: Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ÙØ¦Ø§Øª ÙˆØ§Ù„Ù‚Ù†ÙˆØ§Øª
+    // المرحلة 5: إنشاء الفئات والقنوات
     const staffRoles = getStaffRoles(createdRoles, blueprint);
-    log.push('\nðŸ“ Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ø®Ø§Ù…Ø³Ø©: Ø¨Ù†Ø§Ø¡ Ø§Ù„ÙØ¦Ø§Øª ÙˆØ§Ù„Ù‚Ù†ÙˆØ§Øª Ø§Ù„ØµÙˆØªÙŠØ© ÙˆØ§Ù„ÙƒØªØ§Ø¨ÙŠØ© Ø§Ù„Ù…Ù†Ø³Ù‚Ø©...');
+    log.push('\n📍 المرحلة الخامسة: بناء الفئات والقنوات الصوتية والكتابية المنسقة...');
     await buildCategoriesAndChannels(guild, blueprint, staffRoles, log);
 
     const totalChannelsCount = blueprint.categories.reduce((acc, cat) => acc + cat.channels.length, 0);
-    const successMessage = `âœ… ØªÙ… Ø§Ù„Ø§Ù†ØªÙ‡Ø§Ø¡ Ø¨Ù†Ø¬Ø§Ø­ Ù…Ù† Ø¨Ù†Ø§Ø¡ ÙˆØªØµÙ…ÙŠÙ… Ø³ÙŠØ±ÙØ± "${blueprint.serverType}"!\n` +
-      `ðŸ“ ${blueprint.categories.length} ÙØ¦Ø© | ðŸ’¬ ${totalChannelsCount} Ù‚Ù†Ø§Ø© | ðŸŽ­ ${blueprint.roles.length} Ø±ØªØ¨Ø© Ù…Ù„ÙˆÙ†Ø©.`;
+    const successMessage = `✅ تم الانتهاء بنجاح من بناء وتصميم سيرفر "${blueprint.serverType}"!\n` +
+      `📁 ${blueprint.categories.length} فئة | 💬 ${totalChannelsCount} قناة | 🎭 ${blueprint.roles.length} رتبة ملونة.`;
 
     log.push('\n' + successMessage);
     return { success: true, message: successMessage, details: log };
   } catch (err: any) {
     const errorMsg = err.message || String(err);
-    log.push(`\nðŸ’¥ Ø­Ø¯Ø« Ø®Ø·Ø£ ÙØ§Ø¯Ø­ Ø£Ø«Ù†Ø§Ø¡ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø¨Ù†Ø§Ø¡: ${errorMsg}`);
-    return { success: false, message: `âŒ ÙØ´Ù„ Ø¨Ù†Ø§Ø¡ Ø§Ù„Ø³ÙŠØ±ÙØ± Ø¨Ø§Ù„ÙƒØ§Ù…Ù„: ${errorMsg}`, details: log };
+    log.push(`\n💥 حدث خطأ فادح أثناء عملية البناء: ${errorMsg}`);
+    return { success: false, message: `❌ فشل بناء السيرفر بالكامل: ${errorMsg}`, details: log };
   }
 }
 
 // ============================================================
-//  Ø§Ù„Ø¨Ù†Ø§Ø¡ Ø§Ù„Ø¬Ø§Ù‡Ø² Ù…Ù† Ø®Ù„Ø§Ù„ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ù…Ø¨Ø§Ø´Ø±Ø©
+//  البناء الجاهز من خلال القوالب المباشرة
 // ============================================================
 export async function executeCommunityBuild(
   guild: Guild,
@@ -608,10 +620,10 @@ export async function executeCommunityBuild(
   options?: { serverName?: string }
 ): Promise<{ success: boolean; message: string; details: string[] }> {
   const typeDescriptions: Record<string, string> = {
-    community: 'Ù…Ø¬ØªÙ…Ø¹ Ø¹Ø§Ù… Ø¨Ø±ÙˆØªÙˆÙƒÙˆÙ„Ø§Øª Ø¯Ø±Ø¯Ø´Ø© ÙˆÙÙˆÙŠØ³',
-    store: 'Ù…ØªØ¬Ø± ØªØ¬Ø§Ø±ÙŠ Ø¨ÙŠØ¹ Ø­Ø³Ø§Ø¨Ø§Øª ÙˆØªØ°Ø§ÙƒØ± ØªÙˆØ§ØµÙ„',
-    gaming: 'Ø³ÙŠØ±ÙØ± Ù‚ÙŠÙ…Ù†Ù‚ Ø£Ù„Ø¹Ø§Ø¨ ÙˆØ¨Ø·ÙˆÙ„Ø§Øª ØªØ±ÙÙŠÙ‡ÙŠØ©',
-    clan: 'ÙƒÙ„Ø§Ù† ÙˆØªÙŠÙ… Ù…Ù†Ø§ÙØ³Ø§Øª Ø±ÙˆÙ…Ø§Øª Ù„Ù„ØªØ¯Ø±ÙŠØ¨ Ø§Ù„Ù…ØºÙ„Ù‚',
+    community: 'مجتمع عام بروتوكولات دردشة وفويس',
+    store: 'متجر تجاري بيع حسابات وتذاكر تواصل',
+    gaming: 'سيرفر قيمنق ألعاب وبطولات ترفيهية',
+    clan: 'كلان وتيم منافسات رومات للتدريب المغلق',
   };
 
   const selectedDesc = typeDescriptions[blueprintType] || blueprintType;
@@ -619,47 +631,47 @@ export async function executeCommunityBuild(
 }
 
 // ============================================================
-//  Ù†Ø¸Ø§Ù… Ø§Ø®ØªØ¨Ø§Ø±Ø§Øª Ø§Ù„ØªØ´Ø®ÙŠØµ Ø§Ù„Ø°Ø§ØªÙŠ Ù„Ø¨Ø§Ù†ÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª (Self-Tests)
+//  نظام اختبارات التشخيص الذاتي لباني السيرفرات (Self-Tests)
 // ============================================================
 export function runCommunityBuilderDiagnostics(): { success: boolean; reports: string[] } {
   const reports: string[] = [];
   let success = true;
 
   try {
-    reports.push('[Diagnostic] Ø¨Ø¯Ø¡ ÙØ­Øµ Ø¨Ø§Ù†ÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±Ø§Øª Ø§Ù„Ø°ÙƒÙŠ...');
+    reports.push('[Diagnostic] بدء فحص باني السيرفرات الذكي...');
 
-    // Ø§Ø®ØªØ¨Ø§Ø± 1: ÙØ­Øµ ÙˆØ¬ÙˆØ¯ Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© ÙˆØ«Ø¨Ø§Øª Ø­Ø¬Ù…Ù‡Ø§
+    // اختبار 1: فحص وجود القوالب الأساسية وثبات حجمها
     const gamingBp = DETAILED_BLUEPRINTS.gaming;
     const storeBp = DETAILED_BLUEPRINTS.store;
 
     if (!gamingBp || !storeBp) {
-      reports.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 1: Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© ØºÙŠØ± Ù…Ø¹Ø±Ù‘ÙØ© Ø¨Ø§Ù„Ø´ÙƒÙ„ Ø§Ù„Ø³Ù„ÙŠÙ….');
+      reports.push('❌ فشل اختبار 1: القوالب الأساسية غير معرّفة بالشكل السليم.');
       success = false;
     } else {
-      reports.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 1: Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© Ù…ØªÙˆÙØ±Ø© ÙˆØµØ­ÙŠØ­Ø©.');
+      reports.push('✅ نجاح اختبار 1: القوالب الأساسية متوفرة وصحيحة.');
     }
 
-    // Ø§Ø®ØªØ¨Ø§Ø± 2: ÙØ­Øµ Ø§Ù„Ø¨Ù†Ø§Ø¡ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠ
-    const fallbackBp = getDefaultBlueprint('Ù‚ÙŠÙ…Ù†Ù‚ Ø§Ù„Ø¹Ø§Ø¨');
+    // اختبار 2: فحص البناء الافتراضي الاحتياطي
+    const fallbackBp = getDefaultBlueprint('قيمنق العاب');
     if (fallbackBp.serverType !== DETAILED_BLUEPRINTS.gaming.serverType) {
-      reports.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 2: Ù…Ø­Ø±Ùƒ Ø§Ù„Ù€ Fallback Ù„Ù… ÙŠØ®ØªØ± Ù‚Ø§Ù„Ø¨ Ø§Ù„Ø£Ù„Ø¹Ø§Ø¨ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹.');
+      reports.push('❌ فشل اختبار 2: محرك الـ Fallback لم يختر قالب الألعاب تلقائياً.');
       success = false;
     } else {
-      reports.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 2: Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù‚ÙˆØ§Ù„Ø¨ Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© ÙŠØ¹Ù…Ù„ Ø¨Ø°ÙƒØ§Ø¡ ÙˆØ¯Ù‚Ø©.');
+      reports.push('✅ نجاح اختبار 2: اختيار القوالب الاحتياطية يعمل بذكاء ودقة.');
     }
 
-    // Ø§Ø®ØªØ¨Ø§Ø± 3: Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø±ØªØ¨ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠØ© ÙˆÙ‡ÙŠÙƒÙ„ÙŠØªÙ‡Ø§
-    if (fallbackBp.roles.length === 0 || !fallbackBp.roles.some(r => r.name.includes('Ø§Ù„Ù…Ø¤Ø³Ø³'))) {
-      reports.push('âŒ ÙØ´Ù„ Ø§Ø®ØªØ¨Ø§Ø± 3: Ø±ØªØ¨ Ø§Ù„Ø¨Ù„ÙˆØ¨Ø±ÙŠÙ†Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ© Ù…ÙÙ‚ÙˆØ¯Ø© Ø£Ùˆ Ù„Ø§ ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø±ØªØ¨Ø© Ø§Ù„Ù…Ø¤Ø³Ø³.');
+    // اختبار 3: التحقق من الرتب الافتراضية وهيكليتها
+    if (fallbackBp.roles.length === 0 || !fallbackBp.roles.some(r => r.name.includes('المؤسس'))) {
+      reports.push('❌ فشل اختبار 3: رتب البلوبرينت الأساسية مفقودة أو لا تحتوي على رتبة المؤسس.');
       success = false;
     } else {
-      reports.push('âœ… Ù†Ø¬Ø§Ø­ Ø§Ø®ØªØ¨Ø§Ø± 3: Ù‡ÙŠÙƒÙ„ÙŠØ© Ø§Ù„Ø±ØªØ¨ ÙˆØ§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª Ù…Ø¹Ø±Ù‘ÙØ© Ø¨Ø£Ø³Ù„ÙˆØ¨ Ù…Ø«Ø§Ù„ÙŠ.');
+      reports.push('✅ نجاح اختبار 3: هيكلية الرتب والصلاحيات معرّفة بأسلوب مثالي.');
     }
 
-    reports.push(`[Diagnostic] Ø§Ù†ØªÙ‡Ù‰ Ø§Ù„ÙØ­Øµ Ø¨Ù†Ø¬Ø§Ø­. Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø§Ù„Ø¹Ø§Ù…Ø©: ${success ? 'Ù†Ø§Ø¬Ø­' : 'ÙØ§Ø´Ù„'}`);
+    reports.push(`[Diagnostic] انتهى الفحص بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
   } catch (e: any) {
     success = false;
-    reports.push(`âŒ Ø­Ø¯Ø« Ø®Ø·Ø£ ÙØ§Ø¯Ø­ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„ÙØ­Øµ: ${e.message}`);
+    reports.push(`❌ حدث خطأ فادح أثناء الفحص: ${e.message}`);
   }
 
   return { success, reports };
