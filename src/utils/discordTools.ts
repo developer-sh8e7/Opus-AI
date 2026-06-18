@@ -73,6 +73,69 @@ export const permissionMap: Record<string, bigint> = {
 /**
  * مطابقة اسم الصلاحية نصياً بالقيمة العددية (BigInt) لـ Discord.
  */
+/**
+ * أسماء الصلاحيات بالعربية لعرضها في رسائل التحديث
+ */
+export const permissionArabicNames: Record<string, string> = {
+  ViewChannel: 'مشاهدة القناة',
+  ManageChannels: 'إدارة القنوات',
+  ManageRoles: 'إدارة الرتب',
+  ManageWebhooks: 'إدارة الويب هوك',
+  SendMessages: 'إرسال الرسائل',
+  SendMessagesInThreads: 'إرسال في الثريدات',
+  CreatePublicThreads: 'إنشاء ثريد عام',
+  CreatePrivateThreads: 'إنشاء ثريد خاص',
+  EmbedLinks: 'إرسال الروابط',
+  AttachFiles: 'إرفاق الملفات',
+  AddReactions: 'إضافة تفاعلات',
+  UseExternalEmojis: 'استخدام إيموجي خارجي',
+  UseExternalStickers: 'استخدام ملصقات خارجية',
+  MentionEveryone: 'منشن @everyone/@here',
+  ManageMessages: 'إدارة الرسائل',
+  ReadMessageHistory: 'قراءة التاريخ',
+  SendTTSMessages: 'إرسال TTS',
+  UseApplicationCommands: 'استخدام الأوامر',
+  Connect: 'الدخول',
+  Speak: 'التحدث',
+  Stream: 'فتح سكرين/فيديو',
+  Video: 'فتح سكرين/فيديو',
+  UseEmbeddedActivities: 'استخدام الأنشطة',
+  UseSoundboard: 'استخدام الصوتيات',
+  UseExternalSounds: 'أصوات خارجية',
+  UseVAD: 'كشف الصوت التلقائي',
+  PrioritySpeaker: 'متحدث ذو أولوية',
+  MuteMembers: 'كتم الأعضاء',
+  DeafenMembers: 'إطــراق الأعضاء',
+  MoveMembers: 'نقل الأعضاء',
+  KickMembers: 'طرد الأعضاء',
+  BanMembers: 'حظر الأعضاء',
+  Administrator: 'مدير',
+  ManageGuild: 'إدارة السيرفر',
+  ViewAuditLog: 'سجل التدقيق',
+  ViewGuildInsights: 'إحصائيات السيرفر',
+  ModerateMembers: 'تأديب الأعضاء',
+};
+
+/**
+ * تحويل مصفوفة صلاحيات إلى أسماء عربية مفصولة بفواصل
+ */
+export function formatPermissionsArabic(permNames: string[], style: 'allowed' | 'denied'): string {
+  const names = permNames
+    .map(p => {
+      const clean = p.replace(/[^a-zA-Z0-9]/g, '');
+      for (const [key, value] of Object.entries(permissionMap)) {
+        if (key.toLowerCase() === clean.toLowerCase()) {
+          return permissionArabicNames[key] || key;
+        }
+      }
+      return p;
+    })
+    .filter(Boolean);
+  if (names.length === 0) return '';
+  if (style === 'allowed') return `سُمح بـ: ${names.join('، ')}`;
+  return `مُنع: ${names.join('، ')}`;
+}
+
 export function resolvePermission(permStr: string): bigint | null {
   const normalized = permStr.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   for (const [key, value] of Object.entries(permissionMap)) {
@@ -491,7 +554,14 @@ export async function editPermissions(
       await channel.permissionOverwrites.edit(resolvedTargetId, overwrites, {
         reason: 'تعديل صلاحيات القناة بواسطة نظام الإدارة الذكي'
       });
-      return { success: true, message: `تم تحديث صلاحيات القناة "${channel.name}" بنجاح.` };
+      const allowedPerms = allow.filter(p => resolvePermission(p) !== null);
+      const deniedPerms = deny.filter(p => resolvePermission(p) !== null);
+      const targetLabel = targetId === '@everyone' ? '@everyone' : guild.roles.cache.get(resolvedTargetId)?.name ?? guild.members.cache.get(resolvedTargetId)?.displayName ?? resolvedTargetId;
+      const parts: string[] = [];
+      if (allowedPerms.length > 0) parts.push(formatPermissionsArabic(allowedPerms, 'allowed'));
+      if (deniedPerms.length > 0) parts.push(formatPermissionsArabic(deniedPerms, 'denied'));
+      const detail = parts.length > 0 ? ` (${parts.join('، ')})` : '';
+      return { success: true, message: `تم تحديث صلاحيات القناة "${channel.name}" للرتبة/العضو "${targetLabel}" بنجاح.${detail}` };
     } else {
       return { success: false, message: "هذه القناة لا تدعم تعديل الصلاحيات." };
     }

@@ -106,6 +106,7 @@ import {
 } from './autonomous/monitor.js';
 import { ContextAnalyzer } from './intelligence/context_analyzer.js';
 import { ContextEngine } from './intelligence/context_engine.js';
+import { getRankConfig, getRoleForLevel, processLevelUp, initializeRankSystem, setLevelRole, removeLevelRole } from './intelligence/rank_system.js';
 import { EntityRegistry } from './intelligence/entity_registry.js';
 import {
   applyArabicPermissionsToToolArgs,
@@ -1111,6 +1112,108 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       return true;
     }
 
+    case 'rank':
+    case 'مستواي':
+    case 'رتبتي': {
+      const targetMember = message.mentions.members?.first() || message.member!;
+      const level = LevelingSystem.getMemberLevel(targetMember.id);
+      const xp = LevelingSystem.getMemberXP(targetMember.id);
+      const requiredXP = level * 100;
+      const progress = Math.round((xp / requiredXP) * 100);
+      const rankConfig = getRankConfig(message.guild!.id);
+      const levelRole = getRoleForLevel(message.guild!.id, level);
+      const roleName = levelRole ? message.guild!.roles.cache.get(levelRole)?.name : undefined;
+
+      const embed = new EmbedBuilder()
+        .setColor(EMBED_COLORS.info)
+        .setTitle(`📊 رتبة ${targetMember.displayName}`)
+        .addFields(
+          { name: '🎯 المستوى', value: `${level}`, inline: true },
+          { name: '⭐ النقاط', value: `${xp} / ${requiredXP} (${progress}%)`, inline: true },
+        );
+      if (roleName) {
+        embed.addFields({ name: '🏅 الرتبة الممنوحة', value: roleName, inline: false });
+      }
+      await message.reply({ embeds: [embed] }).catch(() => null);
+      return true;
+    }
+
+    case 'leaderboard':
+    case 'المتصدرين':
+    case 'لوحة': {
+      const entries = [...membersXPMap.entries()]
+        .map(([id, data]) => ({ id, level: data.level, xp: data.xp }))
+        .sort((a, b) => b.level - a.level || b.xp - a.xp)
+        .slice(0, 10);
+
+      if (entries.length === 0) {
+        await message.reply('📊 لا توجد إحصائيات بعد، تفاعل مع السيرفر عشان تظهر.').catch(() => null);
+        return true;
+      }
+
+      const medalEmojis = ['🥇', '🥈', '🥉'];
+      const guild = message.guild!;
+      const desc = await Promise.all(entries.map(async (entry, i) => {
+        const member = await guild.members.fetch(entry.id).catch(() => null);
+        const name = member?.displayName ?? entry.id.slice(0, 6);
+        const medal = medalEmojis[i] || `#${i + 1}`;
+        return `${medal} **${name}** — المستوى ${entry.level} (${entry.xp} XP)`;
+      }));
+
+      const embed = new EmbedBuilder()
+        .setColor(EMBED_COLORS.info)
+        .setTitle('🏆 قائمة المتصدرين')
+        .setDescription(desc.join('\n'))
+        .setFooter({ text: 'تفاعل مع السيرفر لكسب النقاط والمستويات' });
+      await message.reply({ embeds: [embed] }).catch(() => null);
+      return true;
+    }
+
+    case 'rankconfig':
+    case 'إعدادات_الرتب': {
+      if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
+        await message.reply('🔒 هذه الخاصية للمشرفين فقط.').catch(() => null);
+        return true;
+      }
+      const sub = args[0]?.toLowerCase();
+      if (sub === 'set' || sub === 'اضف' || sub === 'أضف') {
+        const level = parseInt(args[1] ?? '');
+        const role = message.mentions.roles?.first();
+        if (!level || !role) {
+          await message.reply('❌ استخدم: `!opus rankconfig set <level> @role`').catch(() => null);
+          return true;
+        }
+        setLevelRole(message.guild!.id, level, role.id);
+        await message.reply(`✅ تم ربط المستوى ${level} برتبة ${role}.`).catch(() => null);
+      } else if (sub === 'remove' || sub === 'حذف') {
+        const level = parseInt(args[1] ?? '');
+        if (!level) {
+          await message.reply('❌ استخدم: `!opus rankconfig remove <level>`').catch(() => null);
+          return true;
+        }
+        if (removeLevelRole(message.guild!.id, level)) {
+          await message.reply(`✅ تم إزالة ربط المستوى ${level}.`).catch(() => null);
+        } else {
+          await message.reply('❌ ما لقيت ربط لهذا المستوى.').catch(() => null);
+        }
+      } else if (sub === 'list' || sub === 'عرض') {
+        const config = getRankConfig(message.guild!.id);
+        if (config.levelRoles.length === 0) {
+          await message.reply('📋 لا يوجد ربط بين المستويات والرتب حاليًا.').catch(() => null);
+          return true;
+        }
+        const guild = message.guild!;
+        const list = config.levelRoles.map((lr) => {
+          const role = guild.roles.cache.get(lr.roleId);
+          return `المستوى ${lr.level} → ${role?.name ?? lr.roleId}`;
+        }).join('\n');
+        await message.reply(`📋 **ربط المستويات بالرتب:**\n${list}`).catch(() => null);
+      } else {
+        await message.reply('❌ استخدم: `!opus rankconfig set <level> @role` أو `!opus rankconfig remove <level>` أو `!opus rankconfig list`').catch(() => null);
+      }
+      return true;
+    }
+
     case 'diagnostics':
     case 'فحص': {
       if (!message.member?.permissions.has(PermissionFlagsBits.Administrator)) {
@@ -1226,6 +1329,7 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
 client.once(Events.ClientReady, async () => {
   Logger.startup(`Opus Bot (${client.user?.tag})`);
   EntityRegistry.initialize();
+  initializeRankSystem();
   await SkillRegistry.loadDirectory(path.join(__dirname, 'skills')).catch((error) => {
     console.error('[SkillRegistry] Failed to load skills:', error);
   });
@@ -1953,13 +2057,38 @@ client.on(Events.MessageCreate, async (message: Message) => {
     const fallbackText = OfflineFallbackResponder.getFallbackReply(message.content);
     const friendlyError = formatUserError(error);
     
-    // Only use offline fallback for social/greeting messages, never for operational intents
-    const isOperationalIntent = /احذف|delete|حذف|create|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء/i.test(message.content);
+    // Check if this is an operational intent — try compound planner as fallback
+    const isOperationalIntent = /احذف|delete|حذف|create|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء|فويس|صوتي|اسمك|دسكونكت|دسكنوكت|اخرس/i.test(message.content);
     
-    if (isOperationalIntent || !fallbackText) {
+    if (isOperationalIntent) {
+      // Try compound planner as direct fallback when AI fails
+      try {
+        const fallbackGuild = message.guild;
+        const fallbackSteps = planCompoundDiscordRequest(cleanedPromptText || message.content);
+        if (fallbackSteps.length > 0 && fallbackGuild) {
+          const fallbackExecutor = async (tool: string, args: Record<string, any>) => {
+            return executeToolWithAudit(tool, args, fallbackGuild, message.channel.id, message.author.id, message.member);
+          };
+          const fallbackResult = await WorkflowEngine.execute(fallbackSteps, fallbackExecutor);
+          const fallbackReply = fallbackResult.steps
+            .map((step) => step.result?.message ?? step.result?.message ?? '')
+            .filter(Boolean)
+            .join('\n');
+          if (fallbackReply) {
+            await sendLongMessage(message, fallbackReply);
+            return;
+          }
+        }
+      } catch (fallbackError) {
+        console.error('[Fallback] Compound planner also failed:', fallbackError);
+      }
+      
+      // If fallback also failed or no compound plan matched
       await message.reply(friendlyError).catch(() => null);
-    } else {
+    } else if (fallbackText) {
       await message.reply(fallbackText).catch(() => null);
+    } else {
+      await message.reply(friendlyError).catch(() => null);
     }
   }
 });
@@ -2060,7 +2189,7 @@ export class LevelingSystem {
   /**
    * معالجة كسب النقاط للعضو عند إرسال رسالة
    */
-  static handleMessageXP(userId: string, memberName: string, channel: any): void {
+  static handleMessageXP(userId: string, memberName: string, channel: any, guild?: any): void {
     const now = Date.now();
     const data = membersXPMap.get(userId) ?? { xp: 0, level: 1, lastMessageTimestamp: 0 };
 
@@ -2071,14 +2200,26 @@ export class LevelingSystem {
       // حساب الخبرة المطلوبة للمستوى التالي
       const requiredXP = data.level * 100;
       if (data.xp >= requiredXP) {
+        const oldLevel = data.level;
         data.level++;
-        data.xp = 0; // تصفير النقاط والبدء من جديد للمستوى التالي
+        data.xp = 0;
+
+        // محاولة إعطاء رتبة تلقائية من نظام الرتب
+        if (guild) {
+          processLevelUp(guild, userId, data.level).catch(() => null);
+        }
 
         // إرسال تنبيه ترقية المستوى — auto-delete after 10s to avoid spam
-        const levelEmbed = createLevelUpEmbed(memberName, data.level - 1, data.level);
-        channel.send({ embeds: [levelEmbed] }).then((msg: any) => {
-          setTimeout(() => msg.delete().catch(() => null), 10_000);
-        }).catch(() => null);
+        const levelEmbed = createLevelUpEmbed(memberName, oldLevel, data.level);
+        const config = guild ? getRankConfig(guild.id) : null;
+        const notifyChannel = config?.levelUpChannelId
+          ? channel.guild?.channels.cache.get(config.levelUpChannelId)
+          : channel;
+        if (notifyChannel) {
+          notifyChannel.send({ embeds: [levelEmbed] }).then((msg: any) => {
+            setTimeout(() => msg.delete().catch(() => null), 10_000);
+          }).catch(() => null);
+        }
       }
       membersXPMap.set(userId, data);
     }
@@ -2586,7 +2727,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   if (!message.guild) return;
   
   // معالجة الخبرة للعضو
-  LevelingSystem.handleMessageXP(message.author.id, message.author.username, message.channel);
+  LevelingSystem.handleMessageXP(message.author.id, message.author.username, message.channel, message.guild);
 });
 
 // مستمع تفاعلات إضافة الإيموجي لتوثيق الأعضاء تلقائياً
@@ -3324,7 +3465,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     collector.on('collect', async (answerMsg: Message) => {
       const selectedIndex = parseInt(answerMsg.content.trim()) - 1;
       if (selectedIndex === question.answerIndex) {
-        LevelingSystem.handleMessageXP(answerMsg.author.id, answerMsg.author.username, answerMsg.channel);
+        LevelingSystem.handleMessageXP(answerMsg.author.id, answerMsg.author.username, answerMsg.channel, answerMsg.guild);
         const winEmbed = new EmbedBuilder()
           .setColor(EMBED_COLORS.success)
           .setTitle('🎉 إجابة صحيحة!')

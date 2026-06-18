@@ -3,6 +3,7 @@ import { Logger } from '../utils/logger.js';
 import { RequestDeduplication } from '../utils/requestDedup.js';
 import { SYSTEM_PROMPT, TOOL_DESCRIPTIONS, TOOL_GROUPS, tools, type FunctionTool } from './aiCatalog.js';
 import { currentMessageAllowsTools, getCurrentUserText } from './toolIntent.js';
+import { OPUS_PERSONALITY_PROMPT } from '../intelligence/opus_personality.js';
 export { currentMessageAllowsTools } from './toolIntent.js';
 export { SYSTEM_PROMPT, tools } from './aiCatalog.js';
 
@@ -48,8 +49,11 @@ interface ProviderMessage {
 }
 
 function composeSystemPrompt(runtimePrompt?: string): string {
-  if (!runtimePrompt || runtimePrompt.trim() === SYSTEM_PROMPT.trim()) return SYSTEM_PROMPT;
-  return `${SYSTEM_PROMPT}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
+  let base = SYSTEM_PROMPT;
+  // Inject personality prompt — shapes the bot's conversational behavior
+  base += `\n\n${OPUS_PERSONALITY_PROMPT}`;
+  if (!runtimePrompt || runtimePrompt.trim() === base.trim()) return base;
+  return `${base}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
 }
 
 // ─── Groq (sole AI provider) ──

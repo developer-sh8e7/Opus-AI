@@ -20,14 +20,17 @@ function safeChannelName(value: string, suffix: string): string {
   return `${slug || 'vip'}-${suffix}`.slice(0, 100);
 }
 
+/**
+ * استخراج اسم الروم المطلوب إنشاؤه من النص
+ */
 function extractSingleChannelRequest(clean: string): RegExpMatchArray | null {
   const explicitName = clean.match(
-    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(?:اسمه|اسمها|باسم)\s+([^\s،,]+)/i
+    /(?:سو|سوي|انشئ|أنشئ|اصنع|ابي|ابغى)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(?:اسمه|اسمها|باسم)\s+([^\s،,]+)/i
   );
   if (explicitName) return explicitName;
 
   const looseName = clean.match(
-    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(.+?)(?=\s+(?:و?خل|و?خلي|وحط|حط|مع|بس|لكن|الكل|الجميع|كل\s+الناس|everyone)(?:\s|$)|$)/i
+    /(?:سو|سوي|انشئ|أنشئ|اصنع|ابي|ابغى)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(.+?)(?=\s+(?:و?خل|و?خلي|وحط|حط|مع|بس|لكن|الكل|الجميع|كل\s+الناس|everyone)(?:\s|$)|$)/i
   );
   if (!looseName) return null;
 
@@ -40,45 +43,278 @@ function extractSingleChannelRequest(clean: string): RegExpMatchArray | null {
   return looseName;
 }
 
+/**
+ * استخراج طلب الكاتقوري + الرومات بداخلها كنمط بناء
+ */
+function extractCategoryAndRooms(clean: string): { categoryName: string; roleName: string } | null {
+  const categoryName = clean.match(
+    /(?:كاتقوري|فئه|تصنيف)\s+(?:اسمها|اسمه|باسم)\s+([^\s،,]+)/
+  )?.[1];
+  const roleName = clean.match(
+    /(?:رتبه|رول)\s+([^\s،,]+)(?=\s+(?:تشوف|تدخل|تكتب|لها|فيها|$))/
+  )?.[1] ?? categoryName;
+  if (!categoryName || !roleName) return null;
+  return { categoryName, roleName };
+}
+
+/**
+ * هل النص يحتوي على طلب تعيين صلاحية (برمشن / يشوف / يدخل / الخ)؟
+ */
+function hasPermissionRequest(clean: string): boolean {
+  return /(?:برمشن|صلاحيه|صلاحية|يشوف|يدخل|يخش|يتكلم|سكرين|شير|منشن|يكتب|ممنوع|الكل|everyone|يسمح|مقفل|مقفول|ممنوع|بس\s+اللي|إلا\s+اللي|الا\s+اللي|منع)/i.test(clean);
+}
+
+/**
+ * استخراج رتبة الاستثناء من النص (إلا رتبة كذا)
+ */
+function extractExceptionRole(clean: string): string | null {
+  const match = clean.match(
+    /(?:إلا|الا)\s+(?:اللي|الي|من)?\s*(?:معه|عنده)?\s*(?:رتبة|رتبت|رول)\s+(?:<@&(\d{17,20})>|@?([^\s،,]+))/i
+  );
+  if (!match) return null;
+  return match[1] || match[2] || null;
+}
+
+/**
+ * التخطيط للطلبات المركبة Route
+ * 
+ * المهام المدعومة:
+ * 1. إنشاء روم مع صلاحيات مسبقة (سو روم فويس اسمه X وخل الكل يدخل بس ما يفتح سكرين)
+ * 2. طرد من الروم الصوتي + تحديد عدد المستخدمين (عطه دسكنوكت وحدد الروم لـ 3)
+ * 3. تغيير اسم البوت (غير اسمك إلى X)
+ * 4. بناء كاتقوري + رومات + رتبة
+ * 5. حذف جماعي مع إبقاء + إنشاء
+ * 6. رومات متعددة باستثناء واحد
+ * 7. مسح صلاحيات المنشن من كاتقوري (مع الرتب الفردية)
+ */
 export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   const clean = normalized(text);
-  const singleChannel = extractSingleChannelRequest(clean);
-  if (singleChannel && /(?:الكل|الجميع|كل\s+الناس|everyone)/i.test(clean)) {
-    const parsedPermissions = parseArabicPermissions(clean);
-    if (parsedPermissions.length > 0) {
-      const deny = [...new Set(
-        parsedPermissions
-          .filter((permission) => permission.type === 'deny')
-          .map((permission) => permission.name)
-      )];
-      const denied = new Set(deny);
-      const allow = [...new Set(
-        parsedPermissions
-          .filter((permission) => permission.type === 'allow' && !denied.has(permission.name))
-          .map((permission) => permission.name)
-      )];
+
+  // ============================================================
+  // النمط 1: تغيير اسم البوت (لقب)
+  // "غير اسمك إلى X" / "غيّر لقبك إلى X" / "سميني X"
+  // ============================================================
+  if (/(?:غير|غيّر|عدل|عدّل)\s+(?:اسمك|لقبك|نكك)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i.test(clean) ||
+      /(?:سميني|سمني)\s+(.+)/i.test(clean)) {
+    const nameMatch = clean.match(/(?:غير|غيّر|عدل|عدّل)\s+(?:اسمك|لقبك|نكك)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i) ||
+                      clean.match(/(?:سميني|سمني)\s+(.+)/i);
+    const desiredName = nameMatch?.[1]?.trim()?.replace(/^['"`]+|['"`]+$/g, '');
+    if (desiredName && desiredName.length <= 32) {
       return [{
-        id: 'create_configured_channel',
-        tool: 'create_channels',
-        args: {
-          type: /(?:فويس|صوتي)/i.test(singleChannel[1]) ? 'voice' : 'text',
-          names: [singleChannel[2]],
-          permissions: [{
-            id: '@everyone',
-            allow,
-            deny,
-          }],
-        },
+        id: 'change_nickname',
+        tool: 'edit_bot_profile',
+        args: { nickname: desiredName },
       }];
     }
   }
 
-  const requestsCategory = /(?:سو|سوي|انشئ|اصنع).*(?:كاتقوري|فئه)/i.test(clean);
+  // ============================================================
+  // النمط 2: طرد من الروم الصوتي + تحديد عدد المستخدمين
+  // "اطرد X من الروم وحدد الروم لـ 3"
+  // ============================================================
+  const wantsVoiceKick = /(?:دسكونكت|دسكنوكت|ديسكونكت|voice\s*kick|voicekick|disconnect|افصل|فصل|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)|(?:عطه|اعطه)\s*(?:دسكونكت|دسكنوكت|ديسكونكت)/i.test(clean);
+  const userLimit = clean.match(/(?:حد|عدد|الا|فقط|بس)\D{0,25}(\d{1,2})\s*(?:اشخاص|اشخاصا|شخص|members?|users?)?/i) ||
+                   clean.match(/(?:user\s*limit|voice\s*limit)\D{0,12}(\d{1,2})/i);
+  const userLimitValue = userLimit ? parseInt(userLimit[1], 10) : undefined;
+  const validUserLimit = userLimitValue !== undefined && Number.isInteger(userLimitValue) && userLimitValue >= 0 && userLimitValue <= 99;
+
+  if (wantsVoiceKick || validUserLimit) {
+    const steps: WorkflowStep[] = [];
+    if (wantsVoiceKick) {
+      const memberMention = clean.match(/<@!?(\d{17,20})>/);
+      const memberId = memberMention?.[1];
+      const memberRaw = clean.match(/\b(\d{17,20})\b/);
+      const resolvedId = memberId || (memberRaw ? memberRaw[1] : null);
+      if (resolvedId) {
+        steps.push({
+          id: 'voice_kick_member',
+          tool: 'manage_members',
+          args: {
+            action: 'voicekick',
+            memberId: resolvedId,
+            data: { reason: 'طلب فصل صوتي' },
+          },
+        });
+      }
+    }
+    if (validUserLimit) {
+      steps.push({
+        id: 'set_user_limit',
+        tool: 'channel_operations',
+        args: { action: 'voice_set_user_limit', value: userLimitValue },
+        dependsOn: steps.length > 0 ? steps[steps.length - 1].id : undefined,
+      });
+    }
+    if (steps.length > 0) return steps;
+  }
+
+  // ============================================================
+  // النمط 3: إنشاء روم واحد مع صلاحيات مسبقة
+  // "سو لي روم فويس اسمه Room1 الكل يشوفه بس محد يقدر يدخله"
+  // ============================================================
+  const singleChannel = extractSingleChannelRequest(clean);
+  if (singleChannel && (hasPermissionRequest(clean) || validUserLimit)) {
+    const isVoice = /(?:فويس|صوتي)/i.test(singleChannel[1]);
+
+    // إذا في صلاحيات ← أضفها في نفس خطوة الإنشاء
+    if (hasPermissionRequest(clean)) {
+      const parsedPermissions = parseArabicPermissions(clean);
+      if (parsedPermissions.length > 0) {
+        const deny = [...new Set(parsedPermissions.filter((p) => p.type === 'deny').map((p) => p.name))];
+        const deniedSet = new Set(deny);
+        const allow = [...new Set(parsedPermissions.filter((p) => p.type === 'allow' && !deniedSet.has(p.name)).map((p) => p.name))];
+
+        const hasExceptionRole = /(?:إلا|الا)\s+(?:اللي|الي)?\s*(?:معه|عنده)?\s*(?:رتبة|رتبت|رول)\s+/i.test(clean);
+        const exceptionRole = extractExceptionRole(clean);
+
+        if (hasExceptionRole && exceptionRole) {
+          // Create channel first, then set permissions as two-step workflow
+          const channelType = isVoice ? 'voice' : 'text';
+          return [
+            {
+              id: 'create_channel',
+              tool: 'create_channels',
+              args: {
+                type: channelType,
+                names: [singleChannel[2]],
+              },
+            },
+            {
+              id: 'set_everyone_perms',
+              tool: 'edit_permissions',
+              dependsOn: 'create_channel',
+              args: {
+                channelId: '$create_channel.channelId ?? create_channel.createdEntities[0].id',
+                targetId: '@everyone',
+                targetType: 'role',
+                allow,
+                deny,
+              },
+            },
+            {
+              id: 'set_exception_role_perms',
+              tool: 'edit_permissions',
+              dependsOn: 'create_channel',
+              args: {
+                channelId: '$create_channel.channelId ?? create_channel.createdEntities[0].id',
+                targetId: exceptionRole,
+                targetType: 'role',
+                allow: ['ViewChannel', 'Connect', 'SendMessages', 'Speak', 'ReadMessageHistory'],
+                deny: [],
+              },
+            },
+          ];
+        }
+
+        // Simple: create with embedded permissions
+        return [{
+          id: 'create_configured_channel',
+          tool: 'create_channels',
+          args: {
+            type: isVoice ? 'voice' : 'text',
+            names: [singleChannel[2]],
+            permissions: [{
+              id: '@everyone',
+              allow,
+              deny,
+            }],
+          },
+        }];
+      }
+    }
+
+    // Voice room with user limit (no special permissions)
+    if (isVoice && validUserLimit) {
+      return [
+        {
+          id: 'create_voice',
+          tool: 'create_channels',
+          args: {
+            type: 'voice',
+            names: [singleChannel[2]],
+          },
+        },
+        {
+          id: 'set_voice_limit',
+          tool: 'channel_operations',
+          dependsOn: 'create_voice',
+          args: {
+            action: 'voice_set_user_limit',
+            channelId: '$create_voice.createdEntities[0].id',
+            value: userLimitValue,
+          },
+        },
+      ];
+    }
+  }
+
+  // ============================================================
+  // النمط 4: إنشاء كاتقوري + رومات داخلها + رتبة
+  // "سو كاتقوري اسمه X ورتبة Y"
+  // ============================================================
+  const requestsCategory = /(?:سو|سوي|انشئ|أنشئ|اصنع).*(?:كاتقوري|فئه)/i.test(clean);
   const requestsText = /(?:روم|قناه)\s+(?:تكست|نصي)/i.test(clean);
   const requestsVoice = /(?:روم|قناه)\s+(?:فويس|صوتي)/i.test(clean);
-  const requestsRole = /(?:سو|سوي|انشئ|اصنع).*(?:رتبه|رول)/i.test(clean);
-  // Multi-room creation with naming + visibility pattern
-  // e.g., "سو لي 3 رومات كلهم عام الا واحد اسمه خاص ومقفل"
+  const requestsRole = /(?:سو|سوي|انشئ|أنشئ|اصنع).*(?:رتبه|رول)/i.test(clean);
+
+  if (requestsCategory || requestsText || requestsVoice || requestsRole) {
+    const extracted = extractCategoryAndRooms(clean);
+    if (extracted) {
+      const { categoryName, roleName } = extracted;
+      return [
+        {
+          id: 'create_category',
+          tool: 'create_channels',
+          args: { type: 'category', names: [categoryName] },
+        },
+        {
+          id: 'create_text',
+          tool: 'create_channels',
+          dependsOn: 'create_category',
+          args: {
+            type: 'text',
+            names: [safeChannelName(categoryName, 'chat')],
+            categoryId: '$create_category.channelId',
+          },
+        },
+        {
+          id: 'create_voice',
+          tool: 'create_channels',
+          dependsOn: 'create_category',
+          args: {
+            type: 'voice',
+            names: [safeChannelName(categoryName, 'voice')],
+            categoryId: '$create_category.channelId',
+          },
+        },
+        {
+          id: 'create_role',
+          tool: 'manage_roles',
+          args: {
+            action: 'create',
+            roleData: { name: roleName },
+          },
+        },
+        {
+          id: 'configure_role',
+          tool: 'edit_permissions',
+          dependsOn: ['create_category', 'create_role'],
+          args: {
+            channelId: '$create_category.channelId',
+            targetId: '$create_role.roleId',
+            targetType: 'role',
+            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'Connect', 'Speak', 'Stream'],
+            deny: [],
+          },
+        },
+      ];
+    }
+  }
+
+  // ============================================================
+  // النمط 5: رومات متعددة مع استثناء واحد
+  // "سو لي 3 رومات كلهم عام الا واحد اسمه خاص ومقفل"
+  // ============================================================
   const multiRoomPattern = clean.match(
     /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(\d+)\s+(?:رومات?|قنوات?)\s+(.*?)(?:الا|إلا|بس|لكن)\s+(?:واحد|وحده)\s+(?:بس\s+)?(?:يكون\s+)?اسمه\s+([^\s،,]+)(.*)/i
   );
@@ -106,8 +342,10 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
     }];
   }
 
-  // Delete + preserve + create pattern
-  // e.g., "احذف كال رومات الموجود بس ابق الو + سو لي متجر بسيط"
+  // ============================================================
+  // النمط 6: حذف + إبقاء + إنشاء
+  // "احذف كل الرومات وابق الو + سو لي متجر بسيط"
+  // ============================================================
   const deletePreserveCreate = clean.match(
     /(?:احذف|حذف|امسح).*?(?:ابقي?|ابق|خليني?|خلي|اترك).*?(?:\+|و)\s*(?:سو|سوي|انشئ|أنشئ|اصنع)/i
   );
@@ -127,68 +365,31 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
     return steps;
   }
 
-  if (!requestsCategory || !requestsText || !requestsVoice || !requestsRole) return [];
+  // ============================================================
+  // النمط 7: مسح صلاحيات المنشن من كاتقوري (مع الرتب الفردية)
+  // "شوف الكاتقوري X وكل الرومات اللي فيه اسحب منشن @everyone منها
+  //  حتئ لو رولات فيها صلاحيات حط x"
+  // ============================================================
+  const wantsMentionSweep = /(?:اسحب|شيل|امنع|حطها?\s*x|حط\s*x|deny|remove).*(?:منشن|mention).*(?:everyone|here|الكل)/i.test(clean);
+  const wantsCategoryScope = /(?:كاتقوري|فئه|كل\s+الرومات|كل\s+القنوات)/i.test(clean);
+  const wantsIncludeRoles = /(?:حتئ\s*لو|حتى\s*لو|حتى\s*و|حتئ\s*و|ولو|وشمل|all\s*roles|individual\s*roles)/i.test(clean);
 
-  const categoryName = clean.match(
-    /(?:كاتقوري|فئه)\s+(?:اسمها|اسمه|باسم)\s+([^\s،,]+)/
-  )?.[1];
-  const roleName = clean.match(
-    /(?:رتبه|رول)\s+([^\s،,]+)(?=\s+(?:تشوف|تدخل|تكتب|لها|فيها|$))/
-  )?.[1] ?? categoryName;
-  if (!categoryName || !roleName) return [];
+  if (wantsMentionSweep && wantsCategoryScope) {
+    const categoryId = clean.match(/(\d{17,20})/)?.[1];
+    if (categoryId) {
+      return [{
+        id: 'sweep_mentions',
+        tool: 'sweep_permission_overwrites',
+        args: {
+          categoryId,
+          permissions: ['MentionEveryone'],
+          includeEveryone: true,
+          includeRoles: wantsIncludeRoles,
+          includeMembers: wantsIncludeRoles,
+        },
+      }];
+    }
+  }
 
-  return [
-    {
-      id: 'create_category',
-      tool: 'create_channels',
-      args: { type: 'category', names: [categoryName] },
-    },
-    {
-      id: 'create_text',
-      tool: 'create_channels',
-      dependsOn: 'create_category',
-      args: {
-        type: 'text',
-        names: [safeChannelName(categoryName, 'chat')],
-        categoryId: '$create_category.channelId',
-      },
-    },
-    {
-      id: 'create_voice',
-      tool: 'create_channels',
-      dependsOn: 'create_category',
-      args: {
-        type: 'voice',
-        names: [safeChannelName(categoryName, 'voice')],
-        categoryId: '$create_category.channelId',
-      },
-    },
-    {
-      id: 'create_role',
-      tool: 'manage_roles',
-      args: {
-        action: 'create',
-        roleData: { name: roleName },
-      },
-    },
-    {
-      id: 'configure_role',
-      tool: 'edit_permissions',
-      dependsOn: ['create_category', 'create_role'],
-      args: {
-        channelId: '$create_category.channelId',
-        targetId: '$create_role.roleId',
-        targetType: 'role',
-        allow: [
-          'ViewChannel',
-          'SendMessages',
-          'ReadMessageHistory',
-          'Connect',
-          'Speak',
-          'Stream',
-        ],
-        deny: [],
-      },
-    },
-  ];
+  return [];
 }

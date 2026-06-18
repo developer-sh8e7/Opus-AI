@@ -411,12 +411,12 @@ test('AI service is compact and free from broken Arabic encoding', () => {
   assert.match(source, /callGroq|config\.groqApiKey/);
 });
 
-test('common Gulf conversation routes to AI for natural handling', () => {
-  // The bot now routes social messages to AI for varied, natural responses
-  assert.equal(getConversationReply('كيف حالك يالشيخ'), null);
+test('common Gulf conversation is handled with varied responses', () => {
+  // The bot now handles social messages directly with random responses for speed
+  assert.notEqual(getConversationReply('كيف حالك يالشيخ'), null);
   assert.equal(getConversationReply('ابي تحذف روم العام'), null);
-  assert.equal(getConversationReply('شكرا'), 'العفو يا بعدي 🤝 أنا موجود لو احتجت شيء.');
-  assert.equal(getConversationReply('هلا'), 'هلا والله 👋 نورت، وش تبغى أسوي لك؟');
+  assert.notEqual(getConversationReply('شكرا'), null);
+  assert.notEqual(getConversationReply('هلا'), null);
 });
 
 test('ordinary current messages never inherit tools from previous requests', () => {
