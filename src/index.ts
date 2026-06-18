@@ -793,6 +793,20 @@ async function handleDirectVoiceRoomRequest(message: Message, cleanedPromptText:
   return true;
 }
 
+async function handleWhatChangedRequest(message: Message, cleanedPromptText: string): Promise<boolean> {
+  const normalized = normalizeArabicCommandText(cleanedPromptText);
+  const asksWhatChanged = /(?:وش|ايش|ماذا|ما(?:ذا)?|شلون)\s*(?:عدلت|غيرت|سويت|طبقت|نفذت)|(?:وش صار|وش اللي صار|ايش صار)|(?:عدلت ايش|عدلت وش|غيرت ايش|سويت ايش)/i.test(normalized);
+  if (!asksWhatChanged) return false;
+
+  const recent = ContextEngine.getRecentAccomplishments(message.channel.id, 5)
+    .filter((item) => item && !/فشل|خطأ غير معروف/i.test(item));
+  if (recent.length === 0) return false;
+
+  const lines = recent.map((item, index) => `${index + 1}. ${item.replace(/^(edit_permissions|manage_members|channel_operations|create_channels|delete_channels):\s*/i, '')}`);
+  await message.reply(`آخر شيء عدلته/نفذته:\n${lines.join('\n')}`).catch(() => null);
+  return true;
+}
+
 async function handleDirectMentionSweepRequest(
   message: Message,
   cleanedPromptText: string,
@@ -1555,6 +1569,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     preSessionEntities
   );
   if (await handleDirectMentionSweepRequest(message, cleanedPromptText, preExplicitTargets)) return;
+  if (await handleWhatChangedRequest(message, cleanedPromptText)) return;
 
   const permissionPromptText = buildPendingPermissionPrompt(message.channel.id, cleanedPromptText, message.guild) ?? cleanedPromptText;
   const directPermissionOperations = buildArabicPermissionOperations(
