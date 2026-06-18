@@ -29,9 +29,7 @@ export interface ProviderLimitResult {
 
 // Default limits from provider documentation
 const DEFAULT_LIMITS: Record<string, ProviderLimits> = {
-  'opencode-zen': { rpm: 60, tpm: 120_000 },
-  'cerebras': { rpm: 30, tpm: 30_000 },
-  'fallback': { rpm: 30, tpm: 12_000 },  // Groq on-demand
+  'groq': { rpm: 30, tpm: 12_000 },  // Groq on-demand TPM limit
 };
 
 // Known model-specific overrides
@@ -51,7 +49,7 @@ export class ProviderRateLimiter {
 
   /**
    * Check if a request to the provider would exceed limits.
-   * @param provider - Provider name (opencode-zen, cerebras, fallback)
+   * @param provider - Provider name (groq)
    * @param estimatedTokens - Estimated tokens for this request (input + output)
    * @param modelName - Optional model name for model-specific limits
    */

@@ -408,7 +408,7 @@ test('AI service is compact and free from broken Arabic encoding', () => {
   assert.ok(source.split(/\r?\n/).length < 1_200);
   assert.doesNotMatch(source, /[ØÙ]/);
   assert.match(source, /llama|config\.groqModel/);
-  assert.match(source, /api\.cerebras\.ai/);
+  assert.match(source, /callGroq|config\.groqApiKey/);
 });
 
 test('common Gulf conversation is answered naturally without an AI provider', () => {

@@ -1221,9 +1221,9 @@ client.once(Events.ClientReady, async () => {
     aiRateLimiter.cleanup();
   }, 5 * 60_000);
   contextCleanupTimer.unref();
-  Logger.info(
+    Logger.info(
     'System',
-    `AI routing ready: OpenCode Zen primary (${config.qwenModel}), Cerebras fallback (${config.cerebrasModel}), circuit breaker active (3 failures → 90s cooldown)`
+    `AI routing ready: Groq primary (${config.groqModel}), circuit breaker active (3 failures → 90s cooldown)`
   );
   
   // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية

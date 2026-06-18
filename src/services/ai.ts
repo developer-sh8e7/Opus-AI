@@ -1,6 +1,5 @@
 import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
-import { providerRateLimiter } from '../utils/providerRateLimit.js';
 import { RequestDeduplication } from '../utils/requestDedup.js';
 import { SYSTEM_PROMPT, TOOL_DESCRIPTIONS, TOOL_GROUPS, tools, type FunctionTool } from './aiCatalog.js';
 import { currentMessageAllowsTools, getCurrentUserText } from './toolIntent.js';
@@ -48,252 +47,32 @@ interface ProviderMessage {
   tool_calls?: AIMessage['tool_calls'];
 }
 
-// ─── Anthropic ↔ OpenAI Adapter for OpenCode Zen ───────
-
-interface AnthropicContentBlock {
-  type: 'text' | 'tool_use' | 'tool_result';
-  text?: string;
-  id?: string;
-  name?: string;
-  input?: Record<string, unknown>;
-  tool_use_id?: string;
-  content?: string;
-}
-
-interface AnthropicRequest {
-  model: string;
-  max_tokens: number;
-  system?: string;
-  messages: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }>;
-  tools?: Array<{
-    name: string;
-    description: string;
-    input_schema: { type: 'object'; properties: Record<string, unknown>; required?: string[] };
-  }>;
-  tool_choice?: { type: 'auto' };
-  temperature: number;
-}
-
-interface AnthropicResponse {
-  id: string;
-  type: 'message';
-  role: 'assistant';
-  content: AnthropicContentBlock[];
-  stop_reason: string | null;
-  usage: { input_tokens: number; output_tokens: number };
-}
-
 function composeSystemPrompt(runtimePrompt?: string): string {
   if (!runtimePrompt || runtimePrompt.trim() === SYSTEM_PROMPT.trim()) return SYSTEM_PROMPT;
   return `${SYSTEM_PROMPT}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
 }
 
-/** Build Anthropic-format request from internal messages */
-function buildAnthropicBody(
-  messages: AIMessage[],
-  options: GenerateAIOptions,
-  model: string
-): AnthropicRequest {
-  const systemParts: string[] = [composeSystemPrompt(options.systemPrompt)];
-  const anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }> = [];
+// ─── Groq (sole AI provider) ──
 
-  const sanitized = AIPromptBuilder.sanitizeMessages(messages);
-  for (const msg of sanitized) {
-    if (msg.role === 'system' && typeof msg.content === 'string') {
-      systemParts.push(msg.content);
-    }
-  }
-
-  let pendingToolResults: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }> | null = null;
-
-  for (const msg of sanitized) {
-    if (msg.role === 'system') continue;
-
-    if (msg.role === 'tool') {
-      if (!pendingToolResults) {
-        pendingToolResults = [{ role: 'user', content: [] }];
-      }
-      pendingToolResults[0].content.push({
-        type: 'tool_result',
-        tool_use_id: msg.tool_call_id!,
-        content: typeof msg.content === 'string' ? msg.content : '',
-      });
-      continue;
-    }
-
-    if (pendingToolResults) {
-      anthropicMessages.push(...pendingToolResults);
-      pendingToolResults = null;
-    }
-
-    if (msg.role === 'assistant') {
-      const blocks: AnthropicContentBlock[] = [];
-      if (typeof msg.content === 'string' && msg.content.length > 0) {
-        blocks.push({ type: 'text', text: msg.content });
-      }
-      if (msg.tool_calls) {
-        for (const tc of msg.tool_calls) {
-          blocks.push({
-            type: 'tool_use',
-            id: tc.id,
-            name: tc.function.name,
-            input: JSON.parse(tc.function.arguments),
-          });
-        }
-      }
-      anthropicMessages.push({ role: 'assistant', content: blocks });
-    } else if (msg.role === 'user') {
-      const text = typeof msg.content === 'string' ? msg.content : '';
-      anthropicMessages.push({ role: 'user', content: [{ type: 'text', text }] });
-    }
-  }
-
-  if (pendingToolResults) {
-    anthropicMessages.push(...pendingToolResults);
-  }
-
-  const selectedTools = compactTools(messages, options.toolsEnabled ?? true);
-  const anthropicTools = selectedTools?.map((t) => ({
-    name: t.function.name,
-    description: t.function.description,
-    input_schema: {
-      type: 'object' as const,
-      properties: t.function.parameters.properties,
-      required: t.function.parameters.required,
-    },
-  }));
-
-  return {
-    model,
-    max_tokens: options.maxTokens ?? 1_200,
-    system: systemParts.length > 0 ? systemParts.join('\n') : undefined,
-    messages: anthropicMessages,
-    tools: anthropicTools,
-    tool_choice: anthropicTools?.length ? { type: 'auto' as const } : undefined,
-    temperature: options.temperature ?? 0.2,
-  };
-}
-
-// ─── Tertiary fallback: generic OpenAI-compatible ──
-
-export async function callOpenAIFallback(
+export async function callGroq(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
-  const apiKey = process.env.FALLBACK_API_KEY;
-  const endpoint = process.env.FALLBACK_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions';
-  const model = process.env.FALLBACK_MODEL || 'llama-3.3-70b-versatile';
+  const apiKey = config.groqApiKey;
+  const endpoint = config.groqApiBaseUrl;
+  const model = config.groqModel;
 
   if (!apiKey) {
-    throw new AIProviderError('fallback', 'No FALLBACK_API_KEY configured', false);
+    throw new AIProviderError('groq', 'No GROQ_API_KEY configured', false);
   }
 
-  return retryProvider('fallback', (attempt) => {
+  return retryProvider('groq', (attempt) => {
     const body = buildCompletionBody(messages, {
       ...options,
       temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
     }, model);
-    return postChatCompletion('fallback', endpoint, apiKey, body);
+    return postChatCompletion('groq', endpoint, apiKey, body);
   });
-}
-
-/** Convert Anthropic response to internal ProviderMessage (OpenAI-format tool_calls) */
-function fromAnthropicResponse(response: AnthropicResponse): ProviderMessage {
-  let content: string | null = null;
-  const toolCalls: AIMessage['tool_calls'] = [];
-
-  for (const block of response.content) {
-    if (block.type === 'text' && typeof block.text === 'string') {
-      content = (content ?? '') + block.text;
-    } else if (block.type === 'tool_use' && block.id && block.name) {
-      toolCalls.push({
-        id: block.id,
-        type: 'function',
-        function: {
-          name: block.name,
-          arguments: JSON.stringify(block.input ?? {}),
-        },
-      });
-    }
-  }
-
-  return {
-    role: 'assistant',
-    content,
-    tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-  };
-}
-
-/** Post a request to OpenCode Zen (Anthropic format) */
-async function postAnthropicCompletion(
-  endpoint: string,
-  apiKey: string,
-  body: AnthropicRequest
-): Promise<ProviderMessage> {
-  const startedAt = Date.now();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(config.aiTimeoutMs, 8_000));
-  let outcome = 'error';
-  let status: number | null = null;
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    status = response.status;
-
-    if (!response.ok) {
-      const detail = safeErrorDetail(await response.text());
-      throw new AIProviderError(
-        'opencode-zen',
-        `OpenCode Zen request failed with status ${response.status}: ${detail}`,
-        response.status === 429 || response.status >= 500,
-        response.status,
-        parseRetryAfter(response.headers.get('retry-after'))
-      );
-    }
-
-    const payload = await response.json() as AnthropicResponse;
-    if (!payload.content || payload.content.length === 0) {
-      throw new AIProviderError('opencode-zen', 'OpenCode Zen returned empty response', true);
-    }
-
-    outcome = 'success';
-    const providerMsg = fromAnthropicResponse(payload);
-
-    // Handle stop_reason === 'tool_use' — strip text content when tool_use exists
-    if (payload.stop_reason === 'tool_use' && providerMsg.tool_calls?.length) {
-      providerMsg.content = null;
-    }
-
-    return providerMsg;
-  } catch (error) {
-    if (error instanceof AIProviderError) throw error;
-    const isAbort = error instanceof Error && error.name === 'AbortError';
-    throw new AIProviderError(
-      'opencode-zen',
-      `OpenCode Zen ${isAbort ? 'timed out' : 'network request failed'}`,
-      isAbort || error instanceof TypeError
-    );
-  } finally {
-    clearTimeout(timeout);
-    Logger.audit('ai_request', {
-      provider: 'opencode-zen',
-      model: body.model,
-      outcome,
-      status,
-      duration_ms: Date.now() - startedAt,
-      messages: body.messages.length,
-      tools: body.tools?.length ?? 0,
-    });
-  }
 }
 
 export class AIPromptBuilder {
@@ -385,7 +164,7 @@ export class AIResponseParser {
 }
 
 export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
-export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث QWEN_API_KEY في Railway.';
+export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. تأكّد من GROQ_API_KEY في Railway.';
 export const AI_PROVIDER_STATE_MESSAGE = 'جميع مزودي الذكاء الاصطناعي معطلون حاليًا.';
 export const AI_RATE_LIMIT_MESSAGE = 'تجاوزت حد الطلبات، جرّب بعد {seconds} ثانية.';
 export const AI_TIMEOUT_MESSAGE = 'استجابة الذكاء الاصطناعي بطيئة، جرّب طلب أصغر.';
@@ -786,43 +565,6 @@ async function retryProvider(
   throw lastError;
 }
 
-export async function callQwenZen(
-  messages: AIMessage[],
-  options: GenerateAIOptions = {}
-): Promise<ProviderMessage> {
-  const endpoint = `${config.qwenApiBaseUrl}/messages`;
-  const model = config.qwenModel;
-
-  return retryProvider('opencode-zen', (attempt) => {
-    const body = buildAnthropicBody(messages, {
-      ...options,
-      temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
-    }, model);
-    return postAnthropicCompletion(endpoint, config.qwenApiKey, body);
-  });
-}
-
-export async function callCerebras(
-  messages: AIMessage[],
-  options: GenerateAIOptions = {}
-): Promise<ProviderMessage> {
-  return retryProvider('cerebras', (attempt) => {
-    const body: ChatCompletionBody = {
-      ...buildCompletionBody(messages, {
-        ...options,
-        temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
-      }, config.cerebrasModel),
-      reasoning_effort: 'none',
-    };
-    return postChatCompletion(
-      'cerebras',
-      'https://api.cerebras.ai/v1/chat/completions',
-      config.cerebrasApiKey,
-      body
-    );
-  });
-}
-
 export async function generateAIResponse(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
@@ -832,125 +574,35 @@ export async function generateAIResponse(
   
   // Use deduplication wrapper
   return aiRequestDedup.execute(dedupKey, async () => {
-    const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
-    let lastError: unknown;
-    const failedProviders: string[] = [];
-    let retryAfterMs = 0;
-    let rateLimitReason: string | undefined;
-
-    // Estimate token count for rate limiting
-    const estimatedTokens = messages.reduce((sum, m) => sum + Math.ceil((m.content?.length ?? 0) / 4), 0) + (options.maxTokens ?? 1200);
-
-    async function tryProvider(
-      name: string,
-      call: () => Promise<ProviderMessage>,
-      modelName?: string,
-      maxRetries = 3
-    ): Promise<ProviderMessage | null> {
-      // Check provider-specific rate limits
-      const limitCheck = providerRateLimiter.check(name, estimatedTokens, modelName);
-      if (!limitCheck.allowed) {
-        Logger.warn('AI', `${name} rate limited: ${limitCheck.reason} (${limitCheck.currentUsage?.rpm}/${limitCheck.currentUsage?.rpmLimit} RPM, ${limitCheck.currentUsage?.tpm}/${limitCheck.currentUsage?.tpmLimit} TPM)`);
-        retryAfterMs = Math.max(retryAfterMs, limitCheck.retryAfterMs ?? 0);
-        rateLimitReason = `${name}=${limitCheck.reason}`;
-        return null;
-      }
-
-      if (isCircuitOpen(name)) {
-        Logger.warn('AI', `${name} circuit open — skipping`);
-        return null;
-      }
-
-      // Exponential backoff with jitter for transient failures
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          const result = await call();
-          recordSuccess(name);
-          // Update with actual token usage if available
-          const actualTokens = (result as any).usage?.total_tokens ?? estimatedTokens;
-          providerRateLimiter.recordUsage(name, actualTokens);
-          return result;
-        } catch (error) {
-          const status = error instanceof AIProviderError ? error.status ?? 'network' : 'unknown';
-          
-          // Only retry on transient errors (429, 502, 503, 504)
-          const isTransient = error instanceof AIProviderError && 
-            (error.status === 429 || error.status === 502 || error.status === 503 || error.status === 504);
-          
-          if (!isTransient || attempt === maxRetries - 1) {
-            lastError = error;
-            failedProviders.push(name);
-            recordFailure(name);
-            Logger.warn('AI', `${name} failed (${status}) after ${attempt + 1} attempts`);
-            return null;
-          }
-          
-          // Calculate backoff with jitter: base * 2^attempt + random jitter
-          const baseDelay = 1000;
-          const exponentialDelay = baseDelay * Math.pow(2, attempt);
-          const jitter = Math.random() * 1000;
-          const delay = Math.min(exponentialDelay + jitter, 10000);
-          
-          Logger.warn('AI', `${name} transient error (${status}), retrying attempt ${attempt + 2}/${maxRetries} in ${Math.round(delay)}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+    try {
+      const result = await callGroq(messages, options);
+      return result;
+    } catch (error) {
+      // Diffentiate error messages
+      if (error instanceof AIProviderError) {
+        if (error.status === 401 || error.status === 403) {
+          Logger.error('AI', 'Groq auth failed — check GROQ_API_KEY');
+          throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
+        }
+        if (error.status === 429) {
+          const seconds = error.retryAfterMs
+            ? Math.ceil(error.retryAfterMs / 1000)
+            : 30;
+          Logger.warn('AI', `Groq rate limited, retry after ${seconds}s`);
+          throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
+        }
+        if (error.status === 408 || error.name === 'AbortError') {
+          throw new Error(AI_TIMEOUT_MESSAGE);
         }
       }
-      return null;
+      // Non-retryable or final failure
+      Logger.error('AI', `Groq failed: ${error instanceof Error ? error.message : String(error)}`);
+      sendAdminAlert('Groq AI down', [
+        'Last error: ' + (error instanceof Error ? error.message : String(error)),
+        'Request intent: ' + (options.intent ?? 'fast'),
+      ].join('\n'));
+      throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
     }
-
-    // 1. Primary — OpenCode Zen (Qwen 3.6 Plus via Anthropic adapter)
-    const zenResult = await tryProvider('opencode-zen', () =>
-      callQwenZen(messages, { ...options, intent })
-    );
-    if (zenResult) return zenResult;
-
-    // 2. Fallback — Cerebras
-    const cerebrasResult = await tryProvider('cerebras', () =>
-      callCerebras(messages, options)
-    );
-    if (cerebrasResult) return cerebrasResult;
-
-    // 3. Tertiary fallback — generic OpenAI-compatible (e.g. Groq)
-    const fallbackResult = await tryProvider('fallback', () =>
-      callOpenAIFallback(messages, options)
-    );
-    if (fallbackResult) return fallbackResult;
-
-    // ALL providers failed
-    const statusCodes = failedProviders
-      .map((n) => `${n}=${lastError instanceof AIProviderError ? lastError.status ?? '?' : '?'}`)
-      .join(', ');
-    Logger.error('AI', `All AI providers failed: ${statusCodes}`);
-
-    // Admin alert (rate-limited to once per 5 min)
-    sendAdminAlert('All AI providers down', [
-      'Providers failed: ' + statusCodes,
-      'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
-      'Request intent: ' + intent,
-      'Rate limit reason: ' + (rateLimitReason ?? 'none'),
-      'Retry after: ' + (retryAfterMs > 0 ? `${Math.ceil(retryAfterMs / 1000)}s` : 'none'),
-    ].join('\n'));
-
-    const allAuthFailed = failedProviders.length >= 2 &&
-      lastError instanceof AIProviderError &&
-      (lastError.status === 401 || lastError.status === 403);
-    
-    if (allAuthFailed) {
-      throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
-    }
-    
-    // Check if this was a rate limit failure
-    const isRateLimit = failedProviders.some(n => {
-      const error = lastError as AIProviderError;
-      return error?.status === 429;
-    });
-    
-    if (isRateLimit && retryAfterMs > 0) {
-      const seconds = Math.ceil(retryAfterMs / 1000);
-      throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
-    }
-    
-    throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
   });
 }
 
@@ -968,7 +620,7 @@ export function runAIDiagnostics(): {
   totalScenarios: number;
   logs: string[];
 } {
-  const success = Boolean(config.qwenApiKey && tools.length >= 20);
+  const success = Boolean(config.groqApiKey && tools.length >= 20);
   return {
     success,
     promptLength: SYSTEM_PROMPT.length,
@@ -977,9 +629,7 @@ export function runAIDiagnostics(): {
     logs: [
       `AI providers configured: ${success ? 'yes' : 'no'}`,
       `Executable AI tools: ${tools.length}`,
-      `Primary: OpenCode Zen (${config.qwenModel})`,
-      `Fallback 1: Cerebras (${config.cerebrasModel})`,
-      `Fallback 2: OpenAI-compatible (env FALLBACK_API_KEY)`,
+      `Groq (${config.groqModel})`,
       `Circuit breaker: ${circuitBreakers.size > 0 ? [...circuitBreakers.entries()].map(([k, v]) => `${k}=${v.consecutiveFailures}fails`).join(', ') : 'all closed'}`,
     ],
   };
