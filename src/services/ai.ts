@@ -166,9 +166,21 @@ export class AIResponseParser {
     if (!text) return '';
     return text
       .trim()
+      // Hide internal tool names from user-facing replies
       .replace(/\bplay_music\b/g, 'مشغل الموسيقى')
       .replace(/\bbuild_custom_server\b/g, 'منظّم السيرفر')
-      .replace(/\bget_server_info\b/g, 'معلومات السيرفر');
+      .replace(/\bexecute_community_build\b/g, 'باني السيرفر')
+      .replace(/\bcreate_channels\b/g, 'إنشاء الرومات')
+      .replace(/\bmanage_roles\b/g, 'إدارة الرتب')
+      .replace(/\bedit_permissions\b/g, 'تعديل الصلاحيات')
+      .replace(/\bget_server_info\b/g, 'معلومات السيرفر')
+      // Remove robotic assistant disclaimers that sometimes leak from LLMs
+      .replace(/\bI am (an? )?(AI|language model|assistant)[^.\n]*\.?/gi, '')
+      .replace(/\bAs an? (AI|language model)[^.\n]*\.?/gi, '')
+      .replace(/أنا (?:نموذج لغة|مساعد ذكاء اصطناعي)[^\n.]*[.؟]?/g, '')
+      .replace(/\s{3,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 }
 

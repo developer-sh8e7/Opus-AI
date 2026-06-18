@@ -112,7 +112,8 @@ export class ContextEngine {
   }
 
   static detectLanguage(content: string): ConversationLanguage {
-    const arabic = (content.match(/[\u0600-\u06FF]/g) ?? []).length;
+    // Arabic + Arabic Supplement + Arabic Extended-A/B ranges
+    const arabic = (content.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g) ?? []).length;
     const latin = (content.match(/[A-Za-z]/g) ?? []).length;
     if (arabic > 0 && latin > 0 && Math.min(arabic, latin) / Math.max(arabic, latin) > 0.25) return 'mixed';
     return arabic >= latin ? 'ar' : 'en';

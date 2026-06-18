@@ -37,7 +37,7 @@ import path from 'node:path';
 import { config } from './config.js';
 import { startHealthServer } from './healthServer.js';
 import { installLegacyEmbedRepair } from './utils/textEncoding.js';
-import { getAIResponse, AIMessage, runAIDiagnostics } from './services/ai.js';
+import { getAIResponse, AIMessage, runAIDiagnostics, AIResponseParser } from './services/ai.js';
 import { getConversationReply } from './services/conversation.js';
 import {
   applyExplicitTargets,
@@ -106,7 +106,17 @@ import {
 } from './autonomous/monitor.js';
 import { ContextAnalyzer } from './intelligence/context_analyzer.js';
 import { ContextEngine } from './intelligence/context_engine.js';
-import { getRankConfig, getRoleForLevel, processLevelUp, initializeRankSystem, setLevelRole, removeLevelRole } from './intelligence/rank_system.js';
+import {
+  getRankConfig,
+  getRoleForLevel,
+  processLevelUp,
+  initializeRankSystem,
+  setLevelRole,
+  removeLevelRole,
+  setLevelUpChannel,
+  setAnnounceLevelUps,
+  getAllRanks,
+} from './intelligence/rank_system.js';
 import { EntityRegistry } from './intelligence/entity_registry.js';
 import {
   applyArabicPermissionsToToolArgs,
@@ -1210,8 +1220,31 @@ async function handleManualCommand(message: Message, commandText: string): Promi
           return `المستوى ${lr.level} → ${role?.name ?? lr.roleId}`;
         }).join('\n');
         await message.reply(`📋 **ربط المستويات بالرتب:**\n${list}`).catch(() => null);
+      } else if (sub === 'channel' || sub === 'room' || sub === 'روم' || sub === 'قناة') {
+        const channel = message.mentions.channels?.first() || message.guild!.channels.cache.get(args[1] ?? '');
+        if (!channel || !('send' in channel)) {
+          await message.reply('❌ استخدم: `!opus rankconfig channel #الروم` أو اكتب ID روم نصي.').catch(() => null);
+          return true;
+        }
+        setLevelUpChannel(message.guild!.id, channel.id);
+        await message.reply(`✅ تم تعيين روم تنبيهات المستوى إلى ${channel}.`).catch(() => null);
+      } else if (sub === 'announce' || sub === 'تنبيه' || sub === 'تنبيهات') {
+        const value = String(args[1] ?? '').toLowerCase();
+        const enabled = ['on', 'true', '1', 'yes', 'تشغيل', 'شغل', 'ايه', 'نعم'].includes(value);
+        const disabled = ['off', 'false', '0', 'no', 'ايقاف', 'إيقاف', 'وقف', 'لا'].includes(value);
+        if (!enabled && !disabled) {
+          await message.reply('❌ استخدم: `!opus rankconfig announce on` أو `!opus rankconfig announce off`.').catch(() => null);
+          return true;
+        }
+        setAnnounceLevelUps(message.guild!.id, enabled);
+        await message.reply(enabled ? '✅ تم تشغيل تنبيهات ترقية المستوى.' : '✅ تم إيقاف تنبيهات ترقية المستوى.').catch(() => null);
+      } else if (sub === 'ranks' || sub === 'رتب' || sub === 'tiers') {
+        const ranks = getAllRanks()
+          .map((rank) => `${rank.rewards?.displayEmoji ?? '🏅'} **${rank.permissions.titleAr}** — ${rank.minXp} XP`)
+          .join('\n');
+        await message.reply(`📊 **سلم الرتب الافتراضي:**\n${ranks}`).catch(() => null);
       } else {
-        await message.reply('❌ استخدم: `!opus rankconfig set <level> @role` أو `!opus rankconfig remove <level>` أو `!opus rankconfig list`').catch(() => null);
+        await message.reply('❌ استخدم: `!opus rankconfig set <level> @role` أو `remove <level>` أو `list` أو `channel #room` أو `announce on/off` أو `ranks`').catch(() => null);
       }
       return true;
     }
@@ -2134,7 +2167,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 //  6. وظائف التقسيم والإرسال والتنسيق (Utility Helpers)
 // ============================================================
 async function sendLongMessage(message: Message, content: string): Promise<void> {
-  const safeContent = stripRawToolMarkup(content) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
+  const safeContent = AIResponseParser.formatResponseCard(stripRawToolMarkup(content)) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
   if (safeContent.length <= 2000) {
     await message.reply(safeContent).catch(() => null);
     return;
