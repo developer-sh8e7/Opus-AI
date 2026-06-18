@@ -526,8 +526,15 @@ export function getUserXp(userId: string): number {
 export function getUserRankTier(userId: string): RankTier {
   const xp = getUserXp(userId);
   let currentTier: RankTier = 'newcomer';
-  
-  for (const config of DEFAULT_RANK_CONFIGS) {
+
+  // XP progression ranks only. Staff/admin/owner tiers are authority tiers and
+  // must never be inferred from XP, especially because they intentionally have
+  // minXp=0 placeholders.
+  const xpRanks = DEFAULT_RANK_CONFIGS.filter((config) =>
+    !['moderator', 'admin', 'owner'].includes(config.tier)
+  );
+
+  for (const config of xpRanks) {
     if (xp >= config.minXp) {
       currentTier = config.tier;
     }

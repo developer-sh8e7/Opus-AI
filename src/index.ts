@@ -2354,9 +2354,12 @@ export class LevelingSystem {
   static handleMessageXP(userId: string, memberName: string, channel: any, guild?: any): void {
     const now = Date.now();
     const data = membersXPMap.get(userId) ?? { xp: 0, level: 1, lastMessageTimestamp: 0 };
+    const rankConfig = guild ? getRankConfig(guild.id) : null;
+    const cooldownMs = rankConfig?.xpCooldownMs ?? this.XP_COOLDOWN_MS;
+    const xpPerMessage = rankConfig?.xpPerMessage ?? this.XP_PER_MESSAGE;
 
-    if (now - data.lastMessageTimestamp >= this.XP_COOLDOWN_MS) {
-      data.xp += this.XP_PER_MESSAGE;
+    if (now - data.lastMessageTimestamp >= cooldownMs) {
+      data.xp += xpPerMessage;
       data.lastMessageTimestamp = now;
 
       // حساب الخبرة المطلوبة للمستوى التالي
@@ -2373,17 +2376,17 @@ export class LevelingSystem {
 
         // إرسال تنبيه ترقية المستوى — auto-delete after 10s to avoid spam
         const levelEmbed = createLevelUpEmbed(memberName, oldLevel, data.level);
-        const config = guild ? getRankConfig(guild.id) : null;
-        const notifyChannel = config?.levelUpChannelId
-          ? channel.guild?.channels.cache.get(config.levelUpChannelId)
+        const notifyChannel = rankConfig?.levelUpChannelId
+          ? channel.guild?.channels.cache.get(rankConfig.levelUpChannelId)
           : channel;
-        if (notifyChannel) {
+        if (rankConfig?.announceLevelUps !== false && notifyChannel) {
           notifyChannel.send({ embeds: [levelEmbed] }).then((msg: any) => {
             setTimeout(() => msg.delete().catch(() => null), 10_000);
           }).catch(() => null);
         }
       }
       membersXPMap.set(userId, data);
+      saveXpData();
     }
   }
 
