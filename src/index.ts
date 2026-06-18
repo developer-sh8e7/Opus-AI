@@ -115,7 +115,7 @@ import {
 import { WorkflowEngine } from './intelligence/workflow_engine.js';
 import { planCompoundDiscordRequest } from './intelligence/compound_planner.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
-import { normalizeFunctionTags } from './utils/functionTagNormalizer.js';
+import { normalizeFunctionTags, stripRawToolMarkup } from './utils/functionTagNormalizer.js';
 import { detectAllIntents, findMissingIntents, buildMissingIntentPrompt } from './services/intentVerifier.js';
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
 import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.js';
@@ -381,8 +381,27 @@ async function executeTool(
     case 'create_channels':
       return await createChannels(guild, args.type, args.names, args.categoryId, args.permissions);
 
-    case 'delete_channels':
-      return await deleteChannels(guild, args.channelIds);
+    case 'delete_channels': {
+      const requestedChannelIds: string[] = Array.isArray(args.channelIds) ? args.channelIds.map(String) : [];
+      const safeChannelIds = requestedChannelIds.filter((id: string) => id !== activeChannelId);
+      const deletionSurface = guild.channels.cache.filter((channel) => channel.id !== activeChannelId).size;
+      const isMassDelete = safeChannelIds.length > 5 || (deletionSurface > 0 && safeChannelIds.length / deletionSurface >= 0.6);
+      if (requestedChannelIds.includes(activeChannelId)) {
+        console.warn('[AI Router] Removed active channel from delete_channels request.');
+      }
+      if (isMassDelete && args._confirmed !== true) {
+        return {
+          success: false,
+          message: 'رفضت حذف جماعي للرومات بدون تأكيد داخلي آمن. الروم الحالي لا يمكن حذفه، ولا أنفذ حذف شامل من tool_call خام.',
+          deleted: [],
+          failed: safeChannelIds,
+        };
+      }
+      if (safeChannelIds.length === 0) {
+        return { success: false, message: 'لا يمكن حذف الروم الحالي أو تنفيذ حذف بدون رومات صالحة.', deleted: [], failed: requestedChannelIds };
+      }
+      return await deleteChannels(guild, safeChannelIds);
+    }
 
     case 'manage_roles':
       return await manageRoles(guild, args.action, args.roleData, args.targetMemberId);
@@ -1825,12 +1844,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       if (lastNormalized) {
         if (lastNormalized.toolCalls.length > 0) {
           console.warn('[AI Router] <function> tags survived all loops — executing as late tool calls.');
-          for (const tc of lastNormalized.toolCalls) {
-            try {
-              const args = JSON.parse(tc.function.arguments);
-              await executeToolWithAudit(tc.function.name, args, message.guild, message.channel.id, message.author.id, message.member);
-            } catch { /* best-effort late execution */ }
-          }
+          console.warn('[AI Router] Tool tags survived final response; stripped without late execution.');
         }
         finalContent = lastNormalized.cleanContent || '';
       }
@@ -1899,6 +1913,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
     // إرسال الرد النهائي للمستخدم
     const channelOk = message.guild.channels.cache.has(message.channel.id);
     if (!finalResponseSent && channelOk && finalContent) {
+      finalContent = stripRawToolMarkup(finalContent) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
       await sendLongMessage(message, finalContent);
 
       const finalMsg: AIMessage = { role: 'assistant', content: finalContent };
@@ -1934,12 +1949,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
 //  6. وظائف التقسيم والإرسال والتنسيق (Utility Helpers)
 // ============================================================
 async function sendLongMessage(message: Message, content: string): Promise<void> {
-  if (content.length <= 2000) {
-    await message.reply(content).catch(() => null);
+  const safeContent = stripRawToolMarkup(content) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
+  if (safeContent.length <= 2000) {
+    await message.reply(safeContent).catch(() => null);
     return;
   }
 
-  const chunks = smartSplit(content, 1900);
+  const chunks = smartSplit(safeContent, 1900);
   for (let i = 0; i < chunks.length; i++) {
     try {
       if (i === 0) {

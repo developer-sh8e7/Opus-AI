@@ -71,6 +71,15 @@ export interface NormalizedFunctionTagResult {
   hasNormalized: boolean;
 }
 
+export function stripRawToolMarkup(content: string): string {
+  return content
+    .replace(/<function\b[\s\S]*?(?:<\/function>|$)/gi, '')
+    .replace(/<tool_call\b[\s\S]*?(?:<\/tool_call>|$)/gi, '')
+    .replace(/\b(?:delete_channels|create_channels|edit_permissions|manage_roles|manage_members)\s+(?:channel_?ids?|role_?id|member_?id|target_?id)\s*=\s*\[[^\]]*\]/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /**
  * Scan a string for `<function>toolName</function>JSON_ARGS</function>` patterns
  * and convert them into the AIMessage.tool_calls format.

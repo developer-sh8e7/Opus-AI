@@ -36,6 +36,10 @@ const {
   installLegacyEmbedRepair,
   repairLegacyText,
 } = require('../dist/utils/textEncoding.js');
+const {
+  normalizeFunctionTags,
+  stripRawToolMarkup,
+} = require('../dist/utils/functionTagNormalizer.js');
 
 function createGuild() {
   const channels = new Collection([
@@ -462,6 +466,15 @@ test('advanced Discord skill catalog contains unique executable operations', () 
   assert.equal(ADVANCED_DISCORD_ACTIONS.length, groupedCount);
   assert.equal(new Set(ADVANCED_DISCORD_ACTIONS).size, ADVANCED_DISCORD_ACTIONS.length);
   assert.ok(ADVANCED_DISCORD_ACTIONS.length >= 90);
+});
+
+test('raw tool-call text is stripped before user-facing output', () => {
+  const raw = 'خليني أحذف كل الرومات <tool_call>delete_channels channel_ids=["1","2"]';
+  assert.equal(stripRawToolMarkup(raw), 'خليني أحذف كل الرومات');
+
+  const normalized = normalizeFunctionTags('<tool_call>delete_channels<arg_key>channelIds</arg_key><arg_value>1</arg_value></tool_call>');
+  assert.equal(normalized.toolCalls[0].function.name, 'delete_channels');
+  assert.equal(normalized.cleanContent, '');
 });
 
 test('legacy Arabic and emoji mojibake is repaired before display', () => {
