@@ -1,5 +1,7 @@
 import { config } from '../config.js';
 import { Logger } from '../utils/logger.js';
+import { providerRateLimiter } from '../utils/providerRateLimit.js';
+import { RequestDeduplication } from '../utils/requestDedup.js';
 import { SYSTEM_PROMPT, TOOL_DESCRIPTIONS, TOOL_GROUPS, tools, type FunctionTool } from './aiCatalog.js';
 import { currentMessageAllowsTools, getCurrentUserText } from './toolIntent.js';
 export { currentMessageAllowsTools } from './toolIntent.js';
@@ -385,6 +387,12 @@ export class AIResponseParser {
 export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
 export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. حدّث QWEN_API_KEY في Railway.';
 export const AI_PROVIDER_STATE_MESSAGE = 'جميع مزودي الذكاء الاصطناعي معطلون حاليًا.';
+export const AI_RATE_LIMIT_MESSAGE = 'تجاوزت حد الطلبات، جرّب بعد {seconds} ثانية.';
+export const AI_TIMEOUT_MESSAGE = 'استجابة الذكاء الاصطناعي بطيئة، جرّب طلب أصغر.';
+
+// Request deduplication for identical AI requests
+const aiRequestDedup = new RequestDeduplication<ProviderMessage>(5000, 10000);
+aiRequestDedup.startCleanup();
 export const EXTENDED_CONVERSATIONAL_SCENARIOS_DATABASE: readonly never[] = [];
 
 // ─── Circuit Breaker ────────────────────────────
@@ -819,71 +827,131 @@ export async function generateAIResponse(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
-  const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
-  let lastError: unknown;
-  const failedProviders: string[] = [];
+  // Generate deduplication key
+  const dedupKey = RequestDeduplication.getCacheKey(messages, options);
+  
+  // Use deduplication wrapper
+  return aiRequestDedup.execute(dedupKey, async () => {
+    const intent = options.intent ?? (shouldUseSmartModel(messages) ? 'smart' : 'fast');
+    let lastError: unknown;
+    const failedProviders: string[] = [];
+    let retryAfterMs = 0;
+    let rateLimitReason: string | undefined;
 
-  async function tryProvider(
-    name: string,
-    call: () => Promise<ProviderMessage>
-  ): Promise<ProviderMessage | null> {
-    if (isCircuitOpen(name)) {
-      Logger.warn('AI', `${name} circuit open — skipping`);
+    // Estimate token count for rate limiting
+    const estimatedTokens = messages.reduce((sum, m) => sum + Math.ceil((m.content?.length ?? 0) / 4), 0) + (options.maxTokens ?? 1200);
+
+    async function tryProvider(
+      name: string,
+      call: () => Promise<ProviderMessage>,
+      modelName?: string,
+      maxRetries = 3
+    ): Promise<ProviderMessage | null> {
+      // Check provider-specific rate limits
+      const limitCheck = providerRateLimiter.check(name, estimatedTokens, modelName);
+      if (!limitCheck.allowed) {
+        Logger.warn('AI', `${name} rate limited: ${limitCheck.reason} (${limitCheck.currentUsage?.rpm}/${limitCheck.currentUsage?.rpmLimit} RPM, ${limitCheck.currentUsage?.tpm}/${limitCheck.currentUsage?.tpmLimit} TPM)`);
+        retryAfterMs = Math.max(retryAfterMs, limitCheck.retryAfterMs ?? 0);
+        rateLimitReason = `${name}=${limitCheck.reason}`;
+        return null;
+      }
+
+      if (isCircuitOpen(name)) {
+        Logger.warn('AI', `${name} circuit open — skipping`);
+        return null;
+      }
+
+      // Exponential backoff with jitter for transient failures
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const result = await call();
+          recordSuccess(name);
+          // Update with actual token usage if available
+          const actualTokens = (result as any).usage?.total_tokens ?? estimatedTokens;
+          providerRateLimiter.recordUsage(name, actualTokens);
+          return result;
+        } catch (error) {
+          const status = error instanceof AIProviderError ? error.status ?? 'network' : 'unknown';
+          
+          // Only retry on transient errors (429, 502, 503, 504)
+          const isTransient = error instanceof AIProviderError && 
+            (error.status === 429 || error.status === 502 || error.status === 503 || error.status === 504);
+          
+          if (!isTransient || attempt === maxRetries - 1) {
+            lastError = error;
+            failedProviders.push(name);
+            recordFailure(name);
+            Logger.warn('AI', `${name} failed (${status}) after ${attempt + 1} attempts`);
+            return null;
+          }
+          
+          // Calculate backoff with jitter: base * 2^attempt + random jitter
+          const baseDelay = 1000;
+          const exponentialDelay = baseDelay * Math.pow(2, attempt);
+          const jitter = Math.random() * 1000;
+          const delay = Math.min(exponentialDelay + jitter, 10000);
+          
+          Logger.warn('AI', `${name} transient error (${status}), retrying attempt ${attempt + 2}/${maxRetries} in ${Math.round(delay)}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
       return null;
     }
-    try {
-      const result = await call();
-      recordSuccess(name);
-      return result;
-    } catch (error) {
-      lastError = error;
-      failedProviders.push(name);
-      recordFailure(name);
-      const status = error instanceof AIProviderError ? error.status ?? 'network' : 'unknown';
-      Logger.warn('AI', `${name} failed (${status})`);
-      return null;
+
+    // 1. Primary — OpenCode Zen (Qwen 3.6 Plus via Anthropic adapter)
+    const zenResult = await tryProvider('opencode-zen', () =>
+      callQwenZen(messages, { ...options, intent })
+    );
+    if (zenResult) return zenResult;
+
+    // 2. Fallback — Cerebras
+    const cerebrasResult = await tryProvider('cerebras', () =>
+      callCerebras(messages, options)
+    );
+    if (cerebrasResult) return cerebrasResult;
+
+    // 3. Tertiary fallback — generic OpenAI-compatible (e.g. Groq)
+    const fallbackResult = await tryProvider('fallback', () =>
+      callOpenAIFallback(messages, options)
+    );
+    if (fallbackResult) return fallbackResult;
+
+    // ALL providers failed
+    const statusCodes = failedProviders
+      .map((n) => `${n}=${lastError instanceof AIProviderError ? lastError.status ?? '?' : '?'}`)
+      .join(', ');
+    Logger.error('AI', `All AI providers failed: ${statusCodes}`);
+
+    // Admin alert (rate-limited to once per 5 min)
+    sendAdminAlert('All AI providers down', [
+      'Providers failed: ' + statusCodes,
+      'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
+      'Request intent: ' + intent,
+      'Rate limit reason: ' + (rateLimitReason ?? 'none'),
+      'Retry after: ' + (retryAfterMs > 0 ? `${Math.ceil(retryAfterMs / 1000)}s` : 'none'),
+    ].join('\n'));
+
+    const allAuthFailed = failedProviders.length >= 2 &&
+      lastError instanceof AIProviderError &&
+      (lastError.status === 401 || lastError.status === 403);
+    
+    if (allAuthFailed) {
+      throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
     }
-  }
-
-  // 1. Primary — OpenCode Zen (Qwen 3.6 Plus via Anthropic adapter)
-  const zenResult = await tryProvider('opencode-zen', () =>
-    callQwenZen(messages, { ...options, intent })
-  );
-  if (zenResult) return zenResult;
-
-  // 2. Fallback — Cerebras
-  const cerebrasResult = await tryProvider('cerebras', () =>
-    callCerebras(messages, options)
-  );
-  if (cerebrasResult) return cerebrasResult;
-
-  // 3. Tertiary fallback — generic OpenAI-compatible (e.g. Groq)
-  const fallbackResult = await tryProvider('fallback', () =>
-    callOpenAIFallback(messages, options)
-  );
-  if (fallbackResult) return fallbackResult;
-
-  // ALL providers failed
-  const statusCodes = failedProviders
-    .map((n) => `${n}=${lastError instanceof AIProviderError ? lastError.status ?? '?' : '?'}`)
-    .join(', ');
-  Logger.error('AI', `All AI providers failed: ${statusCodes}`);
-
-  // Admin alert (rate-limited to once per 5 min)
-  sendAdminAlert('All AI providers down', [
-    'Providers failed: ' + statusCodes,
-    'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
-    'Request intent: ' + intent,
-  ].join('\n'));
-
-  const allAuthFailed = failedProviders.length >= 2 &&
-    lastError instanceof AIProviderError &&
-    (lastError.status === 401 || lastError.status === 403);
-  throw new Error(
-    allAuthFailed
-      ? AI_CONFIGURATION_ERROR_MESSAGE
-      : AI_TEMPORARY_ERROR_MESSAGE
-  );
+    
+    // Check if this was a rate limit failure
+    const isRateLimit = failedProviders.some(n => {
+      const error = lastError as AIProviderError;
+      return error?.status === 429;
+    });
+    
+    if (isRateLimit && retryAfterMs > 0) {
+      const seconds = Math.ceil(retryAfterMs / 1000);
+      throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
+    }
+    
+    throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
+  });
 }
 
 export async function getAIResponse(
