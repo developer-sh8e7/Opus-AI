@@ -1937,11 +1937,15 @@ client.on(Events.MessageCreate, async (message: Message) => {
   } catch (error) {
     console.error('[Core AI Loop] AI request processing failed:', error);
     const fallbackText = OfflineFallbackResponder.getFallbackReply(message.content);
-    if (fallbackText) {
-      await message.reply(fallbackText).catch(() => null);
-    } else {
-      const friendlyError = formatUserError(error);
+    const friendlyError = formatUserError(error);
+    
+    // Only use offline fallback for social/greeting messages, never for operational intents
+    const isOperationalIntent = /احذف|delete|حذف|create|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء/i.test(message.content);
+    
+    if (isOperationalIntent || !fallbackText) {
       await message.reply(friendlyError).catch(() => null);
+    } else {
+      await message.reply(fallbackText).catch(() => null);
     }
   }
 });
@@ -3375,7 +3379,7 @@ export class OfflineFallbackResponder {
       ]
     },
     {
-      keywords: ["بناء", "سيرفر", "رومات", "روم", "فويس", "شات"],
+      keywords: ["بناء", "سيرفر", "ابنِ لي سيرفر", "ابني سيرفر"],
       replies: [
         "يمكنني بناء خادم متكامل مع الرتب والقنوات! استخدم الأمر: `!opus rules_template` لعرض نماذج القوانين، أو `@Opus ابنِ لي سيرفر ألعاب`."
       ]
