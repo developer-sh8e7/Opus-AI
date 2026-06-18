@@ -786,6 +786,10 @@ export async function manageMembers(
       if (!member.voice.channelId) {
         return { success: false, message: `العضو "${member.displayName}" غير موجود في روم صوتي.` };
       }
+      if (data?.channelId && member.voice.channelId !== data.channelId) {
+        const requestedChannel = guild.channels.cache.get(data.channelId);
+        return { success: false, message: `العضو "${member.displayName}" ليس داخل الروم الصوتي المطلوب${requestedChannel ? ` "${requestedChannel.name}"` : ''}.` };
+      }
       await member.voice.disconnect(reason);
       return { success: true, message: `تم فصل "${member.displayName}" من الروم الصوتي.` };
     }

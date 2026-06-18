@@ -765,10 +765,20 @@ async function handleDirectVoiceRoomRequest(message: Message, cleanedPromptText:
       rememberDirectInteraction(message, cleanedPromptText, finalReply, []);
       return true;
     }
+    const scopedToCurrentVoice = /(?:الروم\s+(?:الي|اللي)\s+انا\s+فيه|رومي|فويسي|معي\s+بالروم|من\s+الروم\s+(?:الي|اللي)\s+انا)/i.test(normalized);
+    if (scopedToCurrentVoice && voiceChannel) {
+      const targetMember = guild.members.cache.get(memberId) || await guild.members.fetch(memberId).catch(() => null);
+      if (!targetMember?.voice?.channelId || targetMember.voice.channelId !== voiceChannel.id) {
+        const finalReply = `العضو مو موجود في نفس رومك الصوتي "${voiceChannel.name}"، عشان كذا ما فصلته.`;
+        await message.reply(finalReply).catch(() => null);
+        rememberDirectInteraction(message, cleanedPromptText, finalReply, []);
+        return true;
+      }
+    }
     const args = {
       action: 'voicekick',
       memberId,
-      data: { reason: `طلب فصل صوتي بواسطة ${message.author.tag}` },
+      data: { reason: `طلب فصل صوتي بواسطة ${message.author.tag}`, channelId: voiceChannel?.id },
     };
     const result = await executeToolWithAudit('manage_members', args, guild, message.channel.id, message.author.id, message.member);
     completed.push({ name: 'manage_members', args, result });

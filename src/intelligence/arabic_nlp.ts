@@ -210,6 +210,15 @@ export function buildArabicPermissionOperations(
   const exceptionIndex = exceptionMatch?.index ?? -1;
   const everyoneText = exceptionIndex >= 0 ? text.slice(0, exceptionIndex) : text;
   const everyonePermissions = permissionNames(everyoneText);
+  const ensureVoiceViewAccess = (permissions: { allow: string[]; deny: string[] }): void => {
+    const hasVoiceAccess = permissions.allow.some((permission) =>
+      ['Connect', 'Speak', 'Stream', 'UseEmbeddedActivities'].includes(permission)
+    );
+    if (hasVoiceAccess && !permissions.deny.includes('ViewChannel')) {
+      permissions.allow = [...new Set(['ViewChannel', ...permissions.allow])];
+    }
+  };
+  ensureVoiceViewAccess(everyonePermissions);
   const operations: ArabicPermissionOperation[] = [];
 
   if (
@@ -236,12 +245,7 @@ export function buildArabicPermissionOperations(
 
     const roleText = text.slice((exceptionMatch.index ?? 0) + exceptionMatch[0].length);
     const rolePermissions = permissionNames(roleText);
-    const hasVoiceAccess = rolePermissions.allow.some((permission) =>
-      ['Connect', 'Speak', 'Stream', 'UseEmbeddedActivities'].includes(permission)
-    );
-    if (hasVoiceAccess && !rolePermissions.deny.includes('ViewChannel')) {
-      rolePermissions.allow = [...new Set(['ViewChannel', ...rolePermissions.allow])];
-    }
+    ensureVoiceViewAccess(rolePermissions);
     if (rolePermissions.allow.length > 0 || rolePermissions.deny.length > 0) {
       operations.push({
         channelId,
