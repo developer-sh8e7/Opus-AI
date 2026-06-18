@@ -580,9 +580,10 @@ export async function sweepPermissionOverwrites(
     return { success: false, message: 'لم يتم تحديد صلاحيات صالحة لسحبها.', updated: [], failed: [], targets: [] };
   }
 
-  const includeEveryone = options.includeEveryone ?? true;
-  const includeRoles = options.includeRoles ?? true;
-  const includeMembers = options.includeMembers ?? true;
+  // Default all to true — the AI must explicitly set to false to exclude
+  const includeEveryone = options.includeEveryone !== false;
+  const includeRoles = options.includeRoles !== false;
+  const includeMembers = options.includeMembers !== false;
   const updated: string[] = [];
   const failed: string[] = [];
   const targets = new Set<string>();

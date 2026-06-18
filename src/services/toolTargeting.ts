@@ -108,6 +108,8 @@ export function resolveExplicitToolTargets(
     ...sessionEntities
       .filter((entity) => entity.type === 'channel' || entity.type === 'thread')
       .map(({ id, name }) => ({ id, name })),
+    ...EntityRegistry.getRecent(guild.id, 'channel')
+      .map((entity) => ({ id: entity.id, name: entity.name })),
   ];
   const namedCategories = [
     ...guild.channels.cache
@@ -116,6 +118,8 @@ export function resolveExplicitToolTargets(
     ...sessionEntities
       .filter((entity) => entity.type === 'category')
       .map(({ id, name }) => ({ id, name })),
+    ...EntityRegistry.getRecent(guild.id, 'category')
+      .map((entity) => ({ id: entity.id, name: entity.name })),
   ];
   const namedRoles = [
     ...guild.roles.cache
@@ -124,6 +128,8 @@ export function resolveExplicitToolTargets(
     ...sessionEntities
       .filter((entity) => entity.type === 'role')
       .map(({ id, name }) => ({ id, name })),
+    ...EntityRegistry.getRecent(guild.id, 'role')
+      .map((entity) => ({ id: entity.id, name: entity.name })),
   ];
 
   const sessionChannelIds = new Set(

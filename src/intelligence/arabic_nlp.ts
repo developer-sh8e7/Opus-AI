@@ -1,5 +1,7 @@
 import { ChannelType, Guild, PermissionFlagsBits } from 'discord.js';
 
+import { EntityRegistry } from './entity_registry.js';
+
 export type ArabicIntent =
   | 'CREATE_CHANNEL'
   | 'SET_PERMISSIONS'
@@ -185,6 +187,19 @@ export function buildArabicPermissionOperations(
       ?? (/(?:الروم|روم|القناه|القناة|الشانل)/i.test(text) ? sessionChannels[0] : undefined);
     if (sessionChannel) {
       channelId = sessionChannel.id;
+    }
+  }
+  // Fallback to EntityRegistry (guild-level, broader TTL) if not found in session
+  if (!channelId) {
+    const registryChannels = EntityRegistry.getRecent(guild.id, 'channel')
+      .concat(EntityRegistry.getRecent(guild.id, 'category'));
+    if (registryChannels.length > 0) {
+      const textNorm = normalizeName(text);
+      const registryMatch = registryChannels.find((e) => textNorm.includes(normalizeName(e.name)))
+        ?? (/(?:الروم|روم|القناه|القناة|الشانل)/i.test(text) ? registryChannels[0] : undefined);
+      if (registryMatch) {
+        channelId = registryMatch.id;
+      }
     }
   }
   if (!channelId) return [];

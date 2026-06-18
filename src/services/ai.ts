@@ -329,10 +329,10 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(ban|unban|kick|timeout|mute|member|disconnect|voicekick|voice kick|حظر|فك الحظر|طرد|دسكونكت|دسكنوكت|ديسكونكت|افصل|فصل|طلعه|كتم|عضو|رسائل|messages)/i.test(content)) {
     addGroup(TOOL_GROUPS.members);
   }
-  if (/(profile|avatar|username|rename|change.*name|غير اسمك|غيّر اسمك|صورتك)/i.test(content)) {
+  if (/(profile|avatar|username|rename|change.*name|غير اسمك|غيّر اسمك|لقبك|نكك|سميني|صورتك)/i.test(content)) {
     addGroup(TOOL_GROUPS.profile);
   }
-  if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|voicekick|دسكونكت|دسكنوكت)/i.test(content)) addGroup(TOOL_GROUPS.voice);
+  if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|voicekick|دسكونكت|دسكنوكت|ديسكونكت|ديسكنكت|اطرده|دسكنكت|دسكنكته)/i.test(content)) addGroup(TOOL_GROUPS.voice);
   if (/(music|song|play|pause|resume|skip|queue|volume|اغنية|أغنية|موسيقى|شغل|وقف|الصوت)/i.test(content)) {
     addGroup(TOOL_GROUPS.music);
   }
@@ -467,7 +467,7 @@ async function postChatCompletion(
 ): Promise<ProviderMessage> {
   const startedAt = Date.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(config.aiTimeoutMs, 8_000));
+  const timeout = setTimeout(() => controller.abort(), Math.min(config.aiTimeoutMs, 25_000));
   let outcome = 'error';
   let status: number | null = null;
 
@@ -591,7 +591,7 @@ export async function generateAIResponse(
           Logger.warn('AI', `Groq rate limited, retry after ${seconds}s`);
           throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
         }
-        if (error.status === 408 || error.name === 'AbortError') {
+        if (error.status === 408 || error.name === 'AbortError' || (error instanceof AIProviderError && error.message.includes('timed out'))) {
           throw new Error(AI_TIMEOUT_MESSAGE);
         }
       }

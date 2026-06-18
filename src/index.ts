@@ -644,7 +644,13 @@ function buildToolExecutionReply(
 
     if (name === 'create_channels' && Array.isArray(result?.created) && result.created.length > 0) {
       const names = result.created.join(', ');
-      return `تم إنشاء ${result.created.length} قناة بنجاح: ${names}.`;
+      const entities = Array.isArray(result?.createdEntities) ? result.createdEntities : [];
+      const idMap = entities.length > 0
+        ? entities.map((e: any) => `${e.name}=${e.id}`).join(', ')
+        : '';
+      return idMap
+        ? `تم إنشاء ${result.created.length} قناة بنجاح: ${names}. (IDs: ${idMap})`
+        : `تم إنشاء ${result.created.length} قناة بنجاح: ${names}.`;
     }
 
     if (name === 'delete_channels' && Array.isArray(result?.deleted) && result.deleted.length > 0) {
@@ -855,8 +861,16 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       }
       await (message.channel as any).sendTyping().catch(() => null);
       try {
+        const guild = message.guild!;
+        const sessionEntities = memoryManager.getRecentEntities(message.channel.id);
+        const context = ContextEngine.getOrCreate(message.channel.id, guild.id);
+        const systemPrompt = [
+          ContextEngine.buildSystemPrompt(context, guild, message.author.id),
+          memoryManager.buildEntityContext(message.channel.id),
+          memoryManager.buildUserPreferenceContext(message.author.id),
+        ].filter(Boolean).join('\n');
         const history: AIMessage[] = [{ role: 'user', content: prompt }];
-        const response = await runAIRequest(message.guild!.id, history);
+        const response = await runAIRequest(guild.id, history, { systemPrompt });
         if (response.content) {
           await sendLongMessage(message, response.content);
         } else {
@@ -2060,9 +2074,11 @@ export class LevelingSystem {
         data.level++;
         data.xp = 0; // تصفير النقاط والبدء من جديد للمستوى التالي
 
-        // إرسال تنبيه ترقية المستوى
+        // إرسال تنبيه ترقية المستوى — auto-delete after 10s to avoid spam
         const levelEmbed = createLevelUpEmbed(memberName, data.level - 1, data.level);
-        channel.send({ embeds: [levelEmbed] }).catch(() => null);
+        channel.send({ embeds: [levelEmbed] }).then((msg: any) => {
+          setTimeout(() => msg.delete().catch(() => null), 10_000);
+        }).catch(() => null);
       }
       membersXPMap.set(userId, data);
     }
