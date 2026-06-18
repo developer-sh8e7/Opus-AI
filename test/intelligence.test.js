@@ -172,24 +172,26 @@ test('Arabic permissions are applied atomically to channel creation', () => {
   assert.equal(detectArabicIntent('سو لي روم فويس اسمه TestRoom'), 'CREATE_CHANNEL');
 });
 
-test('workflow resolves values from a previous step', async () => {
+test('workflow resolves values from previous steps and honors multi-dependencies', async () => {
   const calls = [];
   const result = await WorkflowEngine.execute([
     { id: 'create', tool: 'create_channels', args: { names: ['Room1'] } },
+    { id: 'role', tool: 'manage_roles', args: { roleData: { name: 'VIP' } } },
     {
       id: 'permissions',
       tool: 'edit_permissions',
-      dependsOn: 'create',
-      args: { channelId: '$create.channelId' },
+      dependsOn: ['create', 'role'],
+      args: { channelId: '$create.channelId', targetId: '$role.roleId' },
     },
   ], async (tool, args) => {
     calls.push({ tool, args });
-    return tool === 'create_channels'
-      ? { success: true, channelId: '987654321' }
-      : { success: true };
+    if (tool === 'create_channels') return { success: true, channelId: '987654321' };
+    if (tool === 'manage_roles') return { success: true, roleId: '555' };
+    return { success: true };
   });
   assert.equal(result.success, true);
-  assert.equal(calls[1].args.channelId, '987654321');
+  assert.equal(calls[2].args.channelId, '987654321');
+  assert.equal(calls[2].args.targetId, '555');
 });
 
 test('workflow parser accepts only structured tool JSON', () => {
@@ -286,6 +288,40 @@ test('single channel create-and-permission request is planned without AI guessin
   });
 });
 
+test('loose Gulf create-and-permission voice request is planned as one configured channel', () => {
+  const steps = planCompoundDiscordRequest(
+    'سو روم فويس Room1 وخل الكل يشوفه بس ما يدخل'
+  );
+  assert.equal(steps.length, 1);
+  assert.equal(steps[0].tool, 'create_channels');
+  assert.deepEqual(steps[0].args, {
+    type: 'voice',
+    names: ['Room1'],
+    permissions: [{
+      id: '@everyone',
+      allow: ['ViewChannel'],
+      deny: ['Connect'],
+    }],
+  });
+});
+
+test('Arabic permission parser understands deafen spelling and recent room references', () => {
+  const guild = createGuild();
+  const operations = buildArabicPermissionOperations(
+    'الروم ذا الكل يشوفه ما يدخله ويقدرون move وميوت وديفين',
+    guild,
+    [{ id: '1513737591793520903', name: 'private-voice', type: 'channel' }]
+  );
+
+  assert.deepEqual(operations, [{
+    channelId: '1513737591793520903',
+    targetId: '999',
+    targetType: 'role',
+    allow: ['ViewChannel', 'MoveMembers', 'MuteMembers', 'DeafenMembers'],
+    deny: ['Connect'],
+  }]);
+});
+
 test('bulk permission request resolves category and everyone target', () => {
   const guild = createGuild();
   EntityRegistry.clearGuild(guild.id);
@@ -297,6 +333,17 @@ test('bulk permission request resolves category and everyone target', () => {
   assert.equal(args.categoryId, '300');
   assert.equal(args.targetId, '999');
   assert.deepEqual(args.deny, ['MentionEveryone']);
+});
+
+test('raw session channel IDs resolve even when Discord cache lacks the channel', () => {
+  const guild = createGuild();
+  const targets = resolveExplicitToolTargets(
+    guild,
+    '1513737591793520999 الكل يشوف بس ما يدخل',
+    [{ id: '1513737591793520999', name: 'Room1', type: 'channel' }]
+  );
+
+  assert.deepEqual(targets.channelIds, ['1513737591793520999']);
 });
 
 test('bulk channel deletion preserves every explicitly excluded channel', () => {

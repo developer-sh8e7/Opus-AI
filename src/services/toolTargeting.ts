@@ -126,12 +126,22 @@ export function resolveExplicitToolTargets(
       .map(({ id, name }) => ({ id, name })),
   ];
 
+  const sessionChannelIds = new Set(
+    sessionEntities
+      .filter((entity) => entity.type === 'channel' || entity.type === 'thread')
+      .map((entity) => entity.id)
+  );
+  const sessionCategoryIds = new Set(
+    sessionEntities
+      .filter((entity) => entity.type === 'category')
+      .map((entity) => entity.id)
+  );
   const rawChannelIds = rawSnowflakeIds.filter((id) => {
     const channel = guild.channels.cache.get(id);
-    return channel && channel.type !== ChannelType.GuildCategory;
+    return (channel && channel.type !== ChannelType.GuildCategory) || sessionChannelIds.has(id);
   });
   const rawCategoryIds = rawSnowflakeIds.filter((id) =>
-    guild.channels.cache.get(id)?.type === ChannelType.GuildCategory
+    guild.channels.cache.get(id)?.type === ChannelType.GuildCategory || sessionCategoryIds.has(id)
   );
   const channelIds = unique([
     ...mentionedChannelIds,

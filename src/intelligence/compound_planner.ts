@@ -20,11 +20,29 @@ function safeChannelName(value: string, suffix: string): string {
   return `${slug || 'vip'}-${suffix}`.slice(0, 100);
 }
 
+function extractSingleChannelRequest(clean: string): RegExpMatchArray | null {
+  const explicitName = clean.match(
+    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(?:اسمه|اسمها|باسم)\s+([^\s،,]+)/i
+  );
+  if (explicitName) return explicitName;
+
+  const looseName = clean.match(
+    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(.+?)(?=\s+(?:و?خل|و?خلي|وحط|حط|مع|بس|لكن|الكل|الجميع|كل\s+الناس|everyone)(?:\s|$)|$)/i
+  );
+  if (!looseName) return null;
+
+  const name = looseName[2]
+    .replace(/^(?:اسمه|اسمها|باسم)\s+/i, '')
+    .replace(/[،,]+$/g, '')
+    .trim();
+  if (!name || /^(?:و?خل|و?خلي|وحط|حط|مع|بس|لكن|الكل|الجميع|everyone)$/i.test(name)) return null;
+  looseName[2] = name.split(/\s+/)[0];
+  return looseName;
+}
+
 export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   const clean = normalized(text);
-  const singleChannel = clean.match(
-    /(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناه)\s+(تكست|نصي|فويس|صوتي)\s+(?:اسمه|اسمها|باسم)\s+([^\s،,]+)/
-  );
+  const singleChannel = extractSingleChannelRequest(clean);
   if (singleChannel && /(?:الكل|الجميع|كل\s+الناس|everyone)/i.test(clean)) {
     const parsedPermissions = parseArabicPermissions(clean);
     if (parsedPermissions.length > 0) {
@@ -156,7 +174,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
     {
       id: 'configure_role',
       tool: 'edit_permissions',
-      dependsOn: 'create_role',
+      dependsOn: ['create_category', 'create_role'],
       args: {
         channelId: '$create_category.channelId',
         targetId: '$create_role.roleId',

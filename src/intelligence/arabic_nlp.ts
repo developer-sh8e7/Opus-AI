@@ -58,9 +58,9 @@ const PERMISSION_PHRASES: Array<{
   { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?(?:منج|يدير|يعدل|manage)\s*(?:شنل|شانل|روم|قناه|قناة|channel)/i, flag: PermissionFlagsBits.ManageChannels, type: 'deny', name: 'ManageChannels' },
   { pattern: /(?:move|موف|ينقل|نقل|يحرك|تحريك)/i, flag: PermissionFlagsBits.MoveMembers, type: 'allow', name: 'MoveMembers' },
   { pattern: /(?:ميوت|يكتم|كتم صوتي|mute)/i, flag: PermissionFlagsBits.MuteMembers, type: 'allow', name: 'MuteMembers' },
-  { pattern: /(?:ديفن|دفن|يصم|deafen)/i, flag: PermissionFlagsBits.DeafenMembers, type: 'allow', name: 'DeafenMembers' },
+  { pattern: /(?:ديفن|ديفين|دفن|يصم|deafen)/i, flag: PermissionFlagsBits.DeafenMembers, type: 'allow', name: 'DeafenMembers' },
   { pattern: /(?:نشاط|أنشطة|activity|activities|watch\s+together|youtube\s+together|فيديو|video)/i, flag: PermissionFlagsBits.UseEmbeddedActivities, type: 'allow', name: 'UseEmbeddedActivities' },
-  { pattern: /(?:ما|لا)\s+يكتب(?:ون)?/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
+  { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?يكتب(?:ون)?/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
   { pattern: /يكتب(?:ون)?|يرسل(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.SendMessages, type: 'allow', name: 'SendMessages' },
   { pattern: /(?:منشن|تاق).*(?:@?everyone|@?here)/i, flag: PermissionFlagsBits.MentionEveryone, type: 'deny', name: 'MentionEveryone' },
   { pattern: /يحذف(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.ManageMessages, type: 'allow', name: 'ManageMessages' },
@@ -170,23 +170,24 @@ export function buildArabicPermissionOperations(
     const channel = guild.channels.cache.get(id);
     return Boolean(channel && channel.type !== ChannelType.GuildCategory);
   };
+  const sessionChannels = (sessionEntities ?? []).filter((e) => e.type === 'channel' || e.type === 'thread');
+  const sessionChannelIds = new Set(sessionChannels.map((entity) => entity.id));
   const mentionedChannelIds = [...text.matchAll(/<#(\d{17,20})>/g)]
     .map((match) => match[1])
-    .filter(isConcreteChannel);
+    .filter((id) => guild.channels.cache.get(id)?.type !== ChannelType.GuildCategory);
   const rawChannelIds = [...text.matchAll(/\b(\d{17,20})\b/g)]
     .map((match) => match[1])
-    .filter(isConcreteChannel);
+    .filter((id) => isConcreteChannel(id) || sessionChannelIds.has(id));
   let channelId = mentionedChannelIds[0] ?? rawChannelIds[0];
-  if (!channelId && sessionEntities) {
-    const textNorm = text.normalize('NFKC').replace(/[\u0623\u0625\u0622]/g, '\u0627').replace(/\u0649/g, '\u064a').replace(/\u0629/g, '\u0647').toLowerCase();
-    const sessionChannel = sessionEntities.find(
-      (e) => e.type === 'channel' && textNorm.includes(e.name.normalize('NFKC').toLowerCase())
-    );
+  if (!channelId && sessionChannels.length > 0) {
+    const textNorm = normalizeName(text);
+    const sessionChannel = sessionChannels.find((e) => textNorm.includes(normalizeName(e.name)))
+      ?? (/(?:الروم|روم|القناه|القناة|الشانل)/i.test(text) ? sessionChannels[0] : undefined);
     if (sessionChannel) {
       channelId = sessionChannel.id;
     }
   }
-  if (!channelId || !guild.channels.cache.has(channelId)) return [];
+  if (!channelId) return [];
 
   const exceptionMatch = text.match(
     /(?:(?:إلا|الا)\s+(?:اللي|الي|من)?\s*(?:معه|عنده)?\s*|(?:فقط|بس)\s+(?:اللي|الي|من)?\s*(?:معه|عنده)?\s*)(?:رتبة|رتبت|رول)\s+(?:<@&(?<roleId>\d{17,20})>|@?(?<roleName>.+?))(?=\s+(?:يقدر|يدخل|يخش|يتصل|تدخل|تخش|تتصل|تشوف|ترى|تكتب|تتكلم|تفتح|تسوي|يسمح|$))/i

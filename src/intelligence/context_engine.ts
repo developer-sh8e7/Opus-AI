@@ -25,7 +25,7 @@ export interface WorkflowStep {
   id: string;
   tool: string;
   args: Record<string, unknown>;
-  dependsOn?: string;
+  dependsOn?: string | string[];
 }
 
 export interface ChannelContext {

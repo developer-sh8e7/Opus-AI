@@ -36,11 +36,16 @@ export class WorkflowEngine {
       if (typeof record.tool !== 'string') continue;
       const rawArgs = record.params ?? record.args ?? {};
       if (!rawArgs || typeof rawArgs !== 'object' || Array.isArray(rawArgs)) continue;
+      const dependsOn = typeof record.dependsOn === 'string'
+        ? record.dependsOn
+        : Array.isArray(record.dependsOn) && record.dependsOn.every((item) => typeof item === 'string')
+          ? record.dependsOn as string[]
+          : undefined;
       steps.push({
         id: typeof record.id === 'string' ? record.id : `${record.tool}_${index + 1}`,
         tool: record.tool,
         args: rawArgs as Record<string, unknown>,
-        dependsOn: typeof record.dependsOn === 'string' ? record.dependsOn : undefined,
+        dependsOn,
       });
     }
     return steps;
@@ -51,19 +56,20 @@ export class WorkflowEngine {
     const completed: WorkflowStepResult[] = [];
 
     for (const step of steps) {
-      if (step.dependsOn) {
-        const dependency = results.get(step.dependsOn);
-        if (!dependency?.success) {
-          const skipped: WorkflowStepResult = {
-            id: step.id,
-            tool: step.tool,
-            success: false,
-            result: { success: false, message: `Dependency "${step.dependsOn}" failed.` },
-          };
-          results.set(step.id, skipped);
-          completed.push(skipped);
-          continue;
-        }
+      const dependencies = step.dependsOn
+        ? Array.isArray(step.dependsOn) ? step.dependsOn : [step.dependsOn]
+        : [];
+      const failedDependency = dependencies.find((dependencyId) => !results.get(dependencyId)?.success);
+      if (failedDependency) {
+        const skipped: WorkflowStepResult = {
+          id: step.id,
+          tool: step.tool,
+          success: false,
+          result: { success: false, message: `Dependency "${failedDependency}" failed.` },
+        };
+        results.set(step.id, skipped);
+        completed.push(skipped);
+        continue;
       }
 
       const args = this.resolveReferences(step.args, results);

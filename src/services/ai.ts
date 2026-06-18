@@ -81,13 +81,18 @@ interface AnthropicResponse {
   usage: { input_tokens: number; output_tokens: number };
 }
 
+function composeSystemPrompt(runtimePrompt?: string): string {
+  if (!runtimePrompt || runtimePrompt.trim() === SYSTEM_PROMPT.trim()) return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
+}
+
 /** Build Anthropic-format request from internal messages */
 function buildAnthropicBody(
   messages: AIMessage[],
   options: GenerateAIOptions,
   model: string
 ): AnthropicRequest {
-  const systemParts: string[] = [];
+  const systemParts: string[] = [composeSystemPrompt(options.systemPrompt)];
   const anthropicMessages: Array<{ role: 'user' | 'assistant'; content: AnthropicContentBlock[] }> = [];
 
   const sanitized = AIPromptBuilder.sanitizeMessages(messages);
@@ -624,7 +629,7 @@ function buildCompletionBody(
   return {
     model,
     messages: [
-      { role: 'system', content: options.systemPrompt ?? SYSTEM_PROMPT },
+      { role: 'system', content: composeSystemPrompt(options.systemPrompt) },
       ...trimMessagesForRequest(messages),
     ],
     tools: selectedTools,
