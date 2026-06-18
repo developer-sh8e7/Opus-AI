@@ -431,8 +431,9 @@ export async function manageRoles(
         return { success: false, message: "الرتبة غير موجودة في السيرفر." };
       }
       const roleName = role.name;
+      const deletedRoleId = role.id;
       await role.delete('حذف رتبة بواسطة نظام الإدارة الذكي');
-      return { success: true, message: `تم حذف الرتبة "${roleName}" بنجاح.` };
+      return { success: true, message: `تم حذف الرتبة "${roleName}" بنجاح.`, roleId: deletedRoleId };
     }
 
     // 3. تعديل رتبة

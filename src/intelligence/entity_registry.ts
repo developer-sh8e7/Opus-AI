@@ -36,6 +36,7 @@ const ENTITY_CACHE_PATH = path.join(process.cwd(), 'data', 'entity_cache.json');
 
 export class EntityRegistry {
   private static entities = new Map<string, RegisteredEntity[]>();
+  private static lastCreated = new Map<string, Map<EntityType, RegisteredEntity>>();
   private static loaded = false;
   private static saveTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -75,6 +76,12 @@ export class EntityRegistry {
     );
     withoutDuplicate.push(registered);
     this.entities.set(entity.guildId, withoutDuplicate.slice(-MAX_ENTITIES_PER_GUILD));
+
+    // Track last created per type per guild
+    const guildMap = this.lastCreated.get(entity.guildId) ?? new Map();
+    guildMap.set(entity.type, registered);
+    this.lastCreated.set(entity.guildId, guildMap);
+
     this.scheduleSave();
     return registered;
   }
@@ -110,8 +117,27 @@ export class EntityRegistry {
   }
 
   static findByName(guildId: string, type: EntityType, name: string): RegisteredEntity | undefined {
-    const normalized = this.normalize(name);
-    return this.getRecent(guildId, type).find((entity) => this.normalize(entity.name) === normalized);
+    const stripped = this.stripPrefix(name);
+    const normalized = this.normalize(stripped);
+
+    // 1. Exact match (after normalization)
+    const exact = this.getRecent(guildId, type).find((entity) => this.normalize(entity.name) === normalized);
+    if (exact) return exact;
+
+    // 2. Partial match — query contains entity name or vice versa
+    const partial = this.getRecent(guildId, type).find((entity) => {
+      const entityNorm = this.normalize(entity.name);
+      return entityNorm.includes(normalized) || normalized.includes(entityNorm);
+    });
+    return partial;
+  }
+
+  /**
+   * Strip common Arabic prefixes that users prepend to entity names.
+   * "روم الو" -> "الو", "قناة الترحيب" -> "الترحيب"
+   */
+  private static stripPrefix(name: string): string {
+    return name.replace(/^(روم|قناة|شانل|رتبة|رول|كاتقوري|فئة|شات|فويس|تيكست)\s+/i, '').trim() || name;
   }
 
   static resolveById(guildId: string, id: string): RegisteredEntity | undefined {
@@ -130,14 +156,36 @@ export class EntityRegistry {
     const recent = this.getRecent(guildId, undefined, conversationChannelId).slice(0, 12);
     if (recent.length === 0) return '[RECENT_ENTITIES]\nnone';
 
-    return [
-      '[RECENT_ENTITIES]',
-      ...recent.map((entity) =>
+    const lines: string[] = ['[RECENT_ENTITIES]'];
+
+    // Highlight the last created entity per type
+    const guildLast = this.lastCreated.get(guildId);
+    if (guildLast) {
+      for (const [type, entity] of guildLast) {
+        lines.push(`last_created=${type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`);
+      }
+    }
+
+    // All recent entities
+    for (const entity of recent) {
+      lines.push(
         `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}:session=${
           entity.conversationChannelId === conversationChannelId ? 'current' : 'other'
         }`
-      ),
-    ].join('\n');
+      );
+    }
+
+    // Reference guide for implicit references
+    lines.push('---');
+    lines.push('REFERENCE_GUIDE:');
+    lines.push('- "الروم" / "القناة" / "الشانل" / ".room" → last_created channel above');
+    lines.push('- "الرتبة" / "الرول" / ".role" → last_created role above');
+    lines.push('- "الكاتقوري" / "الفئة" / ".category" → last_created category above');
+    lines.push('- "الفويس" / "التيكست" → last_created channel of matching type above');
+    lines.push('- Use the EXACT ID from the last_created entry, never guess');
+    lines.push('- If user says "هذا الشانل" / "this channel" / ".this" → current_channel ID');
+
+    return lines.join('\n');
   }
 
   static registerToolResult(
@@ -167,6 +215,9 @@ export class EntityRegistry {
           : guild.channels.cache.find((item) => item.name === candidate.name);
         if (!channel) continue;
         const type: EntityType = channel.type === ChannelType.GuildCategory ? 'category' : 'channel';
+        const parentCategory = channel.parentId
+          ? guild.channels.cache.get(channel.parentId)
+          : undefined;
         registered.push(this.register({
           guildId: guild.id,
           type,
@@ -174,7 +225,12 @@ export class EntityRegistry {
           name: channel.name,
           sourceTool,
           conversationChannelId,
-          metadata: { channelType: args.type, categoryId: channel.parentId },
+          metadata: {
+            channelType: args.type,
+            categoryId: channel.parentId,
+            categoryName: parentCategory?.name ?? null,
+            guildName: guild.name,
+          },
         }));
       }
     }
@@ -188,12 +244,21 @@ export class EntityRegistry {
         name: role?.name ?? args.roleData?.name ?? result.roleId,
         sourceTool,
         conversationChannelId,
+        metadata: {
+          color: role?.hexColor ?? args.roleData?.color ?? null,
+          hoisted: role?.hoist ?? false,
+          mentionable: role?.mentionable ?? false,
+          guildName: guild.name,
+        },
       }));
     }
 
     if (toolName === 'edit_permissions' && args.channelId) {
       const channel = guild.channels.cache.get(args.channelId);
       if (channel) {
+        const parentCategory = channel.parentId
+          ? guild.channels.cache.get(channel.parentId)
+          : undefined;
         registered.push(this.register({
           guildId: guild.id,
           type: channel.type === ChannelType.GuildCategory ? 'category' : 'channel',
@@ -201,7 +266,11 @@ export class EntityRegistry {
           name: channel.name,
           sourceTool,
           conversationChannelId,
-          metadata: { targetId: args.targetId, targetType: args.targetType },
+          metadata: {
+            targetId: args.targetId,
+            targetType: args.targetType,
+            categoryName: parentCategory?.name ?? null,
+          },
         }));
       }
     }
@@ -210,6 +279,9 @@ export class EntityRegistry {
       for (const channelId of result.updated) {
         const channel = guild.channels.cache.get(channelId);
         if (!channel) continue;
+        const parentCategory = channel.parentId
+          ? guild.channels.cache.get(channel.parentId)
+          : undefined;
         registered.push(this.register({
           guildId: guild.id,
           type: channel.type === ChannelType.GuildCategory ? 'category' : 'channel',
@@ -217,7 +289,11 @@ export class EntityRegistry {
           name: channel.name,
           sourceTool,
           conversationChannelId,
-          metadata: { targetId: args.targetId, targetType: args.targetType },
+          metadata: {
+            targetId: args.targetId,
+            targetType: args.targetType,
+            categoryName: parentCategory?.name ?? null,
+          },
         }));
       }
     }
@@ -228,6 +304,11 @@ export class EntityRegistry {
         this.markTombstone(guild.id, 'channel', channelId);
         this.markTombstone(guild.id, 'category', channelId);
       }
+    }
+
+    if (toolName === 'manage_roles' && args.action === 'delete') {
+      const deletedRoleId = result.roleId ?? args.roleData?.roleId;
+      if (deletedRoleId) this.markTombstone(guild.id, 'role', String(deletedRoleId));
     }
 
     if (toolName === 'manage_members' && args.memberId) {
@@ -300,6 +381,9 @@ export class EntityRegistry {
       genericChannel &&
       !registered.some((entity) => entity.id === genericChannel.id)
     ) {
+      const parentCategory = genericChannel.parentId
+        ? guild.channels.cache.get(genericChannel.parentId)
+        : undefined;
       registered.push(this.register({
         guildId: guild.id,
         type: genericChannel.isThread()
@@ -311,7 +395,10 @@ export class EntityRegistry {
         name: payload.name ?? genericChannel.name,
         sourceTool,
         conversationChannelId,
-        metadata: { parentId: genericChannel.parentId },
+        metadata: {
+          parentId: genericChannel.parentId,
+          categoryName: parentCategory?.name ?? null,
+        },
       }));
     }
 
@@ -329,6 +416,47 @@ export class EntityRegistry {
         sourceTool,
         conversationChannelId,
       }));
+    }
+
+    // Generic createdEntities support for composite builders (build_custom_server / execute_community_build)
+    const genericCreatedEntities = Array.isArray(result.createdEntities) ? result.createdEntities : [];
+    for (const candidate of genericCreatedEntities) {
+      if (!candidate?.id || registered.some((entity) => entity.id === candidate.id)) continue;
+      const rawType = String(candidate.type ?? 'channel');
+      if (rawType === 'role') {
+        const role = guild.roles.cache.get(candidate.id);
+        registered.push(this.register({
+          guildId: guild.id,
+          type: 'role',
+          id: candidate.id,
+          name: role?.name ?? candidate.name ?? candidate.id,
+          sourceTool,
+          conversationChannelId,
+          metadata: { guildName: guild.name },
+        }));
+        continue;
+      }
+
+      const channel = guild.channels.cache.get(candidate.id);
+      if (channel) {
+        const parentCategory = channel.parentId
+          ? guild.channels.cache.get(channel.parentId)
+          : undefined;
+        registered.push(this.register({
+          guildId: guild.id,
+          type: channel.type === ChannelType.GuildCategory || rawType === 'category' ? 'category' : 'channel',
+          id: channel.id,
+          name: channel.name,
+          sourceTool,
+          conversationChannelId,
+          metadata: {
+            channelType: candidate.channelType ?? rawType,
+            categoryId: channel.parentId,
+            categoryName: parentCategory?.name ?? null,
+            guildName: guild.name,
+          },
+        }));
+      }
     }
 
     return registered;
@@ -373,7 +501,13 @@ export class EntityRegistry {
   }
 
   private static normalize(value: string): string {
-    return value.normalize('NFKC').toLocaleLowerCase('ar').replace(/[\u064B-\u065F\u0670\u0640]/g, '').trim();
+    return value
+      .normalize('NFKC')
+      .toLocaleLowerCase('ar')
+      .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+      .replace(/[^\p{L}\p{N}\s]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private static scheduleSave(): void {

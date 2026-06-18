@@ -53,6 +53,19 @@ export interface RankPermissions {
   titleEn: string;
 }
 
+export interface RankRewards {
+  /** Role color for this rank (hex) */
+  roleColor?: string;
+  /** Special channel access */
+  specialChannelIds?: string[];
+  /** Custom emoji for rank display */
+  displayEmoji?: string;
+  /** Badge/achievement name */
+  badge?: string;
+  /** One-time reward message */
+  rewardMessage?: string;
+}
+
 export interface RankConfig {
   tier: RankTier;
   /** Minimum XP required */
@@ -61,6 +74,8 @@ export interface RankConfig {
   roleIds: string[];
   /** Permissions for this rank */
   permissions: RankPermissions;
+  /** Rewards for this rank */
+  rewards?: RankRewards;
 }
 
 export interface LevelRoleConfig {
@@ -344,11 +359,35 @@ function loadConfigs(): void {
   } catch { /* silently ignore corrupt file */ }
 }
 
+/** Load user XP data from disk */
+function loadUserXp(): void {
+  try {
+    if (!fs.existsSync(USER_XP_PATH)) return;
+    const raw = fs.readFileSync(USER_XP_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      for (const item of parsed) {
+        if (item?.userId) userXpData.set(item.userId, { xp: item.xp || 0, lastMessage: item.lastMessage || 0 });
+      }
+    }
+    console.log(`[RankSystem] Loaded ${userXpData.size} user XP records.`);
+  } catch { /* silently ignore corrupt file */ }
+}
+
 /** Save rank configurations to disk */
 function saveConfigs(): void {
   try {
     fs.mkdirSync(path.dirname(RANK_CONFIG_PATH), { recursive: true });
     fs.writeFileSync(RANK_CONFIG_PATH, JSON.stringify([...guildConfigs.values()], null, 2), 'utf8');
+  } catch { /* silently ignore write errors */ }
+}
+
+/** Save user XP data to disk */
+function saveUserXp(): void {
+  try {
+    fs.mkdirSync(path.dirname(USER_XP_PATH), { recursive: true });
+    const data = Array.from(userXpData.entries()).map(([userId, data]) => ({ userId, ...data }));
+    fs.writeFileSync(USER_XP_PATH, JSON.stringify(data, null, 2), 'utf8');
   } catch { /* silently ignore write errors */ }
 }
 
@@ -439,6 +478,148 @@ export async function processLevelUp(
   }
 }
 
+// ═══════════════════════════════════════
+//  نظام النقاط والترقيات المتقدم
+// ═══════════════════════════════════════
+
+/**
+ * Calculate XP gain for a message based on user's rank
+ */
+export function calculateXpGain(userId: string, baseXp: number): number {
+  const userData = userXpData.get(userId);
+  const now = Date.now();
+  
+  // Check cooldown (1 minute between messages)
+  if (userData && now - userData.lastMessage < 60_000) {
+    return 0;
+  }
+  
+  // Get user's current rank for multiplier
+  const userRank = getUserRank(userId);
+  const multiplier = userRank?.permissions.xpMultiplier ?? 1.0;
+  
+  // Calculate final XP with multiplier
+  const finalXp = Math.floor(baseXp * multiplier);
+  
+  // Update user data
+  if (!userData) {
+    userXpData.set(userId, { xp: finalXp, lastMessage: now });
+  } else {
+    userData.xp += finalXp;
+    userData.lastMessage = now;
+  }
+  
+  saveUserXp();
+  return finalXp;
+}
+
+/**
+ * Get user's current XP
+ */
+export function getUserXp(userId: string): number {
+  return userXpData.get(userId)?.xp ?? 0;
+}
+
+/**
+ * Get user's current rank tier based on XP
+ */
+export function getUserRankTier(userId: string): RankTier {
+  const xp = getUserXp(userId);
+  let currentTier: RankTier = 'newcomer';
+  
+  for (const config of DEFAULT_RANK_CONFIGS) {
+    if (xp >= config.minXp) {
+      currentTier = config.tier;
+    }
+  }
+  
+  return currentTier;
+}
+
+/**
+ * Get full rank configuration for a user
+ */
+export function getUserRank(userId: string): RankConfig | undefined {
+  const tier = getUserRankTier(userId);
+  return DEFAULT_RANK_CONFIGS.find(r => r.tier === tier);
+}
+
+/**
+ * Get permissions for a user
+ */
+export function getUserPermissions(userId: string): RankPermissions {
+  const rank = getUserRank(userId);
+  return rank?.permissions ?? DEFAULT_RANK_CONFIGS[0].permissions;
+}
+
+/**
+ * Check if user has a specific permission
+ */
+export function hasPermission(userId: string, permission: keyof RankPermissions): boolean {
+  const perms = getUserPermissions(userId);
+  const value = perms[permission];
+  return typeof value === 'boolean' ? value : true;
+}
+
+/**
+ * Get XP needed for next rank
+ */
+export function getXpForNextRank(userId: string): { current: number; needed: number; nextTier: RankTier | null } {
+  const currentXp = getUserXp(userId);
+  const currentTier = getUserRankTier(userId);
+  
+  // Find next rank
+  const currentIndex = DEFAULT_RANK_CONFIGS.findIndex(r => r.tier === currentTier);
+  if (currentIndex === DEFAULT_RANK_CONFIGS.length - 1) {
+    return { current: currentXp, needed: 0, nextTier: null };
+  }
+  
+  const nextRank = DEFAULT_RANK_CONFIGS[currentIndex + 1];
+  return {
+    current: currentXp,
+    needed: nextRank.minXp - currentXp,
+    nextTier: nextRank.tier,
+  };
+}
+
+/**
+ * Get rank progress bar as emoji string
+ */
+export function getRankProgressBar(userId: string): string {
+  const { current, needed, nextTier } = getXpForNextRank(userId);
+  if (!nextTier) return '█████████████ 100% (MAX)';
+  
+  const total = current + needed;
+  const progress = Math.floor((current / total) * 10);
+  const filled = '█'.repeat(progress);
+  const empty = '░'.repeat(10 - progress);
+  
+  return `${filled}${empty} ${Math.floor((current / total) * 100)}%`;
+}
+
+/**
+ * Get all available ranks with their requirements
+ */
+export function getAllRanks(): RankConfig[] {
+  return [...DEFAULT_RANK_CONFIGS];
+}
+
+/**
+ * Get rank display name in Arabic
+ */
+export function getRankTitleAr(userId: string): string {
+  const rank = getUserRank(userId);
+  return rank?.permissions.titleAr ?? 'غير معروف';
+}
+
+/**
+ * Get rank display name in English
+ */
+export function getRankTitleEn(userId: string): string {
+  const rank = getUserRank(userId);
+  return rank?.permissions.titleEn ?? 'Unknown';
+}
+
 /**
  * Toggle level-up announcements on/off
  */
@@ -450,4 +631,5 @@ export function setAnnounceLevelUps(guildId: string, enabled: boolean): void {
 
 export function initializeRankSystem(): void {
   loadConfigs();
+  loadUserXp();
 }

@@ -762,6 +762,7 @@ async function handleDirectVoiceRoomRequest(message: Message, cleanedPromptText:
     };
     const result = await executeToolWithAudit('manage_members', args, guild, message.channel.id, message.author.id, message.member);
     completed.push({ name: 'manage_members', args, result });
+    try { ContextEngine.addAccomplishment(message.channel.id, result?.message || 'تم تنفيذ voicekick'); } catch (e) { /* non-critical */ }
   }
 
   if (userLimit !== undefined) {
@@ -772,6 +773,7 @@ async function handleDirectVoiceRoomRequest(message: Message, cleanedPromptText:
     const args = { action: 'voice_set_user_limit', channelId, value: userLimit };
     const result = await executeToolWithAudit('channel_operations', args, guild, message.channel.id, message.author.id, message.member);
     completed.push({ name: 'channel_operations', args, result });
+    try { ContextEngine.addAccomplishment(message.channel.id, result?.message || 'تم تحديد حد الروم'); } catch (e) { /* non-critical */ }
   }
 
   const reply = buildToolExecutionReply(guild, completed) ?? completed.map((item) => item.result?.message).filter(Boolean).join('\n');
@@ -1330,6 +1332,7 @@ client.once(Events.ClientReady, async () => {
   Logger.startup(`Opus Bot (${client.user?.tag})`);
   EntityRegistry.initialize();
   initializeRankSystem();
+  LevelingSystem.initialize();
   await SkillRegistry.loadDirectory(path.join(__dirname, 'skills')).catch((error) => {
     console.error('[SkillRegistry] Failed to load skills:', error);
   });
@@ -1490,8 +1493,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
   }
 
   const detectedLanguage = ContextEngine.detectLanguage(cleanedPromptText);
+  // Respect existing user preference — only update when user clearly uses a language
+  const existingProfile = memoryManager.getUserProfile(message.author.id);
+  const shouldUpdateLang = detectedLanguage === 'en' || detectedLanguage === 'ar';
   memoryManager.updateUserProfile(message.author.id, {
-    preferredDialect: detectedLanguage === 'en' ? 'en' : 'ar',
+    preferredDialect: shouldUpdateLang
+      ? (detectedLanguage === 'en' ? 'en' : 'ar')
+      : (existingProfile?.preferredDialect ?? 'ar'),
     totalMessagesSent: 1,
   });
 
@@ -1553,6 +1561,28 @@ client.on(Events.MessageCreate, async (message: Message) => {
     await message.reply(finalReply).catch(() => null);
     rememberDirectInteraction(message, permissionPromptText, finalReply, ['edit_permissions']);
     return;
+  }
+
+  // ========== معالج "نفس الشي" ==========
+  // يكرر آخر عملية بنفس الإعدادات على هدف جديد
+  const sameThingPattern = /(?:نفس|مثل|زي|نفس الشي|نفس الاسلوب|نفس الطريقه|نفس الصلاحيات|نفس الإعدادات|نفس الاعدادات|كذا|زي كذا|مثل ما|مثل الشي|مثلها|زيه|نفسه)/i.test(cleanedPromptText);
+  if (sameThingPattern) {
+    const recentAccomplishments = ContextEngine.getRecentAccomplishments(message.channel.id, 3);
+    if (recentAccomplishments.length > 0) {
+      // Get the last command-related accomplishment to find what tool was used
+      const lastToolAccomplishment = recentAccomplishments.find(a => /^(?:edit_permissions|manage_roles|channel_operations|create_channels|delete_channels):/i.test(a));
+      if (lastToolAccomplishment) {
+        // Look for a new target in the message
+        const newTargetName = cleanedPromptText.match(/(?:(?:ف\s*|في\s*|على\s*|ل\s*)?روم\s*|قناة\s*)?([^\s]{1,30})\s*$/i)?.[1];
+        if (newTargetName) {
+          // Check if we can find this target by name in Discord
+          const channel = message.guild?.channels.cache.find(c => c.name === newTargetName);
+          if (channel && !(await handleDirectVoiceRoomRequest(message, cleanedPromptText))) {
+            // Fall through to AI if voice handler doesn't process it
+          }
+        }
+      }
+    }
   }
 
   const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
@@ -1816,6 +1846,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           memoryManager.addMessage(message.channel.id, targetErrorMsg);
           history.push(targetErrorMsg);
           completedToolResults.push({ name: toolName, args: toolArgs, result: targetError });
+          try { ContextEngine.addAccomplishment(message.channel.id, `${toolName}: فشل - ${targetError.message || 'خطأ غير معروف'}`); } catch (e) { /* non-critical */ }
           continue;
         }
 
@@ -1858,6 +1889,10 @@ client.on(Events.MessageCreate, async (message: Message) => {
         memoryManager.addMessage(message.channel.id, toolMsg);
         history.push(toolMsg);
         completedToolResults.push({ name: toolName, args: toolArgs, result: executionResult });
+        try {
+          const msg = executionResult?.message || `تم بنجاح ${toolName}`;
+          ContextEngine.addAccomplishment(message.channel.id, `${toolName}: ${msg}`);
+        } catch (e) { /* non-critical */ }
       }
 
       // فحص أمان أن القناة لم يتم حذفها أثناء تشغيل الأدوات
@@ -2003,11 +2038,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
             tArgs = targetedCall.args;
             if (targetedCall.error) {
               completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: targetedCall.error } });
+              try { ContextEngine.addAccomplishment(message.channel.id, `${tc.function.name}: فشل - ${targetedCall.error}`); } catch (e) { /* non-critical */ }
               continue;
             }
             try {
               const vr = await executeToolWithAudit(tc.function.name, tArgs, message.guild, message.channel.id, message.author.id, message.member);
               completedToolResults.push({ name: tc.function.name, args: tArgs, result: vr });
+              try { ContextEngine.addAccomplishment(message.channel.id, vr?.message || `${tc.function.name}: تم بنجاح`); } catch (e) { /* non-critical */ }
               const toolResultMsg: AIMessage = {
                 role: 'tool', name: tc.function.name, tool_call_id: tc.id,
                 content: MemoryManager.trimToolResult(JSON.stringify(vr)),
@@ -2016,6 +2053,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
               history.push(toolResultMsg);
             } catch (e) {
               completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: String(e) } });
+              try { ContextEngine.addAccomplishment(message.channel.id, `${tc.function.name}: فشل - ${String(e)}`); } catch (e2) { /* non-critical */ }
             }
           }
           const verifyReply = buildToolExecutionReply(message.guild, completedToolResults);
@@ -2055,7 +2093,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   } catch (error) {
     console.error('[Core AI Loop] AI request processing failed:', error);
     const fallbackText = OfflineFallbackResponder.getFallbackReply(message.content);
-    const friendlyError = formatUserError(error);
+    const friendlyError = formatUserError(error, message.content);
     
     // Check if this is an operational intent — try compound planner as fallback
     const isOperationalIntent = /احذف|delete|حذف|create|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء|فويس|صوتي|اسمك|دسكونكت|دسكنوكت|اخرس/i.test(message.content);
@@ -2144,15 +2182,19 @@ function smartSplit(text: string, maxLength: number): string[] {
   return chunks;
 }
 
-function formatUserError(error: unknown): string {
+function formatUserError(error: unknown, userText?: string): string {
   const msg = error instanceof Error ? error.message : String(error);
 
   if (msg.includes('تعذر تشغيل الذكاء الاصطناعي مؤقتًا')) {
-    return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
+    // If the user had an operational intent, suggest using simpler wording
+    if (userText && /(?:سو|انشئ|احذف|حذف|عدل|غير|سوي|ابني|دسكنوكت|دسكونكت|برمشن|صلاح)/i.test(userText)) {
+      return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا. حاول تكون الطلب أبسط أو استخدم الأمر مباشرة. مثلاً: غير لقبك بدل "غير اسمك من الحلو ل Opus". أو جرب مرة ثانية بعد شوي.';
+    }
+    return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي أو استخدم الأمر !opus مباشرة.';
   }
 
   if (msg.includes('مفاتيح الذكاء الاصطناعي غير صالحة')) {
-    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Qwen Zen وCerebras في Railway.';
+    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Groq في Railway.';
   }
 
   if (msg.includes('API error') || msg.includes('fetch') || msg.includes('ECONNREFUSED')) {
@@ -2162,10 +2204,13 @@ function formatUserError(error: unknown): string {
     return 'مزود الذكاء مزدحم حاليًا. انتظر دقيقة ثم جرّب مجددًا.';
   }
   if (msg.includes('permission') || msg.includes('Missing Permissions')) {
-    return 'صلاحيات البوت غير كافية لتنفيذ هذا الإجراء.';
+    return 'صلاحيات البوت غير كافية لتنفيذ هذا الإجراء. تأكد أن رتبة البوت أعلى من الرتب المطلوب التعامل معها.';
   }
   if (msg.includes('Unknown Channel') || msg.includes('Unknown Role')) {
-    return 'الروم أو الرتبة المطلوبة غير موجودة أو حُذفت مؤخرًا.';
+    return 'الروم أو الرتبة المطلوبة غير موجودة أو حُذفت مؤخرًا. استخدم منشن أو ID صحيح.';
+  }
+  if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('AbortError')) {
+    return 'استغرقت العملية وقتاً طويلاً. جرّب طلب أبسط.';
   }
 
   const shortMsg = msg.length > 250 ? msg.slice(0, 250) + '...' : msg;
@@ -2182,9 +2227,68 @@ export interface MemberXPData {
 }
 const membersXPMap = new Map<string, MemberXPData>();
 
+const XP_DATA_FILE = path.join(process.cwd(), 'data', 'xp-data.json');
+let xpSaveTimer: ReturnType<typeof setInterval> | null = null;
+
+function ensureXpDir(): void {
+  const dir = path.dirname(XP_DATA_FILE);
+  if (!require('fs').existsSync(dir)) {
+    require('fs').mkdirSync(dir, { recursive: true });
+  }
+}
+
+function loadXpData(): void {
+  try {
+    ensureXpDir();
+    if (!require('fs').existsSync(XP_DATA_FILE)) return;
+    const raw = require('fs').readFileSync(XP_DATA_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return;
+    for (const [userId, data] of Object.entries(parsed)) {
+      const d = data as any;
+      if (typeof d.xp === 'number' && typeof d.level === 'number' && typeof d.lastMessageTimestamp === 'number') {
+        membersXPMap.set(userId, { xp: d.xp, level: d.level, lastMessageTimestamp: d.lastMessageTimestamp });
+      }
+    }
+    Logger.info('Leveling', `Loaded ${membersXPMap.size} XP records from disk.`);
+  } catch (e) {
+    Logger.warn('Leveling', `Could not load XP data: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function saveXpData(): void {
+  try {
+    ensureXpDir();
+    const obj: Record<string, MemberXPData> = {};
+    for (const [userId, data] of membersXPMap) {
+      obj[userId] = data;
+    }
+    require('fs').writeFileSync(XP_DATA_FILE, JSON.stringify(obj, null, 2), 'utf8');
+  } catch (e) {
+    Logger.warn('Leveling', `Could not save XP data: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+function startXpAutoSave(): void {
+  if (xpSaveTimer) return;
+  xpSaveTimer = setInterval(() => saveXpData(), 3 * 60_000); // كل 3 دقائق
+  xpSaveTimer.unref();
+}
+
 export class LevelingSystem {
   private static XP_COOLDOWN_MS = 60000; // دقيقة واحدة بين كسب الخبرة
   private static XP_PER_MESSAGE = 15;
+
+  /** Initialize XP system: load persisted data and start auto-save */
+  static initialize(): void {
+    loadXpData();
+    startXpAutoSave();
+  }
+
+  /** Force-save XP data immediately */
+  static saveNow(): void {
+    saveXpData();
+  }
 
   /**
    * معالجة كسب النقاط للعضو عند إرسال رسالة

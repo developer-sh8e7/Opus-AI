@@ -417,10 +417,14 @@ export class MemoryManager {
   buildUserPreferenceContext(userId: string): string {
     const profile = this.getUserProfile(userId);
     if (!profile) return '[USER_PROFILE]\npreferred_language=unknown';
+    const languageLabel = profile.preferredDialect === 'ar' ? 'Arabic (عربي)'
+      : profile.preferredDialect === 'en' ? 'English'
+      : 'unknown (infer from message)';
     return [
       '[USER_PROFILE]',
-      `preferred_language=${profile.preferredDialect || 'unknown'}`,
+      `preferred_language=${languageLabel}`,
       `total_messages=${profile.totalMessagesSent}`,
+      'Always reply in the user\'s preferred language. Arabic input = Arabic output throughout the conversation.',
     ].join('\n');
   }
 

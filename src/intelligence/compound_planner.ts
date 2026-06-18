@@ -76,16 +76,37 @@ function extractExceptionRole(clean: string): string | null {
 }
 
 /**
+ * استخراج المنشن (@user أو @role أو @everyone) من النص
+ */
+function extractMentionTarget(clean: string): { id: string; type: 'member' | 'role' | 'everyone' } | null {
+  // @everyone / @here
+  if (/(?:everyone|here|الكل)/i.test(clean)) {
+    return { id: '@everyone', type: 'everyone' };
+  }
+  // <@&ROLE_ID> (role mention)
+  const roleMention = clean.match(/<@&(\d{17,20})>/);
+  if (roleMention) {
+    return { id: roleMention[1], type: 'role' };
+  }
+  // <@USER_ID> or <@!USER_ID> (member mention)
+  const memberMention = clean.match(/<@!?(\d{17,20})>/);
+  if (memberMention) {
+    return { id: memberMention[1], type: 'member' };
+  }
+  return null;
+}
+
+/**
  * التخطيط للطلبات المركبة Route
- * 
+ *
  * المهام المدعومة:
- * 1. إنشاء روم مع صلاحيات مسبقة (سو روم فويس اسمه X وخل الكل يدخل بس ما يفتح سكرين)
- * 2. طرد من الروم الصوتي + تحديد عدد المستخدمين (عطه دسكنوكت وحدد الروم لـ 3)
- * 3. تغيير اسم البوت (غير اسمك إلى X)
- * 4. بناء كاتقوري + رومات + رتبة
- * 5. حذف جماعي مع إبقاء + إنشاء
- * 6. رومات متعددة باستثناء واحد
- * 7. مسح صلاحيات المنشن من كاتقوري (مع الرتب الفردية)
+ * 1. تغيير اسم البوت (غير اسمك إلى X / سميني X / عدّل لقبك إلى X)
+ * 2. طرد من الروم الصوتي (اطرد X من الروم / افصل X / دسكن X / اطرده من الفويس)
+ * 3. مسح صلاحيات المنشن من كاتقوري (شيل المنشن / امنع المنشن / اسحب منشن everyone)
+ * 4. إنشاء روم مع صلاحيات مسبقة
+ * 5. بناء كاتقوري + رومات + رتبة
+ * 6. حذف جماعي مع إبقاء + إنشاء
+ * 7. رومات متعددة باستثناء واحد
  */
 export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   const clean = normalized(text);
@@ -93,11 +114,14 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   // ============================================================
   // النمط 1: تغيير اسم البوت (لقب)
   // "غير اسمك إلى X" / "غيّر لقبك إلى X" / "سميني X"
+  // "عدّل لقبك إلى X" / "غيّر نكك إلى X"
   // ============================================================
-  if (/(?:غير|غيّر|عدل|عدّل)\s+(?:اسمك|لقبك|نكك)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i.test(clean) ||
-      /(?:سميني|سمني)\s+(.+)/i.test(clean)) {
-    const nameMatch = clean.match(/(?:غير|غيّر|عدل|عدّل)\s+(?:اسمك|لقبك|نكك)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i) ||
-                      clean.match(/(?:سميني|سمني)\s+(.+)/i);
+  if (/(?:غير|غيّر|عدل|عدّل|حول|حوّل)\s+(?:اسمك|لقبك|نكك|اسمك\s+الى|لقبك\s+الى)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i.test(clean) ||
+      /(?:سميني|سمني|سمّيني|سماني)\s+(.+)/i.test(clean) ||
+      /(?:استخدم|خلي)\s+(?:اسم|لقب)\s+(?:.+\s+)?(?:بديل|جديد|ك)\s+(.+)/i.test(clean)) {
+    const nameMatch = clean.match(/(?:غير|غيّر|عدل|عدّل|حول|حوّل)\s+(?:اسمك|لقبك|نكك)\s+(?:الى|إلى|لـ|ل|الي|إلي)\s+(.+)/i) ||
+                      clean.match(/(?:سميني|سمني|سمّيني|سماني)\s+(.+)/i) ||
+                      clean.match(/(?:استخدم|خلي)\s+(?:اسم|لقب)\s+(?:.+\s+)?(?:بديل|جديد|ك)\s+(.+)/i);
     const desiredName = nameMatch?.[1]?.trim()?.replace(/^['"`]+|['"`]+$/g, '');
     if (desiredName && desiredName.length <= 32) {
       return [{
@@ -109,10 +133,17 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 2: طرد من الروم الصوتي + تحديد عدد المستخدمين
-  // "اطرد X من الروم وحدد الروم لـ 3"
+  // النمط 2: طرد من الروم الصوتي / فصل صوتي
+  // "اطرد X من الروم" / "افصل X من الفويس" / "دسكن X"
+  // "ديسكنكت X" / "اطرده من الفويس"
   // ============================================================
-  const wantsVoiceKick = /(?:دسكونكت|دسكنوكت|ديسكونكت|voice\s*kick|voicekick|disconnect|افصل|فصل|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)|(?:عطه|اعطه)\s*(?:دسكونكت|دسكنوكت|ديسكونكت)/i.test(clean);
+  // Broad patterns to catch any voicekick intent
+  const wantsVoiceKick =
+    /(?:دسكونكت|دسكنوكت|ديسكونكت|ديسكنكت|voice\s*kick|voicekick|disconnect)\s*(?:<@!?\d{17,20}>|\S+)?/i.test(clean) ||
+    /(?:افصل|فصل|طلعه|اطرده|طرده|اطرد|طرد)\s*(?:<@!?\d{17,20}>|\S+)?\s*(?:من\s+)?(?:الروم|الفويس|الصوتي|الصوت|الشات|الroom|الvoice)?/i.test(clean) ||
+    /(?:عطه|اعطه)\s*(?:دسكونكت|دسكنوكت|ديسكونكت|ديسكنكت|voice\s*kick)/i.test(clean) ||
+    /(?:دسكن|ديسكنكت)\s*(?:<@!?\d{17,20}>|\S+)/i.test(clean);
+
   const userLimit = clean.match(/(?:حد|عدد|الا|فقط|بس)\D{0,25}(\d{1,2})\s*(?:اشخاص|اشخاصا|شخص|members?|users?)?/i) ||
                    clean.match(/(?:user\s*limit|voice\s*limit)\D{0,12}(\d{1,2})/i);
   const userLimitValue = userLimit ? parseInt(userLimit[1], 10) : undefined;
@@ -149,7 +180,36 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 3: إنشاء روم واحد مع صلاحيات مسبقة
+  // النمط 3: مسح صلاحيات المنشن من كاتقوري
+  // "شيل المنشن من كل الرومات" / "امنع المنشن من الكاتقوري"
+  // "اسحب منشن everyone" / "شيل المنشن من كل القنوات"
+  // ============================================================
+  const wantsMentionSweep =
+    /(?:اسحب|شيل|امنع|امسح|احذف|حطها?\s*x|حط\s*x|deny|remove|الغِ)\s*(?:ال)?(?:منشن|mention)\s*(?:ال)?(?:everyone|here|الكل|هنا)?/i.test(clean) ||
+    /(?:منشن|mention)\s*(?:ال)?(?:everyone|here|الكل)\s*(?:من|على|في)\s*(?:كل|الكل|الرومات|القنوات|الكاتقوري|الفئه)/i.test(clean);
+
+  const wantsCategoryScope = /(?:كاتقوري|فئه|تصنيف|كل\s+الرومات|كل\s+القنوات|كل\s+الروم|all\s+channels?)/i.test(clean);
+  const wantsIncludeRoles = /(?:حتئ\s*لو|حتى\s*لو|حتى\s*و|حتئ\s*و|ولو|وشمل|all\s*roles|individual\s*roles|الرولات|الرتب)/i.test(clean);
+
+  if (wantsMentionSweep && wantsCategoryScope) {
+    const categoryId = clean.match(/(\d{17,20})/)?.[1];
+    if (categoryId) {
+      return [{
+        id: 'sweep_mentions',
+        tool: 'sweep_permission_overwrites',
+        args: {
+          categoryId,
+          permissions: ['MentionEveryone'],
+          includeEveryone: true,
+          includeRoles: wantsIncludeRoles,
+          includeMembers: wantsIncludeRoles,
+        },
+      }];
+    }
+  }
+
+  // ============================================================
+  // النمط 4: إنشاء روم واحد مع صلاحيات مسبقة
   // "سو لي روم فويس اسمه Room1 الكل يشوفه بس محد يقدر يدخله"
   // ============================================================
   const singleChannel = extractSingleChannelRequest(clean);
@@ -184,7 +244,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
               tool: 'edit_permissions',
               dependsOn: 'create_channel',
               args: {
-                channelId: '$create_channel.channelId ?? create_channel.createdEntities[0].id',
+                channelId: '$create_channel.channelId',
                 targetId: '@everyone',
                 targetType: 'role',
                 allow,
@@ -196,7 +256,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
               tool: 'edit_permissions',
               dependsOn: 'create_channel',
               args: {
-                channelId: '$create_channel.channelId ?? create_channel.createdEntities[0].id',
+                channelId: '$create_channel.channelId',
                 targetId: exceptionRole,
                 targetType: 'role',
                 allow: ['ViewChannel', 'Connect', 'SendMessages', 'Speak', 'ReadMessageHistory'],
@@ -249,7 +309,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 4: إنشاء كاتقوري + رومات داخلها + رتبة
+  // النمط 5: إنشاء كاتقوري + رومات داخلها + رتبة
   // "سو كاتقوري اسمه X ورتبة Y"
   // ============================================================
   const requestsCategory = /(?:سو|سوي|انشئ|أنشئ|اصنع).*(?:كاتقوري|فئه)/i.test(clean);
@@ -312,7 +372,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 5: رومات متعددة مع استثناء واحد
+  // النمط 6: رومات متعددة مع استثناء واحد
   // "سو لي 3 رومات كلهم عام الا واحد اسمه خاص ومقفل"
   // ============================================================
   const multiRoomPattern = clean.match(
@@ -343,7 +403,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 6: حذف + إبقاء + إنشاء
+  // النمط 7: حذف + إبقاء + إنشاء
   // "احذف كل الرومات وابق الو + سو لي متجر بسيط"
   // ============================================================
   const deletePreserveCreate = clean.match(
@@ -363,32 +423,6 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
       });
     }
     return steps;
-  }
-
-  // ============================================================
-  // النمط 7: مسح صلاحيات المنشن من كاتقوري (مع الرتب الفردية)
-  // "شوف الكاتقوري X وكل الرومات اللي فيه اسحب منشن @everyone منها
-  //  حتئ لو رولات فيها صلاحيات حط x"
-  // ============================================================
-  const wantsMentionSweep = /(?:اسحب|شيل|امنع|حطها?\s*x|حط\s*x|deny|remove).*(?:منشن|mention).*(?:everyone|here|الكل)/i.test(clean);
-  const wantsCategoryScope = /(?:كاتقوري|فئه|كل\s+الرومات|كل\s+القنوات)/i.test(clean);
-  const wantsIncludeRoles = /(?:حتئ\s*لو|حتى\s*لو|حتى\s*و|حتئ\s*و|ولو|وشمل|all\s*roles|individual\s*roles)/i.test(clean);
-
-  if (wantsMentionSweep && wantsCategoryScope) {
-    const categoryId = clean.match(/(\d{17,20})/)?.[1];
-    if (categoryId) {
-      return [{
-        id: 'sweep_mentions',
-        tool: 'sweep_permission_overwrites',
-        args: {
-          categoryId,
-          permissions: ['MentionEveryone'],
-          includeEveryone: true,
-          includeRoles: wantsIncludeRoles,
-          includeMembers: wantsIncludeRoles,
-        },
-      }];
-    }
   }
 
   return [];

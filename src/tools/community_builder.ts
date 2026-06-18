@@ -32,6 +32,13 @@ async function delay(ms: number): Promise<void> {
 // ============================================================
 //  واجهات القوالب وهياكل السيرفرات
 // ============================================================
+export interface CreatedBuildEntity {
+  id: string;
+  name: string;
+  type: 'channel' | 'category' | 'role';
+  channelType?: 'text' | 'voice' | 'category';
+}
+
 export interface ChannelBlueprint {
   name: string;
   type: 'text' | 'voice';
@@ -455,7 +462,8 @@ async function buildCategoriesAndChannels(
   blueprint: ServerBlueprint,
   staffRoles: Role[],
   log: string[]
-): Promise<void> {
+): Promise<CreatedBuildEntity[]> {
+  const createdEntities: CreatedBuildEntity[] = [];
   for (const catBp of blueprint.categories) {
     const catPerms: OverwriteResolvable[] = [];
     
@@ -485,6 +493,7 @@ async function buildCategoriesAndChannels(
         reason: 'بناء فئات السيرفر - Opus Bot',
       }) as CategoryChannel;
       log.push(`📁 فئة: ${catBp.name}`);
+      createdEntities.push({ id: category.id, name: category.name, type: 'category', channelType: 'category' });
       await delay(300);
     } catch (err: any) {
       log.push(`❌ فشل إنشاء فئة ${catBp.name}: ${err.message}`);
@@ -531,6 +540,7 @@ async function buildCategoriesAndChannels(
         });
 
         log.push(`  ✅ ${chBp.type === 'voice' ? '🔊' : '💬'} ${chBp.name}`);
+        createdEntities.push({ id: ch.id, name: ch.name, type: 'channel', channelType: chBp.type });
         await delay(250);
 
         // إرسال كروت الترحيب والقوانين
@@ -559,6 +569,7 @@ async function buildCategoriesAndChannels(
       }
     }
   }
+  return createdEntities;
 }
 
 // ============================================================
@@ -568,7 +579,7 @@ export async function buildCustomServer(
   guild: Guild,
   description: string,
   protectedChannelId: string
-): Promise<{ success: boolean; message: string; details: string[] }> {
+): Promise<{ success: boolean; message: string; details: string[]; createdEntities?: CreatedBuildEntity[] }> {
   const log: string[] = [];
   log.push(`🤖 جاري تصميم السيرفر وتحليل المتطلبات للوصف: "${description}"...`);
 
@@ -591,18 +602,24 @@ export async function buildCustomServer(
     // المرحلة 4: إنشاء الرتب
     log.push('\n📍 المرحلة الرابعة: بناء الرتب الجديدة وصلاحياتها...');
     const createdRoles = await buildRoles(guild, blueprint.roles, log);
+    const roleEntities: CreatedBuildEntity[] = [...createdRoles.values()].map((role) => ({
+      id: role.id,
+      name: role.name,
+      type: 'role',
+    }));
 
     // المرحلة 5: إنشاء الفئات والقنوات
     const staffRoles = getStaffRoles(createdRoles, blueprint);
     log.push('\n📍 المرحلة الخامسة: بناء الفئات والقنوات الصوتية والكتابية المنسقة...');
-    await buildCategoriesAndChannels(guild, blueprint, staffRoles, log);
+    const channelEntities = await buildCategoriesAndChannels(guild, blueprint, staffRoles, log);
+    const createdEntities = [...roleEntities, ...channelEntities];
 
     const totalChannelsCount = blueprint.categories.reduce((acc, cat) => acc + cat.channels.length, 0);
     const successMessage = `✅ تم الانتهاء بنجاح من بناء وتصميم سيرفر "${blueprint.serverType}"!\n` +
       `📁 ${blueprint.categories.length} فئة | 💬 ${totalChannelsCount} قناة | 🎭 ${blueprint.roles.length} رتبة ملونة.`;
 
     log.push('\n' + successMessage);
-    return { success: true, message: successMessage, details: log };
+    return { success: true, message: successMessage, details: log, createdEntities };
   } catch (err: any) {
     const errorMsg = err.message || String(err);
     log.push(`\n💥 حدث خطأ فادح أثناء عملية البناء: ${errorMsg}`);
@@ -618,7 +635,7 @@ export async function executeCommunityBuild(
   blueprintType: 'community' | 'store' | 'gaming' | 'clan',
   protectedChannelId: string,
   options?: { serverName?: string }
-): Promise<{ success: boolean; message: string; details: string[] }> {
+): Promise<{ success: boolean; message: string; details: string[]; createdEntities?: CreatedBuildEntity[] }> {
   const typeDescriptions: Record<string, string> = {
     community: 'مجتمع عام بروتوكولات دردشة وفويس',
     store: 'متجر تجاري بيع حسابات وتذاكر تواصل',

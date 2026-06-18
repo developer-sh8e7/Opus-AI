@@ -49,10 +49,15 @@ interface ProviderMessage {
 }
 
 function composeSystemPrompt(runtimePrompt?: string): string {
+  // Base = SYSTEM_PROMPT (which already includes personality & behavior rules)
   let base = SYSTEM_PROMPT;
-  // Inject personality prompt — shapes the bot's conversational behavior
+  
+  // Inject the Arabic personality prompt on top
   base += `\n\n${OPUS_PERSONALITY_PROMPT}`;
-  if (!runtimePrompt || runtimePrompt.trim() === base.trim()) return base;
+  
+  // If runtimePrompt was already composed by ContextEngine.buildSystemPrompt(),
+  // which starts with "You are Opus Ai" (same as SYSTEM_PROMPT), avoid double-injection
+  if (!runtimePrompt || runtimePrompt.trim().length < 20) return base;
   return `${base}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
 }
 
@@ -73,7 +78,7 @@ export async function callGroq(
   return retryProvider('groq', (attempt) => {
     const body = buildCompletionBody(messages, {
       ...options,
-      temperature: Math.max(0, (options.temperature ?? 0.2) - (attempt * 0.1)),
+      temperature: Math.max(0.35, (options.temperature ?? 0.7) - (attempt * 0.1)),
     }, model);
     return postChatCompletion('groq', endpoint, apiKey, body);
   });
@@ -425,7 +430,7 @@ function buildCompletionBody(
     ],
     tools: selectedTools,
     tool_choice: selectedTools?.length ? 'auto' : undefined,
-    temperature: options.temperature ?? 0.2,
+    temperature: options.temperature ?? 0.7,
     max_completion_tokens: options.maxTokens ?? 1_200,
   };
 }
