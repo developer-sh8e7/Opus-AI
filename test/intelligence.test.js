@@ -471,10 +471,17 @@ test('advanced Discord skill catalog contains unique executable operations', () 
 test('raw tool-call text is stripped before user-facing output', () => {
   const raw = 'خليني أحذف كل الرومات <tool_call>delete_channels channel_ids=["1","2"]';
   assert.equal(stripRawToolMarkup(raw), 'خليني أحذف كل الرومات');
+  assert.equal(stripRawToolMarkup('voicekick userId=1397364822152315052'), '');
+  assert.equal(stripRawToolMarkup('voice_set_user_limit channelId=1515291591512948858 userLimit=3'), '');
 
   const normalized = normalizeFunctionTags('<tool_call>delete_channels<arg_key>channelIds</arg_key><arg_value>1</arg_value></tool_call>');
   assert.equal(normalized.toolCalls[0].function.name, 'delete_channels');
   assert.equal(normalized.cleanContent, '');
+
+  const malformed = normalizeFunctionTags('<tool_call>manage_members<arg_key>action</arg_key><arg_value>voicekick<arg_key>memberId</arg_key><arg_value>665523833549094912</arg_value></tool_call>');
+  assert.equal(malformed.toolCalls[0].function.name, 'manage_members');
+  assert.equal(JSON.parse(malformed.toolCalls[0].function.arguments).action, 'voicekick');
+  assert.equal(JSON.parse(malformed.toolCalls[0].function.arguments).memberId, '665523833549094912');
 });
 
 test('legacy Arabic and emoji mojibake is repaired before display', () => {

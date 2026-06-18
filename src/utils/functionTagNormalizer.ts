@@ -76,6 +76,8 @@ export function stripRawToolMarkup(content: string): string {
     .replace(/<function\b[\s\S]*?(?:<\/function>|$)/gi, '')
     .replace(/<tool_call\b[\s\S]*?(?:<\/tool_call>|$)/gi, '')
     .replace(/\b(?:delete_channels|create_channels|edit_permissions|manage_roles|manage_members)\s+(?:channel_?ids?|role_?id|member_?id|target_?id)\s*=\s*\[[^\]]*\]/gi, '')
+    .replace(/^\s*(?:voicekick|voice_set_user_limit|manage_members|channel_operations)\s+[^\n\r]*(?:user_?id|member_?id|channel_?id|user_?limit|value)\s*=.*$/gim, '')
+    .replace(/\b(?:voicekick|voice_set_user_limit)\s+[^\n\r]*(?:user_?id|member_?id|channel_?id|user_?limit|value)\s*=\s*[^\s]+/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -156,15 +158,24 @@ export function normalizeFunctionTags(content: string): NormalizedFunctionTagRes
     const body = toolCallMatch[1];
     const rawName = body.split(/<arg_key>/i)[0].trim();
     const args: Record<string, string | boolean | number> = {};
-    const argPattern = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)<\/arg_value>/gis;
+    const parseArgValue = (rawValue: string): string | boolean | number => {
+      const cleaned = rawValue.replace(/<[^>]+>/g, '').trim();
+      if (/^(true|false)$/i.test(cleaned)) return /^true$/i.test(cleaned);
+      // Preserve Discord snowflakes as strings; converting to number loses precision.
+      if (/^\d{17,20}$/.test(cleaned)) return cleaned;
+      if (/^-?\d+(?:\.\d+)?$/.test(cleaned)) return Number(cleaned);
+      return cleaned;
+    };
+
+    // Accept both well-formed <arg_value>v</arg_value> and malformed values
+    // that end only when the next <arg_key> starts. Groq/Qwen sometimes emits
+    // truncated markup like <arg_value>voicekick<arg_key>...
+    const argPattern = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>(.*?)(?:<\/arg_value>|(?=<arg_key>)|$)/gis;
     let argMatch: RegExpExecArray | null;
     while ((argMatch = argPattern.exec(body)) !== null) {
       const key = argMatch[1].replace(/<[^>]+>/g, '').trim();
-      const rawValue = argMatch[2].replace(/<[^>]+>/g, '').trim();
       if (!key) continue;
-      if (/^(true|false)$/i.test(rawValue)) args[key] = /^true$/i.test(rawValue);
-      else if (/^-?\d+(?:\.\d+)?$/.test(rawValue)) args[key] = Number(rawValue);
-      else args[key] = rawValue;
+      args[key] = parseArgValue(argMatch[2]);
     }
     if (rawName) pushCall(rawName, JSON.stringify(args), toolCallMatch[0]);
   }
