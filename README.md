@@ -1,58 +1,65 @@
-# Opus AI
+# HumanGuard AI
 
-Discord AI Agent bot for moderation, admin commands, contextual replies, memory/cache, permissions, and music/voice.
+Permission-safe, Arabic-first Discord AI manager and moderation copilot.
 
-## Verification
+HumanGuard AI helps server owners configure channels, categories, roles, permissions, and moderation workflows using natural language while staying safe by default: no Administrator requirement, permission preflight checks, clear diagnostics, audit logs, and human approval before high-impact moderation.
 
-- Build: `npm run build`
-- Full test suite: `npm test`
-- Critical five-scenario verification: `npm run verify`
-- Architecture notes: `ANALYSIS.md`
-- Research notes: `RESEARCH_RESULTS.md`
-- Feature catalog: `MASTER_FEATURES.md`
+## Local development first
 
-## Render Deployment
+Railway is **not required** right now. Run locally with a `.env` file:
 
-- Service Type: Web Service
-- Build Command: `npm install && npm run build`
-- Start Command: `npm start`
-- Blueprint: `render.yaml`
-- Health Check Path: `/healthz`
-- Health Check URLs:
-  - `https://YOUR-APP.onrender.com/health`
-  - `https://YOUR-APP.onrender.com/healthz`
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
 
-### Environment Variables
+Useful scripts:
 
-Set these variables in Render. Do not commit real secrets to GitHub.
+```bash
+npm run build
+npm run start
+npm run test
+npm run verify
+```
+
+Minimum local variable:
 
 ```env
 DISCORD_TOKEN=
-CLIENT_ID=
-GUILD_ID=
+```
+
+Recommended variables:
+
+```env
 AUTHORIZED_ROLE_ID=
-
-AI_PROVIDER=groq
-OLLAMA_ENABLED=false
-
 GROQ_API_KEY=
-GROQ_MODEL=llama-3.3-70b-versatile
-GROQ_FAST_MODEL=llama-3.1-8b-instant
-
-CEREBRAS_API_KEY=
-CEREBRAS_MODEL=zai-glm-4.7
-
-AI_TIMEOUT_MS=25000
-AI_MAX_RETRIES=2
+GROQ_MODEL=qwen-2.5-32b
 ```
 
-Render Free Web Services sleep after 15 minutes without incoming HTTP traffic. Use UptimeRobot or cron-job.org to visit `/health` or `/healthz` every 5 minutes:
+If variables are missing, startup prints a local setup checklist instead of a vague Railway/production error.
 
-```text
-https://YOUR-APP.onrender.com/health
-https://YOUR-APP.onrender.com/healthz
-```
+## Commands
 
-The Blueprint intentionally uses a free Web Service rather than a background worker.
-Render free plans are not available for background workers, and workers cannot expose the
-HTTP health endpoint required by this project.
+Default prefix: `!humanguard`
+
+Legacy `!opus` is still accepted as an alias so existing local usage does not break.
+
+Examples:
+
+- `!humanguard help`
+- `!humanguard permissions create_channels`
+- `!humanguard diagnostics`
+- Mention the bot and say: `سو لي روم فويس اسمه Room1`
+
+## Safety defaults
+
+- Does not require Administrator by default.
+- Checks bot permissions, channel overwrites, and role hierarchy before actions.
+- Ban/kick/timeout/mute/delete actions require human confirmation.
+- Arabic requests are answered in Arabic.
+- Important actions are written to `data/audit/actions.jsonl`.
+
+## Railway
+
+Keep `railway.json` for future deployment only. Do not use Railway as the active runtime unless you explicitly ask to enable it later.

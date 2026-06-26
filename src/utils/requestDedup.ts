@@ -6,8 +6,6 @@
 interface PendingRequest<T> {
   promise: Promise<T>;
   timestamp: number;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
 }
 
 export class RequestDeduplication<T> {
@@ -58,39 +56,21 @@ export class RequestDeduplication<T> {
       return pending.promise;
     }
 
-    // Create new request
-    const promise = new Promise<T>((resolve, reject) => {
-      this.pending.set(key, {
-        promise: Promise.resolve() as Promise<T>,
-        timestamp: Date.now(),
-        resolve,
-        reject,
+    // Create one real in-flight promise and store it. The old implementation
+    // created an extra promise and rejected it without an awaiter, which could
+    // crash Node in strict unhandled-rejection mode after the caller had already
+    // caught the provider error.
+    const promise = fn()
+      .then((result) => {
+        this.completed.set(key, { result, timestamp: Date.now() });
+        return result;
+      })
+      .finally(() => {
+        if (this.pending.get(key)?.promise === promise) this.pending.delete(key);
       });
-    });
 
-    try {
-      const result = await fn();
-      
-      // Cache the result
-      this.completed.set(key, { result, timestamp: Date.now() });
-      
-      // Resolve pending requests
-      const pendingRequest = this.pending.get(key);
-      if (pendingRequest) {
-        pendingRequest.resolve(result);
-        this.pending.delete(key);
-      }
-      
-      return result;
-    } catch (error) {
-      // Reject pending requests
-      const pendingRequest = this.pending.get(key);
-      if (pendingRequest) {
-        pendingRequest.reject(error);
-        this.pending.delete(key);
-      }
-      throw error;
-    }
+    this.pending.set(key, { promise, timestamp: Date.now() });
+    return promise;
   }
 
   /**

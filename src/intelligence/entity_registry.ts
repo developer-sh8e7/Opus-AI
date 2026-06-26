@@ -30,7 +30,7 @@ export interface RegisteredEntity {
   status?: 'active' | 'deleted';
 }
 
-const ENTITY_TTL_MS = 15 * 60 * 1000;
+const ENTITY_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ENTITIES_PER_GUILD = 100;
 const ENTITY_CACHE_PATH = path.join(process.cwd(), 'data', 'entity_cache.json');
 
@@ -119,17 +119,18 @@ export class EntityRegistry {
   static findByName(guildId: string, type: EntityType, name: string): RegisteredEntity | undefined {
     const stripped = this.stripPrefix(name);
     const normalized = this.normalize(stripped);
+    const recent = this.getRecent(guildId, type);
 
-    // 1. Exact match (after normalization)
-    const exact = this.getRecent(guildId, type).find((entity) => this.normalize(entity.name) === normalized);
+    // 1. Exact match (case/diacritics-insensitive, no guessing)
+    const exact = recent.find((entity) => this.normalize(entity.name) === normalized);
     if (exact) return exact;
 
-    // 2. Partial match — query contains entity name or vice versa
-    const partial = this.getRecent(guildId, type).find((entity) => {
+    // 2. Unique clear partial match only. Ambiguity returns undefined so caller asks.
+    const partialMatches = recent.filter((entity) => {
       const entityNorm = this.normalize(entity.name);
       return entityNorm.includes(normalized) || normalized.includes(entityNorm);
     });
-    return partial;
+    return partialMatches.length === 1 ? partialMatches[0] : undefined;
   }
 
   /**

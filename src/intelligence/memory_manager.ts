@@ -14,11 +14,35 @@ import type { EntityType, RegisteredEntity } from './entity_registry.js';
 // ============================================================
 //  الأنواع والواجهات
 // ============================================================
+export type SessionLanguagePreference = 'ar' | 'en';
+
+export interface PlanStep {
+  stepId: number;
+  action: string;
+  dependsOn?: number[];
+  entityRef?: 'new' | string;
+  params: Record<string, unknown>;
+}
+
+export interface PendingPlan {
+  steps: PlanStep[];
+  currentStepIndex: number;
+  createdEntityIds: Record<number, string>;
+}
+
+export interface SessionState {
+  entities: SessionEntity[];
+  lastReferencedEntityId?: string;
+  languagePreference: SessionLanguagePreference;
+  pendingMultiStepPlan?: PendingPlan;
+}
+
 export interface ConversationSummary {
   topics: string[];
   lastMusicQuery?: string;
   lastBuildRequest?: string;
   userPreferences: Record<string, string>;
+  languagePreference?: SessionLanguagePreference;
   interactionCount: number;
   lastInteraction: number;
   musicHistory: string[];
@@ -42,6 +66,10 @@ export interface MemoryEntry {
   summary: ConversationSummary;
   entities: SessionEntity[];
   lastEntityIds: SessionEntityPointers;
+  lastReferencedEntityId?: string;
+  languagePreference: SessionLanguagePreference;
+  pendingMultiStepPlan?: PendingPlan;
+  turnCounter: number;
   createdAt: number;
   lastAccessed: number;
 }
@@ -59,6 +87,7 @@ export interface SessionEntity {
   name: string;
   sourceTool?: string;
   createdAt: number;
+  createdInTurn: number;
   metadata?: Record<string, unknown>;
 }
 
@@ -71,9 +100,9 @@ const SUMMARY_THRESHOLD = 25; // عدد الرسائل قبل التلخيص
 const MUSIC_HISTORY_LIMIT = 25; // الحد الأقصى لتاريخ الموسيقى
 const ERROR_HISTORY_LIMIT = 15; // الحد الأقصى لتاريخ الأخطاء
 const SESSION_ENTITY_LIMIT = 100;
-const SESSION_ENTITY_TTL = 30 * 60 * 1000;
+const SESSION_ENTITY_TTL = 24 * 60 * 60 * 1000;
 const CLEANUP_INTERVAL = 20 * 60 * 1000; // تنظيف الذاكرة غير النشطة كل 20 دقيقة
-const MAX_INACTIVE_TIME = 3 * 60 * 60 * 1000; // حذف بعد 3 ساعات خمول
+const MAX_INACTIVE_TIME = 24 * 60 * 60 * 1000; // حذف بعد يوم خمول للحفاظ على مراجع الرومات والرتب
 const DATA_DIR = path.join(process.cwd(), 'data');
 const MEMORY_FILE_PATH = path.join(DATA_DIR, 'persistent_memory.json');
 
@@ -105,7 +134,7 @@ export class MemoryManager {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
     } catch (e) {
-      console.error('[Memory] فشل إنشاء مجلد البيانات:', e);
+      console.error('[Memory] Failed to create data directory:', e);
     }
   }
 
@@ -125,6 +154,10 @@ export class MemoryManager {
             summary: entry.summary,
             entities: entry.entities,
             lastEntityIds: entry.lastEntityIds,
+            lastReferencedEntityId: entry.lastReferencedEntityId,
+            languagePreference: entry.languagePreference,
+            pendingMultiStepPlan: entry.pendingMultiStepPlan,
+            turnCounter: entry.turnCounter,
             createdAt: entry.createdAt,
             lastAccessed: entry.lastAccessed
           }
@@ -136,7 +169,7 @@ export class MemoryManager {
       this.isSaving = false;
       return true;
     } catch (error) {
-      console.error('[Memory] فشل حفظ الذاكرة على القرص:', error);
+      console.error('[Memory] Failed to save memory to disk:', error);
       this.isSaving = false;
       return false;
     }
@@ -148,7 +181,7 @@ export class MemoryManager {
   private loadMemoryFromDisk(): void {
     try {
       if (!fs.existsSync(MEMORY_FILE_PATH)) {
-        console.log('[Memory] لم يتم العثور على ملف ذاكرة سابقة، سيتم البدء بذاكرة فارغة.');
+        console.log('[Memory] No previous memory file found; starting with empty local memory.');
         return;
       }
 
@@ -160,7 +193,13 @@ export class MemoryManager {
       if (parsed.memories && Array.isArray(parsed.memories)) {
         for (const item of parsed.memories) {
           if (item.channelId && item.entry) {
-            const entities = Array.isArray(item.entry.entities) ? item.entry.entities : [];
+            const rawEntities = Array.isArray(item.entry.entities) ? item.entry.entities : [];
+            const entities: SessionEntity[] = rawEntities.map((entity: SessionEntity & { createdInTurn?: number }) => ({
+              ...entity,
+              createdInTurn: Number.isFinite(entity.createdInTurn)
+                ? Number(entity.createdInTurn)
+                : Number(item.entry.turnCounter ?? item.entry.summary?.interactionCount ?? 0),
+            }));
             const lastEntityIds: SessionEntityPointers = item.entry.lastEntityIds ?? {};
             for (const entity of [...entities].sort(
               (left, right) => Number(left.createdAt ?? 0) - Number(right.createdAt ?? 0)
@@ -173,14 +212,23 @@ export class MemoryManager {
                 lastEntityIds.last_category_id = entity.id;
               }
             }
+            const summary: ConversationSummary = item.entry.summary || {
+              topics: [], userPreferences: {}, interactionCount: 0,
+              lastInteraction: Date.now(), musicHistory: [], errorHistory: [], lastActions: []
+            };
+            const languagePreference = this.normalizeLanguagePreference(
+              item.entry.languagePreference ?? summary.languagePreference
+            );
+            summary.languagePreference = languagePreference;
             this.memories.set(item.channelId, {
               messages: item.entry.messages || [],
-              summary: item.entry.summary || {
-                topics: [], userPreferences: {}, interactionCount: 0,
-                lastInteraction: Date.now(), musicHistory: [], errorHistory: [], lastActions: []
-              },
+              summary,
               entities,
               lastEntityIds,
+              lastReferencedEntityId: item.entry.lastReferencedEntityId ?? entities.at(-1)?.id,
+              languagePreference,
+              pendingMultiStepPlan: item.entry.pendingMultiStepPlan,
+              turnCounter: Number(item.entry.turnCounter ?? summary.interactionCount ?? 0),
               createdAt: item.entry.createdAt || Date.now(),
               lastAccessed: Date.now()
             });
@@ -194,9 +242,9 @@ export class MemoryManager {
         }
       }
 
-      console.log(`[Memory] تم بنجاح استرجاع ذاكرة ${this.memories.size} قناة و ${this.userProfiles.size} ملف شخصي للمستخدمين.`);
+      console.log(`[Memory] Restored ${this.memories.size} channel memories and ${this.userProfiles.size} user profiles.`);
     } catch (error) {
-      console.error('[Memory] فشل قراءة ملف الذاكرة من القرص:', error);
+      console.error('[Memory] Failed to read memory file:', error);
     }
   }
 
@@ -219,6 +267,7 @@ export class MemoryManager {
       return {
         topics: [],
         userPreferences: {},
+        languagePreference: 'ar',
         interactionCount: 0,
         lastInteraction: Date.now(),
         musicHistory: [],
@@ -233,24 +282,7 @@ export class MemoryManager {
    * إضافة رسالة جديدة إلى تاريخ المحادثة وتحديث التلخيص والملف الشخصي
    */
   addMessage(channelId: string, message: AIMessage): void {
-    if (!this.memories.has(channelId)) {
-      this.memories.set(channelId, {
-        messages: [],
-        summary: {
-          topics: [],
-          userPreferences: {},
-          interactionCount: 0,
-          lastInteraction: Date.now(),
-          musicHistory: [],
-          errorHistory: [],
-          lastActions: [],
-        },
-        entities: [],
-        lastEntityIds: {},
-        createdAt: Date.now(),
-        lastAccessed: Date.now(),
-      });
-    }
+    this.ensureEntry(channelId);
 
     const entry = this.memories.get(channelId)!;
     entry.messages.push(message);
@@ -260,6 +292,10 @@ export class MemoryManager {
 
     // 1. استخلاص التفضيلات والموسيقى عند معالجة رسائل المستخدم
     if (message.role === 'user' && message.content) {
+      entry.turnCounter++;
+      const languagePreference = MemoryManager.detectLanguagePreference(message.content);
+      entry.languagePreference = languagePreference;
+      entry.summary.languagePreference = languagePreference;
       const text = message.content.toLowerCase();
       
       // كشف طلبات الموسيقى وتوثيقها
@@ -317,44 +353,69 @@ export class MemoryManager {
     const entry = this.memories.get(channelId)!;
 
     for (const entity of entities) {
-      const remembered: SessionEntity = {
-        guildId: entity.guildId,
-        type: entity.type,
-        id: entity.id,
-        name: entity.name,
-        sourceTool: entity.sourceTool,
-        createdAt: entity.createdAt,
-        metadata: entity.metadata,
-      };
-      entry.entities = entry.entities.filter((item) =>
-        !(item.guildId === remembered.guildId &&
-          item.type === remembered.type &&
-          item.id === remembered.id)
-      );
-      entry.entities.push(remembered);
-      if (remembered.type === 'channel' || remembered.type === 'thread') {
-        entry.lastEntityIds.last_channel_id = remembered.id;
-      } else if (remembered.type === 'role') {
-        entry.lastEntityIds.last_role_id = remembered.id;
-      } else if (remembered.type === 'category') {
-        entry.lastEntityIds.last_category_id = remembered.id;
-      }
+      this.recordCreatedEntityInEntry(entry, entity);
     }
 
+    this.pruneSessionEntities(entry);
+    entry.lastAccessed = Date.now();
+    this.saveMemoryToDisk().catch(() => null);
+  }
+
+  /**
+   * نقطة موحدة لتسجيل أي كيان جديد تم إنشاؤه/لمسه من أدوات Discord.
+   */
+  recordCreatedEntity(channelId: string, entity: RegisteredEntity): void {
+    this.ensureEntry(channelId);
+    const entry = this.memories.get(channelId)!;
+    this.recordCreatedEntityInEntry(entry, entity);
+    this.pruneSessionEntities(entry);
+    entry.lastAccessed = Date.now();
+    this.saveMemoryToDisk().catch(() => null);
+  }
+
+  private recordCreatedEntityInEntry(entry: MemoryEntry, entity: RegisteredEntity): void {
+    const remembered: SessionEntity = {
+      guildId: entity.guildId,
+      type: entity.type,
+      id: entity.id,
+      name: entity.name,
+      sourceTool: entity.sourceTool,
+      createdAt: entity.createdAt,
+      createdInTurn: entry.turnCounter || entry.summary.interactionCount || 0,
+      metadata: entity.metadata,
+    };
+    entry.entities = entry.entities.filter((item) =>
+      !(item.guildId === remembered.guildId &&
+        item.type === remembered.type &&
+        item.id === remembered.id)
+    );
+    entry.entities.push(remembered);
+    entry.lastReferencedEntityId = remembered.id;
+    if (remembered.type === 'channel' || remembered.type === 'thread') {
+      entry.lastEntityIds.last_channel_id = remembered.id;
+    } else if (remembered.type === 'role') {
+      entry.lastEntityIds.last_role_id = remembered.id;
+    } else if (remembered.type === 'category') {
+      entry.lastEntityIds.last_category_id = remembered.id;
+    }
+  }
+
+  private pruneSessionEntities(entry: MemoryEntry): void {
     entry.entities = entry.entities
       .filter((entity) => Date.now() - entity.createdAt < SESSION_ENTITY_TTL)
       .sort((left, right) => left.createdAt - right.createdAt)
       .slice(-SESSION_ENTITY_LIMIT);
-    entry.lastAccessed = Date.now();
-    this.saveMemoryToDisk().catch(() => null);
+    const activeIds = new Set(entry.entities.map((entity) => entity.id));
+    if (entry.lastReferencedEntityId && !activeIds.has(entry.lastReferencedEntityId)) {
+      entry.lastReferencedEntityId = entry.entities.at(-1)?.id;
+    }
   }
 
   getRecentEntities(channelId: string, type?: EntityType): SessionEntity[] {
     const entry = this.memories.get(channelId);
     if (!entry) return [];
     entry.lastAccessed = Date.now();
-    const now = Date.now();
-    entry.entities = entry.entities.filter((entity) => now - entity.createdAt < SESSION_ENTITY_TTL);
+    this.pruneSessionEntities(entry);
     return entry.entities
       .filter((entity) => !type || entity.type === type)
       .sort((left, right) => right.createdAt - left.createdAt);
@@ -387,18 +448,26 @@ export class MemoryManager {
 
   buildEntityContext(channelId: string): string {
     const entry = this.memories.get(channelId);
-    const entities = this.getRecentEntities(channelId).slice(0, 20);
+    const entities = this.getRecentEntities(channelId).slice(0, 10);
     const pointers = this.getLastEntityIds(channelId);
     const actions = entry?.summary.lastActions?.slice(-6) ?? [];
+    const lastReferenced = entities.find((entity) => entity.id === entry?.lastReferencedEntityId) ?? entities[0];
     return [
       '[SESSION_ENTITIES]',
+      `language_preference=${entry?.languagePreference ?? 'ar'}`,
       `last_channel_id=${pointers.last_channel_id ?? 'none'}`,
       `last_role_id=${pointers.last_role_id ?? 'none'}`,
       `last_category_id=${pointers.last_category_id ?? 'none'}`,
+      `last_referenced_entity_id=${lastReferenced?.id ?? 'none'}`,
+      '[سياق الجلسة الحالي]',
       ...(entities.length > 0
-        ? entities.map((entity) => `${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}`)
+        ? entities.map((entity) => `- ${entity.type}:${entity.name}:${entity.id}:source=${entity.sourceTool ?? 'unknown'}:turn=${entity.createdInTurn}`)
         : ['none']),
-      'Use these exact IDs for follow-up references to entities created in this conversation.',
+      lastReferenced
+        ? `آخر كيان تمت الإشارة له: ${lastReferenced.name} (${lastReferenced.id})`
+        : 'آخر كيان تمت الإشارة له: none',
+      'قاعدة: إذا أشار المستخدم لكيان أنشأته للتو مثل الروم/هذا الشانل/القناة اللي سويتها، استخدم الـ ID أعلاه ولا تبحث بالاسم من جديد.',
+      'قاعدة: إذا ذكر المستخدم اسم قناة أو رتبة محدد، طابق الاسم بدقة ولا تستخدم آخر كيان كبديل إلا مع ضمير إشارة صريح.',
       '[RECENT_ACTIONS]',
       ...(actions.length > 0 ? actions.map((action) => `- ${action}`) : ['none']),
     ].join('\n');
@@ -416,7 +485,7 @@ export class MemoryManager {
 
   buildUserPreferenceContext(userId: string): string {
     const profile = this.getUserProfile(userId);
-    if (!profile) return '[USER_PROFILE]\npreferred_language=unknown';
+    if (!profile) return '[USER_PROFILE]\npreferred_language=unknown\nقاعدة لغة: رد دائماً بنفس لغة آخر رسالة من المستخدم.';
     const languageLabel = profile.preferredDialect === 'ar' ? 'Arabic (عربي)'
       : profile.preferredDialect === 'en' ? 'English'
       : 'unknown (infer from message)';
@@ -424,8 +493,71 @@ export class MemoryManager {
       '[USER_PROFILE]',
       `preferred_language=${languageLabel}`,
       `total_messages=${profile.totalMessagesSent}`,
-      'Always reply in the user\'s preferred language. Arabic input = Arabic output throughout the conversation.',
+      'HARD LANGUAGE RULE: Always reply in the exact language of the latest user message. Arabic input = fully Arabic output with no English sentences.',
+      'Persist this user language until they clearly switch languages in a later message.',
     ].join('\n');
+  }
+
+  rememberUserLanguagePreference(userId: string, text: string): SessionLanguagePreference {
+    const preferredDialect = MemoryManager.detectLanguagePreference(text);
+    this.updateUserProfile(userId, { preferredDialect, totalMessagesSent: 1 });
+    return preferredDialect;
+  }
+
+  getLanguagePreference(channelId: string): SessionLanguagePreference {
+    const entry = this.memories.get(channelId);
+    return entry?.languagePreference ?? 'ar';
+  }
+
+  setPendingPlan(channelId: string, plan: PendingPlan): void {
+    this.ensureEntry(channelId);
+    const entry = this.memories.get(channelId)!;
+    entry.pendingMultiStepPlan = plan;
+    entry.lastAccessed = Date.now();
+    this.saveMemoryToDisk().catch(() => null);
+  }
+
+  getPendingPlan(channelId: string): PendingPlan | undefined {
+    const entry = this.memories.get(channelId);
+    if (!entry) return undefined;
+    entry.lastAccessed = Date.now();
+    return entry.pendingMultiStepPlan;
+  }
+
+  getSessionState(channelId: string): SessionState {
+    const entry = this.memories.get(channelId);
+    return {
+      entities: this.getRecentEntities(channelId),
+      lastReferencedEntityId: entry?.lastReferencedEntityId,
+      languagePreference: entry?.languagePreference ?? 'ar',
+      pendingMultiStepPlan: entry?.pendingMultiStepPlan,
+    };
+  }
+
+  buildPendingPlanContext(channelId: string): string {
+    const plan = this.getPendingPlan(channelId);
+    if (!plan || plan.steps.length === 0) return '';
+    return [
+      '[PENDING_MULTI_STEP_PLAN]',
+      `current_step_index=${plan.currentStepIndex}`,
+      `created_entity_ids=${JSON.stringify(plan.createdEntityIds)}`,
+      ...plan.steps.slice(0, 15).map((step) => [
+        `step=${step.stepId}`,
+        `action=${step.action}`,
+        `dependsOn=${step.dependsOn?.join(',') ?? 'none'}`,
+        `entityRef=${step.entityRef ?? 'none'}`,
+        `params=${JSON.stringify(step.params)}`,
+      ].join('|')),
+      'Rule: execute linked steps in order and pass createdEntityIds from earlier steps to dependent steps directly.',
+    ].join('\n');
+  }
+
+  clearPendingPlan(channelId: string): void {
+    const entry = this.memories.get(channelId);
+    if (!entry) return;
+    delete entry.pendingMultiStepPlan;
+    entry.lastAccessed = Date.now();
+    this.saveMemoryToDisk().catch(() => null);
   }
 
   /**
@@ -488,7 +620,7 @@ export class MemoryManager {
     for (let i = 0; i < messages.length - keepCount; i++) {
       if (messages[i].role === 'tool' && messages[i].content) {
         if (messages[i].content!.length > 400) {
-          messages[i].content = messages[i].content!.slice(0, 400) + '... (تم اختصار نتيجة قديمة لتوفير المساحة)';
+          messages[i].content = messages[i].content!.slice(0, 400) + '... (تم اختصار results قديمة لتوفير المساحة)';
         }
       }
     }
@@ -511,6 +643,16 @@ export class MemoryManager {
         }
       }
     }
+  }
+
+  static detectLanguagePreference(content: string): SessionLanguagePreference {
+    const arabicChars = (content.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g) ?? []).length;
+    const latinChars = (content.match(/[A-Za-z]/g) ?? []).length;
+    return arabicChars >= latinChars ? 'ar' : 'en';
+  }
+
+  private normalizeLanguagePreference(value: unknown): SessionLanguagePreference {
+    return value === 'en' ? 'en' : 'ar';
   }
 
   /**
@@ -553,7 +695,7 @@ export class MemoryManager {
       // تجاهل الخطأ والقطع المباشر
     }
 
-    return result.slice(0, MAX_TOOL_RESULT_LENGTH) + '... (تم اختصار تفاصيل النتيجة لتجاوز الحجم المسموح)';
+    return result.slice(0, MAX_TOOL_RESULT_LENGTH) + '... (تم اختصار تفاصيل الresults لتجاوز الحجم المسموح)';
   }
 
   /**
@@ -610,6 +752,7 @@ export class MemoryManager {
       summary: {
         topics: [],
         userPreferences: {},
+        languagePreference: 'ar',
         interactionCount: 0,
         lastInteraction: now,
         musicHistory: [],
@@ -618,6 +761,8 @@ export class MemoryManager {
       },
       entities: [],
       lastEntityIds: {},
+      languagePreference: 'ar',
+      turnCounter: 0,
       createdAt: now,
       lastAccessed: now,
     });
@@ -664,7 +809,7 @@ export class MemoryManager {
     }
 
     if (toDelete.length > 0) {
-      console.log(`[Memory] تم تنظيف ذاكرة ${toDelete.length} قناة خاملة لتقليل استهلاك الذاكرة.`);
+      console.log(`[Memory] Cleaned ${toDelete.length} inactive channel memories.`);
       this.saveMemoryToDisk().catch(() => null);
     }
   }
@@ -738,7 +883,7 @@ export function runMemoryManagerDiagnostics(): { success: boolean; log: string[]
     // اختبار 3: البحث الدلالي البسيط (TF-IDF)
     const results = tempMgr.searchRelevantHistory(testChannel, 'عمرو دياب');
     if (results.length === 0 || !results[0].content?.includes('عمرو دياب')) {
-      log.push('❌ فشل اختبار 3: البحث الدلالي لم يعثر على النتيجة المناسبة');
+      log.push('❌ فشل اختبار 3: البحث الدلالي لم يعثر على الresults المناسبة');
       success = false;
     } else {
       log.push('✅ نجاح اختبار 3: كفاءة البحث الدلالي الذاتي في الذاكرة');
@@ -746,7 +891,7 @@ export function runMemoryManagerDiagnostics(): { success: boolean; log: string[]
 
     // تنظيف القناة التجريبية
     tempMgr.clearHistory(testChannel);
-    log.push(`[Diagnostic] انتهى الفحص بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
+    log.push(`[Diagnostic] انتهى الفحص بنجاح. الresults العامة: ${success ? 'ناجح' : 'فاشل'}`);
 
   } catch (error: any) {
     success = false;

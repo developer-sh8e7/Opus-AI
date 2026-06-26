@@ -116,7 +116,7 @@ The live code contains several deterministic repair paths for failures described
 - `validateAIToolPermission()` checks `execute_skill` by resolving the skill and requiring `hasAnyPermission(actorMember, skill.requiredPermissions)` at `src/index.ts:285-289`.
 - Because `hasAnyPermission()` is `Administrator || permissions.some(...)`, empty `requiredPermissions` denies non-admin users at `src/index.ts:206-209`.
 - The live `execute_skill` branch resolves the skill, validates active channel/member shape, and calls `skill.execute()` with guild/channel/user/args/context at `src/index.ts:431-445`.
-- `CommandParser` exists separately at `src/skills/command_parser.ts:20-292`, but live message listeners manually route `!opus`/mentions through manual command handlers at `src/index.ts:1298-1313` and `src/index.ts:3403-3418`; it does not expose skills to AI by itself.
+- `CommandParser` exists separately at `src/skills/command_parser.ts:20-292`, but live message listeners manually route `!humanguard`/mentions through manual command handlers at `src/index.ts:1298-1313` and `src/index.ts:3403-3418`; it does not expose skills to AI by itself.
 
 ## Code References
 - `src/utils/discordTools.ts:132-219` — `createChannels()` result shape, permission overwrites, `createdEntities`, and `channelId`.
@@ -144,7 +144,7 @@ The live code contains several deterministic repair paths for failures described
 ## Integration Points
 
 ### Inbound References
-- `src/index.ts:1298-1313` — manual command/message entry recognizes `!opus` and bot mentions before AI routing.
+- `src/index.ts:1298-1313` — manual command/message entry recognizes `!humanguard` and bot mentions before AI routing.
 - `src/index.ts:1361-1419` — deterministic pre-AI handlers for conversation and direct Arabic permissions.
 - `src/index.ts:1374-1379` — explicit target resolution feeds mention-sweep direct handling.
 - `src/index.ts:1456-1489` — AI path target resolution and memory reinforcement.

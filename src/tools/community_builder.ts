@@ -79,7 +79,7 @@ export const DETAILED_BLUEPRINTS: Record<string, ServerBlueprint> = {
     serverType: 'سيرفر ألعاب ترفيهي (Gaming Server)',
     description: 'قالب سيرفر ألعاب احترافي يحتوي على غرف تواصل، بطولات، ورومات صوتية ذات جودة عالية.',
     roles: [
-      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ViewAuditLog] },
       { name: '🛡️┃الإدارة', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers, PermissionFlagsBits.MuteMembers] },
       { name: '⚡┃المشرفين', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers, PermissionFlagsBits.MoveMembers] },
       { name: '🎖️┃منظم البطولات', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.MentionEveryone] },
@@ -137,7 +137,7 @@ export const DETAILED_BLUEPRINTS: Record<string, ServerBlueprint> = {
     serverType: 'متجر تجاري (Online Store Server)',
     description: 'قالب متجر إلكتروني لبيع السلع أو الحسابات مع رومات مخصصة للعملاء والطلبات والتذاكر المضمونة.',
     roles: [
-      { name: '👑┃صاحب المتجر', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '👑┃صاحب المتجر', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ViewAuditLog] },
       { name: '💼┃إدارة المبيعات', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
       { name: '🤝┃خدمة العملاء', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
       { name: '💎┃عميل في آي بي', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
@@ -185,7 +185,7 @@ export const DETAILED_BLUEPRINTS: Record<string, ServerBlueprint> = {
     serverType: 'كلان وفريق منافس (Clan / Esports Server)',
     description: 'سيرفر تكتيكي للفرق الرياضية والإلكترونية يدعم التخطيط والاستماع ورومات مغلقة للتدريب.',
     roles: [
-      { name: '👑┃قائد الكلان', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '👑┃قائد الكلان', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ViewAuditLog] },
       { name: '🛡️┃نائب القائد', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers] },
       { name: '🎯┃كابتن الفريق', color: 0x9B59B6, hoist: true, permissions: [PermissionFlagsBits.MoveMembers, PermissionFlagsBits.Speak] },
       { name: '⭐┃اللاعب الأساسي', color: 0x1ABC9C, hoist: true, permissions: [PermissionFlagsBits.SendMessages] },
@@ -364,7 +364,7 @@ export function getDefaultBlueprint(description: string): ServerBlueprint {
       },
     ],
     roles: [
-      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.Administrator] },
+      { name: '👑┃المؤسس', color: 0xFFD700, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ViewAuditLog] },
       { name: '🛡️┃الإدارة', color: 0xE74C3C, hoist: true, permissions: [PermissionFlagsBits.ManageGuild, PermissionFlagsBits.KickMembers, PermissionFlagsBits.BanMembers] },
       { name: '⚡┃المشرفين', color: 0x2ECC71, hoist: true, permissions: [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.MuteMembers] },
       { name: '👤┃عضو السيرفر', color: 0x3498DB, hoist: false, permissions: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] },
@@ -380,11 +380,11 @@ async function clearExistingChannels(guild: Guild, protectedId: string, log: str
   let count = 0;
   for (const [, ch] of toDelete) {
     try {
-      await ch.delete('إعادة البناء والتنظيم الشامل - Opus Bot');
+      await ch.delete('إعادة البناء والتنظيم الشامل - HumanGuard AI');
       count++;
       await delay(250);
     } catch (e: any) {
-      console.warn(`[Builder] تعذر حذف القناة ${ch.name}: ${e.message}`);
+      console.warn(`[Builder] Failed to delete channel ${ch.name}: ${e.message}`);
     }
   }
   log.push(`🗑️ تم مسح وتنظيف ${count} قناة/فئة سابقة بنجاح.`);
@@ -401,11 +401,11 @@ async function clearExistingRoles(guild: Guild, log: string[]): Promise<void> {
   let count = 0;
   for (const [, r] of toDelete) {
     try {
-      await r.delete('تحديث الرتب وبناء السيرفر - Opus Bot');
+      await r.delete('تحديث الرتب وبناء السيرفر - HumanGuard AI');
       count++;
       await delay(250);
     } catch (e: any) {
-      console.warn(`[Builder] تعذر حذف الرتبة ${r.name}: ${e.message}`);
+      console.warn(`[Builder] Failed to delete role ${r.name}: ${e.message}`);
     }
   }
   log.push(`🗑️ تم تنظيف ${count} رتبة سابقة بنجاح.`);
@@ -432,7 +432,7 @@ async function buildRoles(guild: Guild, roleBlueprints: RoleBlueprint[], log: st
         hoist: rb.hoist ?? false,
         mentionable: rb.mentionable ?? false,
         permissions: perms,
-        reason: 'بناء رتب السيرفر الجديد - Opus Bot',
+        reason: 'بناء رتب السيرفر الجديد - HumanGuard AI',
       });
 
       created.set(rb.name, role);
@@ -490,7 +490,7 @@ async function buildCategoriesAndChannels(
         name: catBp.name,
         type: ChannelType.GuildCategory,
         permissionOverwrites: catPerms.length > 0 ? catPerms : undefined,
-        reason: 'بناء فئات السيرفر - Opus Bot',
+        reason: 'بناء فئات السيرفر - HumanGuard AI',
       }) as CategoryChannel;
       log.push(`📁 فئة: ${catBp.name}`);
       createdEntities.push({ id: category.id, name: category.name, type: 'category', channelType: 'category' });
@@ -536,7 +536,7 @@ async function buildCategoriesAndChannels(
           userLimit: chBp.userLimit,
           rateLimitPerUser: chBp.rateLimitPerUser,
           permissionOverwrites: chPerms.length > 0 ? chPerms : undefined,
-          reason: 'بناء قنوات السيرفر - Opus Bot',
+          reason: 'بناء قنوات السيرفر - HumanGuard AI',
         });
 
         log.push(`  ✅ ${chBp.type === 'voice' ? '🔊' : '💬'} ${chBp.name}`);
@@ -561,7 +561,7 @@ async function buildCategoriesAndChannels(
               log.push(`    👋 تم تعيين لوحة الترحيب بالأعضاء الجدد.`);
             }
           } catch (e: any) {
-            console.error(`[Builder] فشل إرسال كارت الترحيب/القوانين: ${e.message}`);
+            console.error(`[Builder] Failed to send welcome/rules embed: ${e.message}`);
           }
         }
       } catch (err: any) {
@@ -685,7 +685,7 @@ export function runCommunityBuilderDiagnostics(): { success: boolean; reports: s
       reports.push('✅ نجاح اختبار 3: هيكلية الرتب والصلاحيات معرّفة بأسلوب مثالي.');
     }
 
-    reports.push(`[Diagnostic] انتهى الفحص بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
+    reports.push(`[Diagnostic] انتهى الفحص بنجاح. الresults العامة: ${success ? 'ناجح' : 'فاشل'}`);
   } catch (e: any) {
     success = false;
     reports.push(`❌ حدث خطأ فادح أثناء الفحص: ${e.message}`);

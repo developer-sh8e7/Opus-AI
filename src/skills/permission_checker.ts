@@ -41,7 +41,7 @@ export class PermissionChecker {
       }
     }
 
-    console.log(`[PermissionChecker] التحقق من صلاحيات: ${member.user.username} للقيام بـ ${action}`);
+    console.log(`[PermissionChecker] Checking member permissions: ${member.user.username} for action ${action}`);
 
     const requiredPermissions = this.getRequiredPermissions(action);
     const userPermissions = member.permissions.toArray();
@@ -90,7 +90,7 @@ export class PermissionChecker {
     guild: Guild,
     action: string
   ): Promise<PermissionCheck> {
-    console.log(`[PermissionChecker] التحقق من صلاحيات البوت للقيام بـ ${action}`);
+    console.log(`[PermissionChecker] Checking bot permissions for action ${action}`);
 
     const botMember = guild.members.me;
     if (!botMember) {
@@ -249,7 +249,7 @@ export class PermissionChecker {
    */
   clearCache(): void {
     this.permissionCache.clear();
-    console.log('[PermissionChecker] تم تنظيف الذاكرة المؤقتة');
+    console.log('[PermissionChecker] Cache cleaned');
   }
 
   /**

@@ -444,7 +444,7 @@ export function createMusicTrackEmbed(
       { name: '🔁 وضع التكرار', value: loop ? '✅ مفعّل' : '❌ معطّل', inline: true },
       { name: '📋 في قائمة الانتظار', value: `${queueSize} مقطع`, inline: true }
     )
-    .setFooter({ text: 'المشغل الموسيقي المتطور • Opus Bot' })
+    .setFooter({ text: 'المشغل الموسيقي المتطور • HumanGuard AI' })
     .setTimestamp();
 
   if (thumbnail) {
@@ -489,7 +489,7 @@ export function createModerationActionEmbed(
     embed.addFields({ name: '⏱️ المدة المقررة', value: durationStr, inline: true });
   }
 
-  embed.setFooter({ text: 'سجل الرقابة التلقائي • Opus Protection' });
+  embed.setFooter({ text: 'سجل الرقابة التلقائي • HumanGuard AI Protection' });
   return embed;
 }
 
@@ -516,7 +516,7 @@ export function createAIBrainStatusEmbed(
       { name: '💾 استرجاع الذاكرة الدائمة', value: memoryRetrieved ? '✅ ناجح' : '❌ لم تسترجع', inline: true },
       { name: '📈 دقة فهم اللهجة العربية', value: arabicAILearningRate, inline: true }
     )
-    .setFooter({ text: 'دماغ بوت Opus الإدراكي الفائق' })
+    .setFooter({ text: 'دماغ HumanGuard AI الإدراكي' })
     .setTimestamp();
 }
 
@@ -525,7 +525,7 @@ export function createAIBrainStatusEmbed(
 // ============================================================
 export function createHelpEmbed(prefix: string = '/'): EmbedBuilder {
   return new EmbedBuilder()
-    .setTitle('📖 دليل أوامر خادم Opus')
+    .setTitle('📖 دليل أوامر HumanGuard AI')
     .setDescription(
       '> أهلاً بك في دليل المساعد الذكي. إليك قائمة بالأوامر المتاحة مقسمة حسب الفئات.\n' +
       `> استخدم البادئة \`${prefix}\` قبل كل أمر.`
@@ -569,7 +569,7 @@ export function createHelpEmbed(prefix: string = '/'): EmbedBuilder {
         inline: false
       }
     )
-    .setFooter({ text: 'Opus Intelligent Assistant • هنا لمساعدتكم' })
+    .setFooter({ text: 'HumanGuard AI Assistant • هنا لمساعدتكم' })
     .setTimestamp();
 }
 
@@ -606,7 +606,7 @@ export function createMemberProfileEmbed(
 }
 
 // ============================================================
-//  12. لوحة نتائج التشخيص الفني الذاتي لبوت Opus (Diagnostics Embed)
+//  12. لوحة نتائج التشخيص الفني الذاتي لـ HumanGuard AI (Diagnostics Embed)
 // ============================================================
 export function createDiagnosticsResultEmbed(
   suiteName: string,
@@ -621,7 +621,7 @@ export function createDiagnosticsResultEmbed(
       `**تفاصيل الفحوصات والعمليات:**\n${checkmarks}`
     )
     .setColor(overallSuccess ? EMBED_COLORS.success : EMBED_COLORS.danger)
-    .setFooter({ text: 'نظام الفحوصات التلقائي لـ Opus Bot' })
+    .setFooter({ text: 'نظام الفحوصات التلقائي لـ HumanGuard AI' })
     .setTimestamp();
 }
 
@@ -668,7 +668,7 @@ export function createSystemHealthEmbed(
       { name: '📶 سرعة اتصال ديسكورد API', value: `\`\`\`${latency}ms\`\`\``, inline: true },
       { name: '🛠️ إصدار المكتبة Node.js', value: `\`\`\`${apiVersion}\`\`\``, inline: true }
     )
-    .setFooter({ text: 'لوحة التحكم الفنية • Opus Status' })
+    .setFooter({ text: 'لوحة التحكم الفنية • HumanGuard AI Status' })
     .setTimestamp();
 }
 
@@ -828,7 +828,7 @@ export function createInvoiceEmbed(
       { name: '💳 طريقة الدفع المعينة', value: paymentMethod, inline: true },
       { name: '📊 حالة الفاتورة الحالية', value: currentStatus.text, inline: true }
     )
-    .setFooter({ text: 'شكراً لتعاملكم معنا • Opus Store' })
+    .setFooter({ text: 'شكراً لتعاملكم معنا • HumanGuard AI Store' })
     .setTimestamp();
 }
 

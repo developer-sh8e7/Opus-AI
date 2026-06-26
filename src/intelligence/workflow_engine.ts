@@ -5,6 +5,7 @@ export interface WorkflowStepResult {
   tool: string;
   success: boolean;
   result: any;
+  skipped?: boolean;
 }
 
 export interface WorkflowResult {
@@ -13,6 +14,8 @@ export interface WorkflowResult {
 }
 
 type WorkflowExecutor = (tool: string, args: Record<string, any>) => Promise<any>;
+
+const MAX_WORKFLOW_STEPS = 15;
 
 export class WorkflowEngine {
   static parseFromAIResponse(content: string | null | undefined): WorkflowStep[] {
@@ -52,6 +55,22 @@ export class WorkflowEngine {
   }
 
   static async execute(steps: WorkflowStep[], executor: WorkflowExecutor): Promise<WorkflowResult> {
+    if (steps.length > MAX_WORKFLOW_STEPS) {
+      return {
+        success: false,
+        steps: [{
+          id: 'plan_limit',
+          tool: 'workflow_guard',
+          success: false,
+          skipped: true,
+          result: {
+            success: false,
+            message: `الطلب يحتوي ${steps.length} خطوة، والحد الأقصى لكل رسالة هو ${MAX_WORKFLOW_STEPS}. اختصر الطلب أو قسّمه على رسالتين.`,
+          },
+        }],
+      };
+    }
+
     const results = new Map<string, WorkflowStepResult>();
     const completed: WorkflowStepResult[] = [];
 
@@ -65,7 +84,8 @@ export class WorkflowEngine {
           id: step.id,
           tool: step.tool,
           success: false,
-          result: { success: false, message: `Dependency "${failedDependency}" failed.` },
+          skipped: true,
+          result: { success: false, skipped: true, message: `تم تخطي هذه الخطوة لأن الخطوة المعتمدة عليها "${failedDependency}" failed.` },
         };
         results.set(step.id, skipped);
         completed.push(skipped);
@@ -73,6 +93,22 @@ export class WorkflowEngine {
       }
 
       const args = this.resolveReferences(step.args, results);
+      if (this.containsUnresolvedReference(args)) {
+        const unresolved: WorkflowStepResult = {
+          id: step.id,
+          tool: step.tool,
+          success: false,
+          skipped: true,
+          result: {
+            success: false,
+            skipped: true,
+            message: 'تم تخطي هذه الخطوة لأن مرجع خطوة سابقة لم يُحل إلى ID صحيح.',
+          },
+        };
+        results.set(step.id, unresolved);
+        completed.push(unresolved);
+        continue;
+      }
       try {
         const result = await executor(step.tool, args);
         const completedStep: WorkflowStepResult = {
@@ -118,7 +154,38 @@ export class WorkflowEngine {
 
     const [stepId, ...path] = value.slice(1).split('.');
     let resolved: any = results.get(stepId)?.result;
-    for (const segment of path) resolved = resolved?.[segment];
+    for (const segment of path) {
+      resolved = this.resolvePathSegment(resolved, segment);
+      if (resolved === undefined || resolved === null) break;
+    }
     return resolved ?? value;
+  }
+
+  private static containsUnresolvedReference(value: unknown): boolean {
+    if (typeof value === 'string') return /^\$[a-zA-Z_]/.test(value);
+    if (Array.isArray(value)) return value.some((item) => this.containsUnresolvedReference(item));
+    if (value && typeof value === 'object') {
+      return Object.values(value as Record<string, unknown>).some((item) => this.containsUnresolvedReference(item));
+    }
+    return false;
+  }
+
+  private static resolvePathSegment(source: any, segment: string): any {
+    if (source === undefined || source === null) return undefined;
+    const parts = [...segment.matchAll(/([^\[\]]+)|\[(\d+)\]/g)];
+    if (parts.length === 0) return source?.[segment];
+
+    let current = source;
+    for (const part of parts) {
+      const propertyName = part[1];
+      const arrayIndex = part[2];
+      if (propertyName) {
+        current = current?.[propertyName];
+      } else if (arrayIndex !== undefined) {
+        current = Array.isArray(current) ? current[Number(arrayIndex)] : undefined;
+      }
+      if (current === undefined || current === null) break;
+    }
+    return current;
   }
 }

@@ -78,6 +78,8 @@ export function stripRawToolMarkup(content: string): string {
     .replace(/\b(?:delete_channels|create_channels|edit_permissions|manage_roles|manage_members)\s+(?:channel_?ids?|role_?id|member_?id|target_?id)\s*=\s*\[[^\]]*\]/gi, '')
     .replace(/^\s*(?:voicekick|voice_set_user_limit|manage_members|channel_operations)\s+[^\n\r]*(?:user_?id|member_?id|channel_?id|user_?limit|value)\s*=.*$/gim, '')
     .replace(/\b(?:voicekick|voice_set_user_limit)\s+[^\n\r]*(?:user_?id|member_?id|channel_?id|user_?limit|value)\s*=\s*[^\s]+/gi, '')
+    // Strip unresolved internal template variables ($create_store_category.channelId, etc.)
+    .replace(/\$[a-zA-Z_]\S*/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }

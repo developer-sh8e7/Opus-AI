@@ -1,4 +1,4 @@
-# Opus Ai Feature Catalog
+# HumanGuard AI Feature Catalog
 
 ## Administration and moderation
 

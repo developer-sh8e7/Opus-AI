@@ -189,7 +189,7 @@ for (let mentionTotalLimit = 1; mentionTotalLimit <= 50; mentionTotalLimit++) {
     preset: {
       action: 'automod_create_mention_spam',
       mentionTotalLimit,
-      name: `Opus Mention Limit ${mentionTotalLimit}`,
+      name: `HumanGuard Mention Limit ${mentionTotalLimit}`,
     },
     requiredPermission: PermissionFlagsBits.ManageGuild,
     triggers: [`automod mention limit ${mentionTotalLimit}`, String(mentionTotalLimit)],

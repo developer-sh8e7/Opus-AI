@@ -105,7 +105,7 @@ export class DialectDetector {
    * تحليل شامل للهجة النص
    */
   analyzeDialect(text: string): DialectAnalysis {
-    console.log(`[DialectDetector] تحليل: "${text.substring(0, 50)}..."`);
+    console.log(`[DialectDetector] Analyzing: "${text.substring(0, 50)}..."`);
 
     let bestMatch: DialectAnalysis | null = null;
     let bestScore = 0;
@@ -155,7 +155,7 @@ export class DialectDetector {
    * تحويل الرد إلى اللهجة التي يستخدمها المستخدم
    */
   respondInDialect(response: string, dialect: string): string {
-    console.log(`[DialectDetector] تحويل الرد إلى لهجة: ${dialect}`);
+    console.log(`[DialectDetector] Adapting response to dialect: ${dialect}`);
 
     const dialectResponses: Record<string, (msg: string) => string> = {
       gulf: (msg: string) => {

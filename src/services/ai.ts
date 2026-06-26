@@ -1,9 +1,10 @@
 import { config } from '../config.js';
+import { PRODUCT_NAME } from '../branding.js';
 import { Logger } from '../utils/logger.js';
 import { RequestDeduplication } from '../utils/requestDedup.js';
 import { SYSTEM_PROMPT, TOOL_DESCRIPTIONS, TOOL_GROUPS, tools, type FunctionTool } from './aiCatalog.js';
 import { currentMessageAllowsTools, getCurrentUserText } from './toolIntent.js';
-import { OPUS_PERSONALITY_PROMPT } from '../intelligence/opus_personality.js';
+import { providerRateLimiter } from '../utils/providerRateLimit.js';
 export { currentMessageAllowsTools } from './toolIntent.js';
 export { SYSTEM_PROMPT, tools } from './aiCatalog.js';
 
@@ -48,20 +49,53 @@ interface ProviderMessage {
   tool_calls?: AIMessage['tool_calls'];
 }
 
+function compactRuntimePrompt(runtimePrompt?: string): string {
+  if (!runtimePrompt || runtimePrompt.trim().length < 20) return '';
+  const MAX_RUNTIME_CHARS = 2_500; // hard cap: prevents skill/knowledge/context overload
+  const cleaned = runtimePrompt
+    .replace(/\[EXECUTABLE_SKILLS\][\s\S]*?(?=\n\[[A-Z_]+\]|$)/g, '[EXECUTABLE_SKILLS]\nmanifest summarized locally')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned.length > MAX_RUNTIME_CHARS
+    ? cleaned.slice(0, MAX_RUNTIME_CHARS) + '\n<!-- runtime context truncated -->'
+    : cleaned;
+}
+
 function composeSystemPrompt(runtimePrompt?: string): string {
-  // Base = SYSTEM_PROMPT (which already includes personality & behavior rules)
-  let base = SYSTEM_PROMPT;
-  
-  // Inject the Arabic personality prompt on top
-  base += `\n\n${OPUS_PERSONALITY_PROMPT}`;
-  
-  // If runtimePrompt was already composed by ContextEngine.buildSystemPrompt(),
-  // which starts with "You are Opus Ai" (same as SYSTEM_PROMPT), avoid double-injection
-  if (!runtimePrompt || runtimePrompt.trim().length < 20) return base;
-  return `${base}\n\n[RUNTIME_CONTEXT]\n${runtimePrompt}`;
+  // SYSTEM_PROMPT already contains personality, reasoning loop, permission rules,
+  // session entities, moderation, and safety — no duplicate prompt injection.
+  const runtime = compactRuntimePrompt(runtimePrompt);
+  if (!runtime) return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}\n\n[RUNTIME_CONTEXT]\n${runtime}`;
+}
+
+// ─── Token estimation ──
+function estimateTokens(text: string): number {
+  // Rough estimate: ~4 chars per token for mixed Arabic/English
+  return Math.ceil(text.length / 4);
+}
+
+function estimateBodyTokens(body: ChatCompletionBody): number {
+  let total = 0;
+  for (const msg of body.messages) {
+    if (typeof msg.content === 'string') total += estimateTokens(msg.content);
+    if (msg.tool_calls) {
+      for (const tc of msg.tool_calls) {
+        total += estimateTokens(tc.function.name + tc.function.arguments);
+      }
+    }
+  }
+  // Tools schema overhead (rough)
+  if (body.tools) {
+    total += JSON.stringify(body.tools).length / 3;
+  }
+  // Max completion tokens
+  total += body.max_completion_tokens;
+  return Math.round(total);
 }
 
 // ─── Groq (sole AI provider) ──
+let groqAuthInvalid = false;
 
 export async function callGroq(
   messages: AIMessage[],
@@ -72,7 +106,10 @@ export async function callGroq(
   const model = config.groqModel;
 
   if (!apiKey) {
-    throw new AIProviderError('groq', 'No GROQ_API_KEY configured', false);
+    throw new AIProviderError('groq', 'No GROQ_API_KEY configured', false, 401);
+  }
+  if (groqAuthInvalid) {
+    throw new AIProviderError('groq', 'GROQ_API_KEY was rejected earlier in this process', false, 401);
   }
 
   return retryProvider('groq', (attempt) => {
@@ -80,7 +117,27 @@ export async function callGroq(
       ...options,
       temperature: Math.max(0.35, (options.temperature ?? 0.7) - (attempt * 0.1)),
     }, model);
-    return postChatCompletion('groq', endpoint, apiKey, body);
+
+    // Estimate & log token usage
+    const estimatedTokens = estimateBodyTokens(body);
+    const toolCount = body.tools?.length ?? 0;
+    const msgCount = body.messages.length;
+    const sysLen = body.messages[0]?.content?.length ?? 0;
+    Logger.info('AI', `Req: est=${estimatedTokens}t sys=${Math.round(sysLen/4)}t msgs=${msgCount} tools=${toolCount} out=${body.max_completion_tokens}`);
+
+    const limitCheck = providerRateLimiter.check('groq', estimatedTokens, model);
+    if (!limitCheck.allowed) {
+      Logger.warn('AI', `Groq rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s (est. ${estimatedTokens} tokens, usage: ${limitCheck.currentUsage?.tpm ?? '?'}/${limitCheck.currentUsage?.tpmLimit ?? '?'})`);
+      throw new AIProviderError(
+        'groq',
+        `Groq rate limited on ${limitCheck.reason}: retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`,
+        true,
+        429,
+        limitCheck.retryAfterMs
+      );
+    }
+
+    return postChatCompletion('groq', endpoint, apiKey, body, estimatedTokens);
   });
 }
 
@@ -184,11 +241,11 @@ export class AIResponseParser {
   }
 }
 
-export const AI_TEMPORARY_ERROR_MESSAGE = 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي.';
-export const AI_CONFIGURATION_ERROR_MESSAGE = 'مفاتيح الذكاء الاصطناعي غير صالحة أو ناقصة. تأكّد من GROQ_API_KEY في Railway.';
-export const AI_PROVIDER_STATE_MESSAGE = 'جميع مزودي الذكاء الاصطناعي معطلون حاليًا.';
-export const AI_RATE_LIMIT_MESSAGE = 'تجاوزت حد الطلبات، جرّب بعد {seconds} ثانية.';
-export const AI_TIMEOUT_MESSAGE = 'استجابة الذكاء الاصطناعي بطيئة، جرّب طلب أصغر.';
+export const AI_TEMPORARY_ERROR_MESSAGE = 'AI provider is temporarily unavailable. Try again shortly.';
+export const AI_CONFIGURATION_ERROR_MESSAGE = 'Invalid or missing GROQ_API_KEY. Update your local .env file.';
+export const AI_PROVIDER_STATE_MESSAGE = 'All AI providers are currently unavailable.';
+export const AI_RATE_LIMIT_MESSAGE = 'AI request limit reached. Try again after {seconds} seconds.';
+export const AI_TIMEOUT_MESSAGE = 'AI response timed out. Try a smaller request.';
 
 // Request deduplication for identical AI requests
 const aiRequestDedup = new RequestDeduplication<ProviderMessage>(5000, 10000);
@@ -243,7 +300,7 @@ async function sendAdminAlert(subject: string, body: string): Promise<void> {
     const webhook = new WebhookClient({ url: webhookUrl });
     await webhook.send({
       content: `🚨 **${subject}**\n\n${body}\n\nLast successful: <t:${Math.floor(now / 1000)}:R>`,
-      username: 'Opus AI Monitor',
+      username: `${PRODUCT_NAME} Monitor`,
     });
     Logger.info('AI-ALERT', 'Admin webhook alert sent');
   } catch {
@@ -315,12 +372,18 @@ function shouldUseSmartModel(messages: AIMessage[]): boolean {
   ].some((term) => content.includes(term));
 }
 
+const MAX_TOOLS = 5;
+const CONVERSATIONAL_PATTERN = /^(السلام عليكم|وعليكم|هلا|مرحبا|اهلين|شلونك|كيفك|كيف حالك|الحمدلله|تمام|طيب|تم|شكرا|تسلم|يعطيك العافيه|مشكور|بخير|اوكي|ok|okay|هههه|هعهع|واو|باي|مع السلامه|وداع)/i;
+
 function selectToolNames(messages: AIMessage[]): Set<string> {
   const selected = new Set<string>();
   if (!currentMessageAllowsTools(messages)) return selected;
 
   const content = getCurrentUserText(messages);
-  selected.add('execute_skill');
+  
+  // Simple conversation? Zero tools needed.
+  if (CONVERSATIONAL_PATTERN.test(content.trim())) return selected;
+
   let latestUserIndex = -1;
   for (let index = messages.length - 1; index >= 0; index--) {
     if (messages[index].role === 'user') {
@@ -329,58 +392,48 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
     }
   }
 
+  // Add previously-used tools from ongoing chain first
   for (const message of messages.slice(latestUserIndex + 1)) {
+    if (selected.size >= MAX_TOOLS) break;
     if (message.role === 'tool' && message.name) selected.add(message.name);
     for (const toolCall of message.tool_calls ?? []) {
+      if (selected.size >= MAX_TOOLS) break;
       selected.add(toolCall.function.name);
     }
   }
 
-  const addGroup = (group: readonly string[]) => group.forEach((name) => selected.add(name));
+  // Intent-to-group mapping — limit to 5 tools total
+  const intentMatch = (pattern: RegExp, group: readonly string[]) => {
+    if (selected.size >= MAX_TOOLS) return;
+    if (!pattern.test(content)) return;
+    for (const name of group) {
+      if (selected.size >= MAX_TOOLS) break;
+      selected.add(name);
+    }
+  };
 
-  if (/(server|سيرفر|خادم|متجر|build|بناء|صمم|نظم.*السيرفر|ضبط.*السيرفر)/i.test(content)) {
-    addGroup(TOOL_GROUPS.server);
-  }
-  if (/(channel|room|روم|قناة|قنوات|برمشن|permission|visibility|يشوف|يدخل|يخش|يتكلم|سكرين|يشارك|صلاحية|صلاحيات|اخف|إخف)/i.test(content)) {
-    addGroup(TOOL_GROUPS.channels);
-  }
-  if (/(role|roles|رول|رولات|رتبة|رتب|مشرف|permission|برمشن)/i.test(content)) {
-    addGroup(TOOL_GROUPS.roles);
-  }
-  if (/(ban|unban|kick|timeout|mute|member|disconnect|voicekick|voice kick|حظر|فك الحظر|طرد|دسكونكت|دسكنوكت|ديسكونكت|افصل|فصل|طلعه|كتم|عضو|رسائل|messages)/i.test(content)) {
-    addGroup(TOOL_GROUPS.members);
-  }
-  if (/(profile|avatar|username|rename|change.*name|غير اسمك|غيّر اسمك|لقبك|نكك|سميني|صورتك)/i.test(content)) {
-    addGroup(TOOL_GROUPS.profile);
-  }
-  if (/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|voicekick|دسكونكت|دسكنوكت|ديسكونكت|ديسكنكت|اطرده|دسكنكت|دسكنكته)/i.test(content)) addGroup(TOOL_GROUPS.voice);
-  if (/(music|song|play|pause|resume|skip|queue|volume|اغنية|أغنية|موسيقى|شغل|وقف|الصوت)/i.test(content)) {
-    addGroup(TOOL_GROUPS.music);
-  }
-  if (/(thread|ثريد|موضوع منتدى|archive|ارشفة|أرشفة)/i.test(content)) selected.add('thread_operations');
-  if (/(webhook|ويب هوك)/i.test(content)) selected.add('webhook_operations');
-  if (/(automod|اوتو مود|أوتو مود|منع الروابط|منع السبام|mention spam)/i.test(content)) {
-    selected.add('automod_operations');
-  }
-  if (/(scheduled event|فعالية|ايفنت|إيفنت|حدث مجدول)/i.test(content)) selected.add('event_operations');
-  if (/(emoji|ايموجي|إيموجي|sticker|ملصق|soundboard|ساوند بورد)/i.test(content)) {
-    selected.add('expression_operations');
-  }
-  if (/(audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i.test(content)) {
-    selected.add('analytics_operations');
-  }
-  if (/(clone|نسخ الروم|غير اسم الروم|غيّر اسم الروم|topic|وصف الروم|nsfw|سلومود|slowmode|bitrate|حد المستخدمين|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|قفل الروم|فك قفل الروم|دعوة|invite|مزامنة الصلاحيات)/i.test(content)) {
-    selected.add('channel_operations');
-  }
-  if (/(pin|ثبت الرسالة|ثبّت الرسالة|crosspost|نشر الإعلان|react|تفاعل على الرسالة|عدل رسالة البوت)/i.test(content)) {
-    selected.add('message_operations');
-  }
-  if (/(clone role|نسخ الرتبة|لون الرتبة|hoist|mentionable|اعط.*رتبة.*للجميع|اسحب.*رتبة.*من الجميع)/i.test(content)) {
-    selected.add('role_operations');
-  }
-  if (/(اسم السيرفر|وصف السيرفر|ايقونة السيرفر|أيقونة السيرفر|بنر السيرفر|مستوى التحقق|روم النظام|روم القوانين)/i.test(content)) {
-    selected.add('guild_operations');
-  }
+  // Priority order: most specific groups first
+  intentMatch(/(clone role|نسخ الرتبة|لون الرتبة|hoist|mentionable)/i, ['manage_roles']);
+  intentMatch(/(channel|room|روم|قناة|قنوات|برمشن|permission|صلاحية|صلاحيات|يشوف|يدخل|يخش|يكتب|يتكلم|سكرين|اخف|إخف)/i,
+    ['create_channels', 'edit_permissions', 'delete_channels', 'get_server_info', 'send_embed']);
+  intentMatch(/(role|roles|رول|رولات|رتبة|رتب|مشرف)/i,
+    ['manage_roles', 'get_member_info', 'get_server_info']);
+  intentMatch(/(ban|unban|kick|timeout|mute|حظر|فك الحظر|طرد|كتم|تايم)/i,
+    ['manage_members', 'bulk_delete_messages', 'get_member_info']);
+  intentMatch(/(voice|فويس|صوتي|روم صوت|join|leave|ادخل|اطلع|voicekick|دسكونكت|دسكنوكت)/i,
+    ['manage_members', 'channel_operations']);
+  intentMatch(/(music|song|play|pause|resume|skip|queue|volume|اغنية|أغنية|موسيقى|شغل|وقف|الصوت)/i,
+    ['play_music', 'set_volume', 'get_voice_status']);
+  intentMatch(/(thread|ثريد|منتدى|archive|ارشفة|أرشفة)/i, ['thread_operations']);
+  intentMatch(/(automod|اوتو مود|منع الروابط|منع السبام)/i, ['automod_operations']);
+  intentMatch(/(emoji|ايموجي|إيموجي|sticker|ملصق|soundboard)/i, ['expression_operations']);
+  intentMatch(/(لوقات|لوق|logs?|log channel|سجل الاحداث|سجل الأحداث|سجلات|audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i,
+    ['create_channels', 'edit_permissions', 'analytics_operations', 'channel_operations']);
+  intentMatch(/(webhook|ويب هوك)/i, ['webhook_operations']);
+  intentMatch(/(event|فعالية|ايفنت|إيفنت|حدث)/i, ['event_operations']);
+  intentMatch(/(server build|سيرفر|خادم|متجر|build|بناء|صمم|نظم)/i,
+    ['get_server_info', 'create_channels', 'manage_roles']);
+  intentMatch(/(profile|avatar|rename|غير اسمك|غيّر اسمك|سميني|لقبك|صورتك)/i, ['edit_bot_profile']);
 
   return selected;
 }
@@ -390,32 +443,36 @@ function compactTools(messages: AIMessage[], enabled: boolean): FunctionTool[] |
   const selectedNames = selectToolNames(messages);
   if (selectedNames.size === 0) return undefined;
 
-  return tools
+  const mapped = tools
     .filter((tool) => selectedNames.has(tool.function.name))
     .map((tool) => ({
-      type: 'function',
+      type: 'function' as const,
       function: {
         name: tool.function.name,
         description: TOOL_DESCRIPTIONS[tool.function.name] ?? tool.function.description,
         parameters: tool.function.parameters,
       },
     }));
+  
+  // Hard cap
+  if (mapped.length > MAX_TOOLS) mapped.length = MAX_TOOLS;
+  return mapped;
 }
 
 function trimMessagesForRequest(messages: AIMessage[]): AIMessage[] {
   const sanitized = AIPromptBuilder.sanitizeMessages(messages).map((message) => ({
     ...message,
     content: typeof message.content === 'string'
-      ? message.content.slice(0, 6_000)
+      ? message.content.slice(0, 1_500)
       : message.content,
   }));
   const selected: AIMessage[] = [];
   let totalChars = 0;
 
-  for (let index = sanitized.length - 1; index >= 0 && selected.length < 18; index--) {
+  for (let index = sanitized.length - 1; index >= 0 && selected.length < 6; index--) {
     const message = sanitized[index];
     const size = JSON.stringify(message).length;
-    if (selected.length > 0 && totalChars + size > 20_000) break;
+    if (selected.length > 0 && totalChars + size > 4_000) break;
     selected.unshift(message);
     totalChars += size;
   }
@@ -443,7 +500,7 @@ function buildCompletionBody(
     tools: selectedTools,
     tool_choice: selectedTools?.length ? 'auto' : undefined,
     temperature: options.temperature ?? 0.7,
-    max_completion_tokens: options.maxTokens ?? 1_200,
+    max_completion_tokens: options.maxTokens ?? 400,
   };
 }
 
@@ -484,7 +541,8 @@ async function postChatCompletion(
   provider: string,
   endpoint: string,
   apiKey: string,
-  body: ChatCompletionBody
+  body: ChatCompletionBody,
+  estimatedTokens?: number
 ): Promise<ProviderMessage> {
   const startedAt = Date.now();
   const controller = new AbortController();
@@ -509,6 +567,7 @@ async function postChatCompletion(
       const isToolGenerationFailure = response.status === 400 &&
         /(tool call|failed_generation|arguments are not valid json|invalid tool)/i.test(detail);
       const retryable = response.status === 408 ||
+        response.status === 413 ||
         response.status === 425 ||
         response.status === 429 ||
         response.status === 498 ||
@@ -533,6 +592,10 @@ async function postChatCompletion(
     }
 
     outcome = 'success';
+    // Record actual token usage for rate limiting
+    if (estimatedTokens) {
+      providerRateLimiter.recordUsage('groq', estimatedTokens);
+    }
     return message;
   } catch (error) {
     if (error instanceof AIProviderError) throw error;
@@ -602,7 +665,8 @@ export async function generateAIResponse(
       // Diffentiate error messages
       if (error instanceof AIProviderError) {
         if (error.status === 401 || error.status === 403) {
-          Logger.error('AI', 'Groq auth failed — check GROQ_API_KEY');
+          groqAuthInvalid = true;
+          Logger.error('AI', 'Groq auth failed; check GROQ_API_KEY in local .env');
           throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
         }
         if (error.status === 429) {
@@ -648,7 +712,7 @@ export function runAIDiagnostics(): {
     totalTools: tools.length,
     totalScenarios: 0,
     logs: [
-      `AI providers configured: ${success ? 'yes' : 'no'}`,
+      `AI provider configured locally: ${success ? 'yes' : 'no'}`,
       `Executable AI tools: ${tools.length}`,
       `Groq (${config.groqModel})`,
       `Circuit breaker: ${circuitBreakers.size > 0 ? [...circuitBreakers.entries()].map(([k, v]) => `${k}=${v.consecutiveFailures}fails`).join(', ') : 'all closed'}`,

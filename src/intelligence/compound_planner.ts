@@ -75,6 +75,24 @@ function extractExceptionRole(clean: string): string | null {
   return match[1] || match[2] || null;
 }
 
+function extractRoleTarget(clean: string): string | null {
+  const match = clean.match(/(?:للرتبه|للرتبة|لرتبه|لرتبة|للرول|لرول|role)\s+(?:<@&(\d{17,20})>|@?([^\s،,]+))/i)
+    ?? clean.match(/(?:رتبه|رتبة|رول)\s+(?:<@&(\d{17,20})>|@?([^\s،,]+))\s*(?:يقدر|تقدر|يدخل|يخش|يتكلم|يفتح|تشوف|تشوفه)/i);
+  if (!match) return null;
+  return match[1] || match[2] || null;
+}
+
+function splitEveryoneAndRolePermissions(clean: string): { everyoneText: string; roleText: string } {
+  const roleMarker = clean.search(/(?:للرتبه|للرتبة|لرتبه|لرتبة|للرول|لرول|role)\s+/i);
+  if (roleMarker < 0) return { everyoneText: clean, roleText: clean };
+  const beforeRole = clean.slice(0, roleMarker);
+  const capabilityStart = beforeRole.search(/(?:ويقدرون|ويقدر|وتقدر|تقدر|يتكلم|يفتح|سكرين|شير|speak|stream)/i);
+  return {
+    everyoneText: capabilityStart >= 0 ? beforeRole.slice(0, capabilityStart) : beforeRole,
+    roleText: beforeRole.slice(Math.max(0, capabilityStart)) || clean.slice(roleMarker),
+  };
+}
+
 /**
  * استخراج المنشن (@user أو @role أو @everyone) من النص
  */
@@ -201,35 +219,79 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
           categoryId,
           permissions: ['MentionEveryone'],
           includeEveryone: true,
-          includeRoles: wantsIncludeRoles,
-          includeMembers: wantsIncludeRoles,
+          includeRoles: true,
+          includeMembers: true,
         },
       }];
     }
   }
 
   // ============================================================
-  // النمط 4: إنشاء روم واحد مع صلاحيات مسبقة
+  // النمط 4: قالب متجر بسيط ومحدود
+  // "سو متجر بسيط"
+  // ============================================================
+  if (/(?:سو|سوي|انشئ|أنشئ|اصنع).*(?:متجر|ستور|store).*(?:بسيط|خفيف|مختصر|minimal|simple)?/i.test(clean)) {
+    return [
+      {
+        id: 'create_store_category',
+        tool: 'create_channels',
+        args: { type: 'category', names: ['المتجر'] },
+      },
+      {
+        id: 'create_store_channels',
+        tool: 'create_channels',
+        dependsOn: 'create_store_category',
+        args: {
+          type: 'text',
+          categoryId: '$create_store_category.channelId',
+          names: ['📢・إعلانات-المتجر', '🛒・الطلبات', '💬・استفسارات', '✅・الآراء'],
+        },
+      },
+    ];
+  }
+
+  // ============================================================
+  // النمط 5: إنشاء روم واحد مع صلاحيات مسبقة
   // "سو لي روم فويس اسمه Room1 الكل يشوفه بس محد يقدر يدخله"
   // ============================================================
   const singleChannel = extractSingleChannelRequest(clean);
-  if (singleChannel && (hasPermissionRequest(clean) || validUserLimit)) {
+  if (singleChannel) {
     const isVoice = /(?:فويس|صوتي)/i.test(singleChannel[1]);
 
     // إذا في صلاحيات ← أضفها في نفس خطوة الإنشاء
     if (hasPermissionRequest(clean)) {
       const parsedPermissions = parseArabicPermissions(clean);
       if (parsedPermissions.length > 0) {
-        const deny = [...new Set(parsedPermissions.filter((p) => p.type === 'deny').map((p) => p.name))];
-        const deniedSet = new Set(deny);
-        const allow = [...new Set(parsedPermissions.filter((p) => p.type === 'allow' && !deniedSet.has(p.name)).map((p) => p.name))];
+        const toAllowDeny = (sourceText: string) => {
+          const parsed = parseArabicPermissions(sourceText);
+          const deny = [...new Set(parsed.filter((p) => p.type === 'deny').map((p) => p.name))];
+          const deniedSet = new Set(deny);
+          const allow = [...new Set(parsed.filter((p) => p.type === 'allow' && !deniedSet.has(p.name)).map((p) => p.name))];
+          return { allow, deny };
+        };
+        const { allow, deny } = toAllowDeny(clean);
 
         const hasExceptionRole = /(?:إلا|الا)\s+(?:اللي|الي)?\s*(?:معه|عنده)?\s*(?:رتبة|رتبت|رول)\s+/i.test(clean);
         const exceptionRole = extractExceptionRole(clean);
+        const roleTarget = extractRoleTarget(clean);
 
-        if (hasExceptionRole && exceptionRole) {
-          // Create channel first, then set permissions as two-step workflow
+        if ((hasExceptionRole && exceptionRole) || roleTarget) {
           const channelType = isVoice ? 'voice' : 'text';
+          const targetRole = exceptionRole ?? roleTarget!;
+          const split = splitEveryoneAndRolePermissions(clean);
+          const everyonePerms = hasExceptionRole
+            ? { allow, deny }
+            : toAllowDeny(split.everyoneText);
+          const rolePermsBase = hasExceptionRole
+            ? { allow: ['ViewChannel', 'Connect', 'SendMessages', 'Speak', 'ReadMessageHistory'], deny: [] as string[] }
+            : toAllowDeny(split.roleText);
+          if (isVoice && rolePermsBase.allow.some((permission) => ['Speak', 'Stream', 'UseEmbeddedActivities'].includes(permission))) {
+            rolePermsBase.allow = [...new Set(['ViewChannel', 'Connect', ...rolePermsBase.allow])];
+          }
+          if (!isVoice && rolePermsBase.allow.includes('SendMessages')) {
+            rolePermsBase.allow = [...new Set(['ViewChannel', 'ReadMessageHistory', ...rolePermsBase.allow])];
+          }
+
           return [
             {
               id: 'create_channel',
@@ -247,20 +309,20 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
                 channelId: '$create_channel.channelId',
                 targetId: '@everyone',
                 targetType: 'role',
-                allow,
-                deny,
+                allow: everyonePerms.allow,
+                deny: everyonePerms.deny,
               },
             },
             {
-              id: 'set_exception_role_perms',
+              id: 'set_role_perms',
               tool: 'edit_permissions',
               dependsOn: 'create_channel',
               args: {
                 channelId: '$create_channel.channelId',
-                targetId: exceptionRole,
+                targetId: targetRole,
                 targetType: 'role',
-                allow: ['ViewChannel', 'Connect', 'SendMessages', 'Speak', 'ReadMessageHistory'],
-                deny: [],
+                allow: rolePermsBase.allow,
+                deny: rolePermsBase.deny,
               },
             },
           ];
@@ -306,10 +368,19 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
         },
       ];
     }
+
+    return [{
+      id: 'create_channel',
+      tool: 'create_channels',
+      args: {
+        type: isVoice ? 'voice' : 'text',
+        names: [singleChannel[2]],
+      },
+    }];
   }
 
   // ============================================================
-  // النمط 5: إنشاء كاتقوري + رومات داخلها + رتبة
+  // النمط 6: إنشاء كاتقوري + رومات داخلها + رتبة
   // "سو كاتقوري اسمه X ورتبة Y"
   // ============================================================
   const requestsCategory = /(?:سو|سوي|انشئ|أنشئ|اصنع).*(?:كاتقوري|فئه)/i.test(clean);
@@ -372,7 +443,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 6: رومات متعددة مع استثناء واحد
+  // النمط 7: رومات متعددة مع استثناء واحد
   // "سو لي 3 رومات كلهم عام الا واحد اسمه خاص ومقفل"
   // ============================================================
   const multiRoomPattern = clean.match(
@@ -403,7 +474,7 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
   }
 
   // ============================================================
-  // النمط 7: حذف + إبقاء + إنشاء
+  // النمط 8: حذف + إبقاء + إنشاء
   // "احذف كل الرومات وابق الو + سو لي متجر بسيط"
   // ============================================================
   const deletePreserveCreate = clean.match(
@@ -413,12 +484,13 @@ export function planCompoundDiscordRequest(text: string): WorkflowStep[] {
     const steps: WorkflowStep[] = [{
       id: 'delete_preserve',
       tool: 'delete_channels',
-      args: { _confirmed: true },
+      args: {},
     }];
     if (/(?:متجر|ستور|store)/i.test(clean)) {
       steps.push({
         id: 'build_store',
         tool: 'execute_community_build',
+        dependsOn: 'delete_preserve',
         args: { blueprintType: 'store' },
       });
     }

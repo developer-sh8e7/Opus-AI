@@ -52,7 +52,7 @@ export class MusicIntelligence {
     this.spotifyApiKey = spotifyKey;
     this.httpClient = axios.create({
       timeout: 10000,
-      headers: { 'User-Agent': 'Opus-MusicBot/1.0' }
+      headers: { 'User-Agent': 'HumanGuardAI-MusicBot/1.0' }
     });
   }
 
@@ -63,11 +63,11 @@ export class MusicIntelligence {
    * 3. البحث الذكي عن الأغنية المطابقة
    */
   async analyzeAndSearch(query: MusicQuery): Promise<TrackInfo[]> {
-    console.log(`[MusicIntelligence] تحليل الطلب: "${query.query}"`);
+    console.log(`[MusicIntelligence] Analyzing query: "${query.query}"`);
 
     // الخطوة 1: التحقق من أنه رابط مباشر
     if (this.isDirectUrl(query.query)) {
-      console.log('[MusicIntelligence] تم اكتشاف رابط مباشر');
+      console.log('[MusicIntelligence] Direct link detected');
       return await this.extractTrackFromUrl(query.query);
     }
 
@@ -76,7 +76,7 @@ export class MusicIntelligence {
     if (this.cache.has(cacheKey)) {
       const expiryTime = this.cacheExpiry.get(cacheKey);
       if (expiryTime && expiryTime > Date.now()) {
-        console.log('[MusicIntelligence] نتائج من الذاكرة المؤقتة');
+        console.log('[MusicIntelligence] Cache hit');
         return this.cache.get(cacheKey)!;
       }
       this.cache.delete(cacheKey);
@@ -97,10 +97,10 @@ export class MusicIntelligence {
       this.cache.set(cacheKey, results);
       this.cacheExpiry.set(cacheKey, Date.now() + this.CACHE_TTL);
 
-      console.log(`[MusicIntelligence] عثرنا على ${results.length} نتيجة`);
+      console.log(`[MusicIntelligence] Found ${results.length} results`);
       return results;
     } catch (error) {
-      console.error('[MusicIntelligence] خطأ في البحث:', error);
+      console.error('[MusicIntelligence] Search error:', error);
       return [];
     }
   }
@@ -142,7 +142,7 @@ export class MusicIntelligence {
 
       return tracks;
     } catch (error) {
-      console.error('[MusicIntelligence] خطأ في البحث بيوتيوب:', error);
+      console.error('[MusicIntelligence] YouTube search error:', error);
       return [];
     }
   }
@@ -162,7 +162,7 @@ export class MusicIntelligence {
 
       return response.data.items?.[0]?.contentDetails;
     } catch (error) {
-      console.error('[MusicIntelligence] خطأ في الحصول على تفاصيل الفيديو:', error);
+      console.error('[MusicIntelligence] Video details error:', error);
       return null;
     }
   }
@@ -198,7 +198,7 @@ export class MusicIntelligence {
 
       return tracks;
     } catch (error) {
-      console.error('[MusicIntelligence] خطأ في البحث بـ Spotify:', error);
+      console.error('[MusicIntelligence] Spotify search error:', error);
       return [];
     }
   }
@@ -226,7 +226,7 @@ export class MusicIntelligence {
 
       return [];
     } catch (error) {
-      console.error('[MusicIntelligence] خطأ في استخراج معلومات الرابط:', error);
+      console.error('[MusicIntelligence] Link info extraction error:', error);
       return [];
     }
   }
@@ -325,7 +325,7 @@ export class MusicIntelligence {
         this.cacheExpiry.delete(key);
       }
     }
-    console.log('[MusicIntelligence] تم تنظيف الذاكرة المؤقتة');
+    console.log('[MusicIntelligence] Cache cleaned');
   }
 }
 

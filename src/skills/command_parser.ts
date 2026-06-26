@@ -5,7 +5,7 @@
  * نظام ذكي لتحليل وفهم الأوامر من الرسائل بدون الحاجة للـ @mention
  */
 
-interface ParsedCommand {
+export interface ParsedCommand {
   command: string;
   args: string[];
   flags: Record<string, string | boolean>;
@@ -13,6 +13,22 @@ interface ParsedCommand {
   confidence: number;
   variations: string[];
 }
+
+export interface PlanStep {
+  stepId: number;
+  action: string;
+  dependsOn?: number[];
+  entityRef?: 'new' | string;
+  params: Record<string, unknown>;
+}
+
+export interface PendingPlan {
+  steps: PlanStep[];
+  currentStepIndex: number;
+  createdEntityIds: Record<number, string>;
+}
+
+const MAX_PLAN_STEPS = 15;
 
 /**
  * فئة CommandParser: تحليل الأوامر الذكية
@@ -123,7 +139,7 @@ export class CommandParser {
    * يفهم كل الأوامر بدون prefix
    */
   parseCommand(content: string): ParsedCommand | null {
-    console.log(`[CommandParser] تحليل: "${content}"`);
+    console.log(`[CommandParser] Parsing: "${content}"`);
 
     const trimmed = content.trim();
 
@@ -132,7 +148,7 @@ export class CommandParser {
       const match = trimmed.match(cmdData.pattern);
       
       if (match) {
-        console.log(`[CommandParser] ✅ تم اكتشاف الأمر: ${cmdName}`);
+        console.log(`[CommandParser] Command detected: ${cmdName}`);
         
         const args = this.extractArgs(match, trimmed);
         const flags = this.extractFlags(trimmed);
@@ -151,13 +167,71 @@ export class CommandParser {
     // 2. محاولة التعرف على النية من الكلمات الرئيسية
     const fuzzyMatch = this.fuzzyMatchCommand(trimmed);
     if (fuzzyMatch) {
-      console.log(`[CommandParser] 🔍 تم التعرف الغامض على الأمر: ${fuzzyMatch.command}`);
+      console.log(`[CommandParser] Fuzzy command match: ${fuzzyMatch.command}`);
       return fuzzyMatch;
     }
 
     // 3. لا يوجد أمر مطابق
-    console.log('[CommandParser] ❌ لم يتم اكتشاف أمر');
+    console.log('[CommandParser] No command detected');
     return null;
+  }
+
+  /**
+   * تفكيك الطلب المركب إلى خطة قصيرة قبل التنفيذ.
+   * هذه طبقة محلية سريعة؛ وعند الغموض يكمّل الـ LLM التخطيط بدل التخمين.
+   */
+  decomposeIntent(content: string): PendingPlan | null {
+    const text = content.normalize('NFKC').trim();
+    if (!text) return null;
+    const normalized = text
+      .toLocaleLowerCase('ar')
+      .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه');
+    const steps: PlanStep[] = [];
+    const addStep = (action: string, params: Record<string, unknown>, dependsOn?: number[], entityRef?: 'new' | string): void => {
+      if (steps.length >= MAX_PLAN_STEPS) return;
+      steps.push({ stepId: steps.length + 1, action, params, dependsOn, entityRef });
+    };
+
+    const nickname = text.match(/(?:غير|غيّر|عدل|عدّل|سميني|سمني).*?(?:اسمك|لقبك|نكك)?\s*(?:الى|إلى|لـ|ل)?\s+([^\n]+)$/i)?.[1]?.trim();
+    if (/(?:غير|غيّر|عدل|عدّل|سميني|سمني).*(?:اسمك|لقبك|نكك)/i.test(normalized) && nickname) {
+      addStep('edit_bot_profile', { nickname: nickname.replace(/^["'`]+|["'`]+$/g, '') });
+    }
+
+    const createMatch = text.match(/(?:سو|سوي|انشئ|أنشئ|اصنع)\s+(?:لي\s+)?(?:روم|قناة)\s+(تكست|نصي|فويس|صوتي)?\s*(?:اسمه|اسمها|باسم)?\s*([^،,\n]+?)(?=\s+(?:و|ثم|وحط|وخلي|خل|حط|اضبط|برمشن|صلاحيات)|$)/i);
+    if (createMatch) {
+      const requestedType = createMatch[1] ?? '';
+      const name = createMatch[2].trim().split(/\s+/)[0];
+      addStep('create_channels', {
+        type: /(?:فويس|صوتي)/i.test(requestedType) ? 'voice' : 'text',
+        names: [name],
+      });
+    }
+
+    const wantsPermissions = /(?:صلاحيات?|برمشن|اضبط|حط|خلي|خلّي).*(?:يشوف|يدخل|يخش|يتكلم|يكتب|منشن|سكرين)|(?:يشوف|يدخل|يخش|يتكلم|يكتب|منشن|سكرين)/i.test(normalized);
+    if (wantsPermissions) {
+      const dependsOn = steps.find((step) => step.action === 'create_channels')?.stepId;
+      addStep('edit_permissions', {
+        channelId: dependsOn ? `STEP_${dependsOn}_RESULT` : undefined,
+        targetId: /(?:الكل|everyone|@here)/i.test(normalized) ? '@everyone' : undefined,
+        targetType: 'role',
+        allow: [],
+        deny: [],
+      }, dependsOn ? [dependsOn] : undefined, dependsOn ? 'new' : undefined);
+    }
+
+    if (/(?:احذف|امسح|شيل|delete).*(?:روم|قناه|قناة|شانل)/i.test(normalized)) {
+      addStep('delete_channels', { channelIds: [] });
+    }
+
+    if (steps.length === 0) return null;
+    return { steps, currentStepIndex: 0, createdEntityIds: {} };
+  }
+
+  static decomposeIntent(content: string): PendingPlan | null {
+    return new CommandParser().decomposeIntent(content);
   }
 
   /**
@@ -268,7 +342,7 @@ export class CommandParser {
   ): void {
     this.commands.set(name, { aliases, pattern, handler });
     this.commandAliases[name] = aliases;
-    console.log(`[CommandParser] تم تسجيل الأمر: ${name}`);
+    console.log(`[CommandParser] Registered command: ${name}`);
   }
 
   /**
@@ -288,7 +362,7 @@ export class CommandParser {
       return await cmdData.handler(args);
     }
 
-    console.log(`[CommandParser] لا يوجد معالج للأمر: ${command}`);
+    console.log(`[CommandParser] No handler for command: ${command}`);
     return null;
   }
 

@@ -161,7 +161,7 @@ export class RateLimiter {
     const bucket = this.buckets.get(userId);
     if (bucket) {
       bucket.penalties++;
-      console.log(`[RateLimiter] تم فرض عقوبة على المستخدم ${userId}: ${bucket.penalties}`);
+      console.log(`[RateLimiter] Applied penalty to user ${userId}: ${bucket.penalties}`);
     }
   }
 
@@ -188,7 +188,7 @@ export class RateLimiter {
    */
   resetUser(userId: string): void {
     this.buckets.delete(userId);
-    console.log(`[RateLimiter] تم إعادة تعيين المستخدم: ${userId}`);
+    console.log(`[RateLimiter] Reset user: ${userId}`);
   }
 
   /**
@@ -219,7 +219,7 @@ export class RateLimiter {
       }
     }
 
-    console.log(`[RateLimiter] تم تنظيف ${cleaned} محدود قديم`);
+    console.log(`[RateLimiter] Cleaned ${cleaned} old limit entries`);
     return cleaned;
   }
 
@@ -245,7 +245,7 @@ export class RateLimiter {
    */
   setCommandLimit(command: string, config: RateLimitConfig): void {
     this.commandLimits.set(command, config);
-    console.log(`[RateLimiter] تم تعديل حد الأمر '${command}'`);
+    console.log(`[RateLimiter] Updated command limit '${command}'`);
   }
 
   /**

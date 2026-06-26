@@ -41,7 +41,7 @@ export class DecisionMaker {
    * 4. إصدار قرار مع التعليل
    */
   async makeDecision(context: DecisionContext): Promise<DecisionResult> {
-    console.log(`[DecisionMaker] تحليل القرار: ${context.action}`);
+    console.log(`[DecisionMaker] Evaluating decision: ${context.action}`);
 
     const conditions: string[] = [];
     let riskLevel: 'low' | 'medium' | 'high' = 'low';
@@ -378,7 +378,7 @@ export class DecisionMaker {
    */
   clearLog(): void {
     this.decisionLog.clear();
-    console.log('[DecisionMaker] تم إعادة تعيين سجل القرارات');
+    console.log('[DecisionMaker] Decision history reset');
   }
 }
 

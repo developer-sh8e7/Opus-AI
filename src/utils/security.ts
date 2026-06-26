@@ -4,7 +4,7 @@ import { Guild, GuildMember } from 'discord.js';
  * التحقق من صلاحية تعديل أو تعيين أو حذف رتبة معينة بناءً على الترتيب الهرمي للبوت في السيرفر.
  * @param guild السيرفر الحالي
  * @param targetRoleId معرف الرتبة المستهدفة للتعديل/الحذف/التعيين
- * @returns كائن يحتوي على نتيجة الفحص وسبب الرفض إن وجد
+ * @returns كائن يحتوي على results الفحص وسبب الرفض إن وجد
  */
 export async function validateHierarchy(
   guild: Guild,
@@ -47,7 +47,7 @@ export async function validateHierarchy(
  * التحقق من إمكانية التحكم بعضو آخر (طرد، حظر، كتم، تغيير لقب) بناءً على رتبة البوت ورتبة العضو المستهدف.
  * @param guild السيرفر الحالي
  * @param targetMemberId معرف العضو المستهدف
- * @returns كائن يحتوي على نتيجة الفحص وسبب الرفض إن وجد
+ * @returns كائن يحتوي على results الفحص وسبب الرفض إن وجد
  */
 export async function validateMemberHierarchy(
   guild: Guild,

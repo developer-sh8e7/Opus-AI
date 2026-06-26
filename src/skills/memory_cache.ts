@@ -60,7 +60,7 @@ export class MemoryCache {
     });
 
     this.stats.totalEntries = this.cache.size;
-    console.log(`[MemoryCache] تم حفظ: ${key}`);
+    console.log(`[MemoryCache] Saved: ${key}`);
   }
 
   /**
@@ -89,7 +89,7 @@ export class MemoryCache {
     this.stats.hits++;
     this.updateHitRate();
 
-    console.log(`[MemoryCache] تم استرجاع: ${key}`);
+    console.log(`[MemoryCache] Restored: ${key}`);
     return entry.value as T;
   }
 
@@ -157,7 +157,7 @@ export class MemoryCache {
   clear(): void {
     this.cache.clear();
     this.stats.totalEntries = 0;
-    console.log('[MemoryCache] تم إفراغ الذاكرة المؤقتة');
+    console.log('[MemoryCache] Cache cleared');
   }
 
   /**
@@ -177,7 +177,7 @@ export class MemoryCache {
     if (oldestKey) {
       this.cache.delete(oldestKey);
       this.stats.evictions++;
-      console.log(`[MemoryCache] تم حذف: ${oldestKey}`);
+      console.log(`[MemoryCache] Deleted: ${oldestKey}`);
     }
   }
 
@@ -198,7 +198,7 @@ export class MemoryCache {
     this.stats.totalEntries = this.cache.size;
 
     if (cleanedCount > 0) {
-      console.log(`[MemoryCache] تم تنظيف ${cleanedCount} إدخالات منتهية الصلاحية`);
+      console.log(`[MemoryCache] Cleaned ${cleanedCount} expired entries`);
     }
 
     return cleanedCount;

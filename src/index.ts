@@ -1,9 +1,9 @@
 /**
  * ════════════════════════════════════════════════════════════════
- *               خادم الإدارة والتشغيل المركزي - Opus Central Router
+ *               خادم الإدارة والتشغيل المركزي - HumanGuard AI Central Router
  * ════════════════════════════════════════════════════════════════
  *  الوصف:
- *    الملف الرئيسي والمحرك المركزي لبوت المساعد الذكي Opus.
+ *    الملف الرئيسي والمحرك المركزي لبوت المساعد الذكي HumanGuard AI.
  *    يقوم بالربط بين الأحداث في خادم ديسكورد، ونظام تحليل اللهجات،
  *    ونظام معالجة وتخزين الذاكرة، والمشغل الموسيقي، والرقابة التلقائية.
  * 
@@ -34,7 +34,8 @@ import {
   TextChannel
 } from 'discord.js';
 import path from 'node:path';
-import { config } from './config.js';
+import { PRODUCT_NAME, DEFAULT_COMMAND_PREFIX, COMMAND_PREFIXES, containsProductName, stripKnownCommandPrefix } from './branding.js';
+import { config, formatLocalSetupChecklist, getStartupDiagnostics } from './config.js';
 import { startHealthServer } from './healthServer.js';
 import { installLegacyEmbedRepair } from './utils/textEncoding.js';
 import { getAIResponse, AIMessage, runAIDiagnostics, AIResponseParser } from './services/ai.js';
@@ -126,6 +127,7 @@ import {
 import { WorkflowEngine } from './intelligence/workflow_engine.js';
 import { planCompoundDiscordRequest } from './intelligence/compound_planner.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
+import { CommandParser } from './skills/command_parser.js';
 import { normalizeFunctionTags, stripRawToolMarkup } from './utils/functionTagNormalizer.js';
 import { detectAllIntents, findMissingIntents, buildMissingIntentPrompt } from './services/intentVerifier.js';
 import { runDialectEngineDiagnostics } from './intelligence/dialect_engine.js';
@@ -133,6 +135,9 @@ import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.j
 import { runMemoryManagerDiagnostics } from './intelligence/memory_manager.js';
 import { buildKnowledgeSectionsForPrompt, validateToolKnowledgeRules } from './intelligence/discord_knowledge.js';
 import { Logger } from './utils/logger.js';
+import { runPermissionPreflight, diagnoseDiscordApiError } from './safety/permission_preflight.js';
+import { createApprovalGate, consumeApprovalIfMatches, getPendingApproval, cancelPendingApproval } from './safety/approval_flow.js';
+import { buildLeastPrivilegeReport } from './safety/least_privilege.js';
 
 // استيراد مولدات الـ Embed المتقدمة
 import {
@@ -185,6 +190,15 @@ const systemState: BotSessionState = {
   errorsLoggedCount: 0,
 };
 const aiRateLimiter = new AIRequestLimiter(5, 20, 60_000);
+
+process.on('unhandledRejection', (reason) => {
+  Logger.error('Unhandled Rejection', reason instanceof Error ? reason : String(reason));
+});
+
+process.on('uncaughtException', (error) => {
+  Logger.error('Uncaught Exception', error);
+  process.exitCode = 1;
+});
 
 function runAIRequest(
   guildId: string,
@@ -400,10 +414,10 @@ async function executeTool(
       if (requestedChannelIds.includes(activeChannelId)) {
         console.warn('[AI Router] Removed active channel from delete_channels request.');
       }
-      if (isMassDelete && args._confirmed !== true) {
+      if (isMassDelete && args._confirmed !== true && args._approved !== true) {
         return {
           success: false,
-          message: 'رفضت حذف جماعي للرومات بدون تأكيد داخلي آمن. الروم الحالي لا يمكن حذفه، ولا أنفذ حذف شامل من tool_call خام.',
+          message: 'رفضت حذف جماعي للرومات بدون تأكيد بشري. الروم الحالي لا يمكن حذفه، ولا أنفذ حذف شامل من tool_call خام.',
           deleted: [],
           failed: safeChannelIds,
         };
@@ -486,12 +500,51 @@ async function executeToolWithAudit(
   guild: Guild,
   activeChannelId: string,
   userId?: string,
-  actorMember?: GuildMember | null
+  actorMember?: GuildMember | null,
+  trustedApproval = false
 ): Promise<any> {
   const startedAt = Date.now();
+  const safeArgs = { ...(args ?? {}) };
+  if (!trustedApproval) {
+    delete safeArgs._approved;
+    delete safeArgs._confirmed;
+  } else if (name === 'delete_channels') {
+    safeArgs._confirmed = true;
+  }
+
+  const preflight = await runPermissionPreflight(name, safeArgs, guild, actorMember);
+  if (!preflight.ok) {
+    Logger.audit('permission_preflight_failed', {
+      guild_id: guild.id,
+      user_id: userId ?? null,
+      tool_name: name,
+      checks: preflight.checks.filter((check) => !check.ok),
+    });
+    return { success: false, message: preflight.message, preflight };
+  }
+
+  if (userId) {
+    const approvalGate = await createApprovalGate(name, safeArgs, guild, activeChannelId, userId);
+    if (!approvalGate.allowed) {
+      Logger.audit('human_approval_required', {
+        guild_id: guild.id,
+        user_id: userId,
+        tool_name: name,
+        approval_id: approvalGate.pending.id,
+        required_phrase: approvalGate.pending.requiredPhrase,
+      });
+      return {
+        success: false,
+        needsApproval: true,
+        message: approvalGate.message,
+        approvalId: approvalGate.pending.id,
+        requiredPhrase: approvalGate.pending.requiredPhrase,
+      };
+    }
+  }
 
   // Anti-pattern safety gate
-  const knowledgeCheck = validateToolKnowledgeRules(name, args, guild, actorMember);
+  const knowledgeCheck = validateToolKnowledgeRules(name, safeArgs, guild, actorMember);
   if (!knowledgeCheck.allowed) {
     Logger.audit('knowledge_rule_blocked', {
       tool_name: name,
@@ -506,11 +559,14 @@ async function executeToolWithAudit(
   }
 
   try {
-    const result = await executeTool(name, args, guild, activeChannelId, userId, actorMember);
+    const executionArgs = trustedApproval && name === 'delete_channels'
+      ? { ...safeArgs, _confirmed: true, _approved: true }
+      : safeArgs;
+    const result = await executeTool(name, executionArgs, guild, activeChannelId, userId, actorMember);
     const registeredEntities = EntityRegistry.registerToolResult(
       guild,
       name,
-      args,
+      executionArgs,
       result,
       activeChannelId
     );
@@ -519,7 +575,7 @@ async function executeToolWithAudit(
       guild_id: guild.id,
       user_id: userId ?? null,
       tool_name: name,
-      params: args,
+      params: executionArgs,
       result,
       duration_ms: Date.now() - startedAt,
     });
@@ -529,11 +585,11 @@ async function executeToolWithAudit(
       guild_id: guild.id,
       user_id: userId ?? null,
       tool_name: name,
-      params: args,
+      params: safeArgs,
       result: { success: false, error: error instanceof Error ? error.message : String(error) },
       duration_ms: Date.now() - startedAt,
     });
-    throw error;
+    throw new Error(diagnoseDiscordApiError(error, preflight.actionLabel));
   }
 }
 
@@ -673,6 +729,72 @@ function buildToolExecutionReply(
   }).join('\n');
 }
 
+function hasInlineApprovalPhrase(text: string): boolean {
+  const normalized = normalizeArabicCommandText(text);
+  return /(?:^|\s)(?:واكد|اكد|تاكيد|تأكيد|confirm|yes)(?:\s|$)/i.test(normalized)
+    || /(?:بدون\s+(?:سؤال|تاكيد|تأكيد)|مباشر\s+بدون\s+(?:سؤال|تاكيد|تأكيد)|باند\s+مباشر|حظر\s+مباشر)/i.test(normalized);
+}
+
+function parseArabicDurationMs(text: string, fallbackMs: number): number {
+  const normalized = normalizeArabicCommandText(text);
+  const week = /(?:اسبوع|أسبوع|week)/i.test(normalized);
+  const day = /(?:يوم|ايام|أيام|day)/i.test(normalized);
+  const hour = /(?:ساعه|ساعة|ساعات|hour|hr)/i.test(normalized);
+  const second = /(?:ثانيه|ثانية|ثواني|second|sec)/i.test(normalized);
+  const minute = /(?:دقيقه|دقيقة|دقايق|minute|min)/i.test(normalized);
+  const amountMatch = normalized.match(/(\d{1,3})\s*(?:ثانيه|ثانية|ثواني|دقيقه|دقيقة|دقايق|ساعه|ساعة|ساعات|يوم|ايام|اسبوع|أسبوع|second|sec|minute|min|hour|hr|day|week)?/i);
+  const amount = amountMatch ? Number(amountMatch[1]) : 1;
+  if (week) return Math.min(amount * 7 * 24 * 60 * 60 * 1000, 28 * 24 * 60 * 60 * 1000);
+  if (day) return Math.min(amount * 24 * 60 * 60 * 1000, 28 * 24 * 60 * 60 * 1000);
+  if (hour) return amount * 60 * 60 * 1000;
+  if (second) return amount * 1000;
+  if (minute || amountMatch) return amount * 60 * 1000;
+  return fallbackMs;
+}
+
+function sanitizeUserFacingText(text: string): string {
+  const retry = text.match(/AI request limit reached\. Try again after (\d+) seconds/i)?.[1]
+    ?? text.match(/try again after (\d+) seconds/i)?.[1];
+  if (retry) return `البوت مشغول الحين، جرب بعد ${retry} ثانية 🕐`;
+  if (/AI provider is temporarily unavailable|All AI providers|AI unavailable|GROQ_API_KEY|Invalid or missing/i.test(text)) {
+    return 'البوت ما يرد الحين، جرب بعد شوي';
+  }
+  if (/\b(?:HTTP|status)\s*\d{3}\b|ECONNREFUSED|ETIMEDOUT|fetch failed|AbortError/i.test(text)) {
+    return 'صار خطأ مؤقت بالاتصال، جرب بعد شوي';
+  }
+  if (/^failed العملية:/i.test(text)) return 'صار خطأ غير متوقع، جرب مرة ثانية';
+  return text
+    .replace(/AI request limit reached\. Try again after (\d+) seconds\.?/gi, (_m, s) => `البوت مشغول الحين، جرب بعد ${s} ثانية 🕐`)
+    .replace(/AI provider is temporarily unavailable\. Try again shortly\.?/gi, 'البوت ما يرد الحين، جرب بعد شوي')
+    .replace(/AI response timed out\. Try a smaller request\.?/gi, 'البوت تأخر بالرد، جرّب طلب أبسط')
+    .replace(/Invalid or missing GROQ_API_KEY\. Update your local \.env file\.?/gi, 'إعدادات الذكاء تحتاج مراجعة من صاحب البوت')
+    .replace(/\btool_call\b|\bfunction_call\b/gi, 'أداة داخلية');
+}
+
+function buildReplyEmbed(kind: 'success' | 'failure' | 'warning' | 'info', title: string, description: string): EmbedBuilder {
+  const color = kind === 'success' ? 0x2ECC71 : kind === 'failure' ? 0xE74C3C : kind === 'warning' ? 0xF1C40F : 0x3498DB;
+  const icon = kind === 'success' ? '✅' : kind === 'failure' ? '❌' : kind === 'warning' ? '⚠️' : 'ℹ️';
+  return new EmbedBuilder()
+    .setColor(color)
+    .setTitle(`${icon} ${title}`)
+    .setDescription(description.slice(0, 3900))
+    .setTimestamp();
+}
+
+function classifyReply(content: string): { kind: 'success' | 'failure' | 'warning' | 'info'; title: string } | undefined {
+  const clean = sanitizeUserFacingText(content).trim();
+  if (/^(?:جهزت طلب|تأكيد:|حماية HumanGuard|البوت مشغول|وصلت حد|السيرفر وصل)/i.test(clean)) return { kind: 'warning', title: 'تأكيد مطلوب' };
+  if (/^(?:تم|تمت|✅)/i.test(clean)) return { kind: 'success', title: 'تم التنفيذ' };
+  if (/^(?:تعذر|فشل|لا يمكن|ما قدرت|ما لقيت|صلاحيات|حماية أمنية|❌)/i.test(clean)) return { kind: 'failure', title: 'تعذر التنفيذ' };
+  if (/^(?:معلومات|قائمة|عدد|أعضاء|رتب|صلاحيات)/i.test(clean)) return { kind: 'info', title: 'معلومات' };
+  return undefined;
+}
+
+async function sendRateLimitReply(message: Message, seconds: number): Promise<void> {
+  const description = `البوت مشغول الحين، جرب بعد ${seconds} ثانية 🕐`;
+  await message.reply({ embeds: [buildReplyEmbed('warning', 'انتظر شوي', description)] }).catch(() => null);
+}
+
 function normalizeArabicCommandText(text: string): string {
   return text
     .normalize('NFKC')
@@ -681,8 +803,226 @@ function normalizeArabicCommandText(text: string): string {
     .replace(/[أإآ]/g, 'ا')
     .replace(/ى/g, 'ي')
     .replace(/ة/g, 'ه')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function isBulkChannelDeleteRequest(text: string): boolean {
+  const n = normalizeArabicCommandText(text);
+  return /(?:احذف|امسح|شيل|ازل).*(?:كل|جميع).*(?:الرومات|رومات|القنوات|قنوات|الشاتات|الشات)/i.test(n);
+}
+
+function wantsStoreBuild(text: string): boolean {
+  const n = normalizeArabicCommandText(text);
+  return /(?:سو|سوي|انشئ|اصنع|ابني).*(?:متجر|ستور|store)/i.test(n);
+}
+
+function extractPreserveChannelQuery(text: string): string | undefined {
+  const n = normalizeArabicCommandText(text);
+  const match = n.match(/(?:الا|باستثناء|ابق|ابقي|خلي|خل|ما عدا)\s+(.+?)(?:\s+(?:و\s*)?(?:سو|سوي|انشئ|اصنع|ابني)\s+متجر|$)/i);
+  const raw = match?.[1]?.trim();
+  if (!raw) return undefined;
+  return raw.replace(/^(?:روم|قناة|شانل)\s+/i, '').trim();
+}
+
+function findChannelsToPreserve(guild: Guild, activeChannelId: string, query?: string): Set<string> {
+  const keep = new Set<string>([activeChannelId]);
+  if (!query) return keep;
+  const q = normalizeArabicCommandText(query);
+  for (const channel of guild.channels.cache.values()) {
+    const name = normalizeArabicCommandText((channel as any).name ?? '');
+    if (!name) continue;
+    if (name === q || name.includes(q) || q.includes(name)) keep.add(channel.id);
+  }
+  return keep;
+}
+
+function collectBulkDeleteChannelIds(guild: Guild, activeChannelId: string, preserveQuery?: string): string[] {
+  const keep = findChannelsToPreserve(guild, activeChannelId, preserveQuery);
+  const channels = [...guild.channels.cache.values()]
+    .filter((channel) => !keep.has(channel.id))
+    // Guild cache only contains guild channels here.
+    // Delete children before categories for cleaner results.
+    .sort((a, b) => Number(a.type === ChannelType.GuildCategory) - Number(b.type === ChannelType.GuildCategory));
+  return channels.map((channel) => channel.id);
+}
+
+async function handleDirectStoreBuild(message: Message): Promise<string> {
+  const guild = message.guild!;
+  let category = guild.channels.cache.find((channel) =>
+    channel.type === ChannelType.GuildCategory && normalizeArabicCommandText((channel as any).name ?? '') === 'المتجر'
+  );
+  const outputs: string[] = [];
+  if (!category) {
+    const catResult = await executeToolWithAudit(
+      'create_channels',
+      { type: 'category', names: ['المتجر'] },
+      guild,
+      message.channel.id,
+      message.author.id,
+      message.member,
+      true
+    );
+    outputs.push(catResult?.message ?? 'تمت محاولة إنشاء كاتقوري المتجر.');
+    const categoryId = catResult?.channelId ?? catResult?.createdEntities?.[0]?.id;
+    category = categoryId ? (guild.channels.cache.get(categoryId) ?? await guild.channels.fetch(categoryId).catch(() => null) ?? undefined) : undefined;
+  } else {
+    outputs.push(`كاتقوري المتجر موجود: ${(category as any).name}.`);
+  }
+
+  if (!category?.id) {
+    outputs.push('ما قدرت أحدد كاتقوري المتجر، لذلك ما أنشأت رومات المتجر.');
+    return outputs.join('\n');
+  }
+
+  const existingNames = new Set([...guild.channels.cache.values()]
+    .filter((channel) => channel.parentId === category!.id)
+    .map((channel) => normalizeArabicCommandText((channel as any).name ?? '')));
+  const desiredNames = ['📢・إعلانات-المتجر', '🛒・الطلبات', '💬・استفسارات', '✅・الآراء'];
+  const namesToCreate = desiredNames.filter((name) => !existingNames.has(normalizeArabicCommandText(name)));
+  if (namesToCreate.length === 0) {
+    outputs.push('رومات المتجر موجودة مسبقًا، ما احتجت أنشئ رومات جديدة.');
+    return outputs.join('\n');
+  }
+
+  const roomResult = await executeToolWithAudit(
+    'create_channels',
+    { type: 'text', categoryId: category.id, names: namesToCreate },
+    guild,
+    message.channel.id,
+    message.author.id,
+    message.member,
+    true
+  );
+  outputs.push(roomResult?.message ?? 'تمت محاولة إنشاء رومات المتجر.');
+  return outputs.join('\n');
+}
+
+async function handleDirectBulkChannelDeleteAndStore(message: Message, text: string): Promise<boolean> {
+  if (!isBulkChannelDeleteRequest(text) && !wantsStoreBuild(text)) return false;
+  const guild = message.guild;
+  if (!guild) return false;
+
+  const outputs: string[] = [];
+  if (isBulkChannelDeleteRequest(text)) {
+    const preserveQuery = extractPreserveChannelQuery(text);
+    const channelIds = collectBulkDeleteChannelIds(guild, message.channel.id, preserveQuery);
+    if (channelIds.length === 0) {
+      outputs.push('ما لقيت أي رومات قابلة للحذف بعد تطبيق الاستثناءات وحماية روم المحادثة الحالي.');
+    } else {
+      const inlineApproved = hasInlineApprovalPhrase(text);
+      const result = await executeToolWithAudit(
+        'delete_channels',
+        inlineApproved ? { channelIds, _afterStoreBuild: wantsStoreBuild(text), _approved: true } : { channelIds, _afterStoreBuild: wantsStoreBuild(text) },
+        guild,
+        message.channel.id,
+        message.author.id,
+        message.member,
+        inlineApproved
+      );
+      outputs.push(result?.message ?? 'تم تجهيز طلب حذف الرومات.');
+      if (result?.needsApproval) {
+        await sendLongMessage(message, outputs.join('\n'));
+        rememberDirectInteraction(message, text, outputs.join('\n'), ['delete_channels']);
+        return true;
+      }
+      outputs.push(buildToolExecutionReply(guild, [{ name: 'delete_channels', args: { channelIds }, result }]) ?? result?.message ?? 'تمت معالجة حذف الرومات.');
+    }
+  }
+
+  if (wantsStoreBuild(text)) {
+    outputs.push(await handleDirectStoreBuild(message));
+  }
+
+  const reply = outputs.filter(Boolean).join('\n') || 'تمت معالجة الطلب.';
+  await sendLongMessage(message, reply);
+  rememberDirectInteraction(message, text, reply, ['delete_channels', 'create_channels']);
+  return true;
+}
+
+function isLoggingSystemRequest(text: string): boolean {
+  const normalized = normalizeArabicCommandText(text);
+  return /(?:سو|سوي|انشئ|اضبط|جهز|setup|create).*(?:لوقات|لوق|logs?|سجل|سجلات|سجل\s*الاحداث|audit)/i.test(normalized)
+    || /(?:نظام\s*(?:لوقات|logs?|سجلات)|log\s*channel|audit\s*log)/i.test(normalized);
+}
+
+function isWhyBotSaidRequest(text: string): boolean {
+  const normalized = normalizeArabicCommandText(text);
+  return /(?:اي\s+سبب|ليش|لماذا|وش\s+قصدك|وش\s+تعني|ليه)\s+(?:قلت|تقول|تحدثت|رديت|تكلمت)/i.test(normalized)
+    || /(?:الكلام\s+غير\s+لبق|كلام\s+غير\s+لبق)/i.test(normalized);
+}
+
+async function handleWhyBotSaidRequest(message: Message, text: string): Promise<boolean> {
+  if (!isWhyBotSaidRequest(text)) return false;
+  const lastAssistant = [...memoryManager.getHistory(message.channel.id)]
+    .reverse()
+    .find((entry) => entry.role === 'assistant' && typeof entry.content === 'string')?.content;
+  const reply = lastAssistant
+    ? `آخر رد لي كان: "${String(lastAssistant).slice(0, 300)}"\nقصدي أوضح الطلب/النتيجة، وإذا طلع الرد غير لبق أو مو في مكانه فهذا خطأ مني في الصياغة. قل لي وش تبيني أعدّل بالضبط وبصححه.`
+    : 'ما عندي رد سابق واضح أرجع له هنا. انسخ لي الجملة اللي تقصدها وأنا أوضح لك سببها وأصححها.';
+  await message.reply(reply).catch(() => null);
+  rememberDirectInteraction(message, text, reply);
+  return true;
+}
+
+async function handleDirectLoggingSystemRequest(message: Message, text: string): Promise<boolean> {
+  if (!isLoggingSystemRequest(text)) return false;
+  const guild = message.guild;
+  if (!guild) return false;
+
+  const normalizedName = (value: string) => normalizeArabicCommandText(value.replace(/[📋🛡️💬🎤👥⚙️・-]/g, ' '));
+  const categoryName = '📋・Logs';
+  let category = guild.channels.cache.find((channel) =>
+    channel.type === ChannelType.GuildCategory && /logs?|لوقات|سجلات|سجل/i.test((channel as any).name ?? '')
+  );
+  const outputs: string[] = [];
+
+  if (!category) {
+    const catResult = await executeToolWithAudit(
+      'create_channels',
+      { type: 'category', names: [categoryName], permissions: [{ id: '@everyone', allow: [], deny: ['ViewChannel'] }] },
+      guild,
+      message.channel.id,
+      message.author.id,
+      message.member
+    );
+    outputs.push(catResult?.message ?? 'تم تجهيز كاتقوري اللوقات.');
+    const categoryId = catResult?.channelId ?? catResult?.createdEntities?.[0]?.id;
+    category = categoryId ? guild.channels.cache.get(categoryId) : undefined;
+  } else {
+    outputs.push(`كاتقوري اللوقات موجود: ${(category as any).name}.`);
+  }
+
+  const desired = ['🛡️・mod-logs', '💬・message-logs', '🎤・voice-logs', '👥・member-logs', '⚙️・audit-logs'];
+  const existing = new Set([...guild.channels.cache.values()]
+    .filter((channel) => channel.parentId === category?.id)
+    .map((channel: any) => normalizedName(channel.name ?? '')));
+  const missing = desired.filter((name) => !existing.has(normalizedName(name)));
+  if (missing.length > 0 && category?.id) {
+    const roomResult = await executeToolWithAudit(
+      'create_channels',
+      {
+        type: 'text',
+        names: missing,
+        categoryId: category.id,
+        permissions: [{ id: '@everyone', allow: [], deny: ['ViewChannel'] }],
+      },
+      guild,
+      message.channel.id,
+      message.author.id,
+      message.member
+    );
+    outputs.push(roomResult?.message ?? 'تم إنشاء رومات اللوقات.');
+  } else {
+    outputs.push('رومات اللوقات الأساسية موجودة مسبقًا.');
+  }
+
+  outputs.push('تم ضبط نظام اللوقات الأساسي. مراقبة حذف/تعديل الرسائل والفويس تستخدم أول قناة اسمها logs/audit/سجل يلقاها البوت.');
+  const reply = outputs.join('\n');
+  await sendLongMessage(message, reply);
+  rememberDirectInteraction(message, text, reply, ['create_channels']);
+  return true;
 }
 
 async function resolveMemberIdFromText(guild: Guild, text: string): Promise<string | undefined> {
@@ -866,6 +1206,92 @@ async function handleDirectBotNicknameRequest(message: Message, cleanedPromptTex
   return true;
 }
 
+async function resolveMemberCandidatesFromText(guild: Guild, text: string, message?: Message): Promise<GuildMember[]> {
+  if (message?.reference?.messageId && /(?:هذا|ذا|صاحب\s+الرساله|صاحب\s+الرسالة|اللي\s+رديت|الي\s+رديت|عليه)/i.test(normalizeArabicCommandText(text))) {
+    const referenced = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
+    const refMember = referenced?.member || (referenced?.author?.id ? await guild.members.fetch(referenced.author.id).catch(() => null) : null);
+    if (refMember && !refMember.user.bot) return [refMember];
+  }
+
+  const mentionId = text.match(/<@!?(\d{17,20})>/)?.[1];
+  if (mentionId) {
+    const member = guild.members.cache.get(mentionId) || await guild.members.fetch(mentionId).catch(() => null);
+    return member ? [member] : [];
+  }
+
+  const rawId = text.match(/\b(\d{17,20})\b/)?.[1];
+  if (rawId && !guild.channels.cache.has(rawId) && !guild.roles.cache.has(rawId)) {
+    const member = guild.members.cache.get(rawId) || await guild.members.fetch(rawId).catch(() => null);
+    if (member) return [member];
+  }
+
+  const normalized = normalizeArabicCommandText(text);
+  const nameMatch = normalized.match(/(?:بند|بان|احظر|حظر|كيك|اطرد|طير|تايم\s*اوت|ميوت|كتم)\s+([^\s،,]+)/i);
+  const query = nameMatch?.[1]?.trim();
+  if (!query || query.length < 2) return [];
+
+  const queryNorm = normalizeArabicCommandText(query);
+  const cached = guild.members.cache.filter((member) => {
+    const display = normalizeArabicCommandText(member.displayName);
+    const user = normalizeArabicCommandText(member.user.username);
+    return display.includes(queryNorm) || user.includes(queryNorm);
+  }).first(5);
+  if (cached.length > 0) return cached;
+
+  const fetched = await guild.members.fetch({ query, limit: 5 }).catch(() => null);
+  return fetched ? [...fetched.values()] : [];
+}
+
+async function handleDirectModerationRequest(message: Message, cleanedPromptText: string): Promise<boolean> {
+  const guild = message.guild;
+  if (!guild) return false;
+  const normalized = normalizeArabicCommandText(cleanedPromptText);
+  const isVoiceDisconnect = /(?:دسكونكت|دسكنوكت|ديسكونكت|voice\s*kick|voicekick|افصل|فصل).*(?:الفويس|الصوتي|الروم)/i.test(normalized);
+  if (isVoiceDisconnect) return false;
+
+  let action: 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout' | undefined;
+  if (/(?:فك|ارفع|شيل).*(?:الحظر|الباند)|(?:unban)/i.test(normalized)) action = 'unban';
+  else if (/(?:فك|ارفع|شيل).*(?:التايم|الميوت|timeout)/i.test(normalized)) action = 'untimeout';
+  else if (/(?:^|\s)(?:بند|بان|باند|احظر|حظر)(?:\s|$)/i.test(normalized)) action = 'ban';
+  else if (/(?:^|\s)(?:كيك|اطرد|طير)(?:\s|$)/i.test(normalized)) action = 'kick';
+  else if (/(?:تايم\s*اوت|timeout|ميوت|كتم|اسكته|خرسه)/i.test(normalized)) action = 'timeout';
+  if (!action) return false;
+
+  const candidates = action === 'unban'
+    ? []
+    : await resolveMemberCandidatesFromText(guild, cleanedPromptText, message);
+  const rawUserId = cleanedPromptText.match(/\b(\d{17,20})\b/)?.[1];
+  if (action !== 'unban' && candidates.length === 0) {
+    await message.reply('منشن العضو أو اكتب اسمه/ID بوضوح عشان أجهز طلب الإجراء، وما راح أنفذه بدون موافقتك.').catch(() => null);
+    return true;
+  }
+  if (candidates.length > 1) {
+    const names = candidates.map((member) => `${member.displayName} (${member.user.tag})`).join('، ');
+    await message.reply(`لقيت أكثر من عضو مطابق: ${names}. أي واحد تقصد؟`).catch(() => null);
+    return true;
+  }
+
+  const target = candidates[0];
+  const reason = cleanedPromptText.match(/(?:بسبب|السبب|reason:)\s*(.+)$/i)?.[1]?.trim() || 'لم يتم تحديد سبب.';
+  const args: Record<string, any> = {
+    action,
+    memberId: action === 'unban' ? rawUserId : target.id,
+    data: { reason },
+  };
+  if (!args.memberId) {
+    await message.reply('اكتب ID المستخدم عشان أفك الحظر عنه.').catch(() => null);
+    return true;
+  }
+  if (action === 'timeout') args.data.duration = parseArabicDurationMs(cleanedPromptText, 10 * 60 * 1000);
+
+  const inlineApproved = hasInlineApprovalPhrase(cleanedPromptText);
+  const result = await executeToolWithAudit('manage_members', inlineApproved ? { ...args, _approved: true } : args, guild, message.channel.id, message.author.id, message.member, inlineApproved);
+  const finalReply = result?.message ?? 'تم تجهيز طلب الإجراء ويحتاج موافقة.';
+  await sendLongMessage(message, finalReply);
+  rememberDirectInteraction(message, cleanedPromptText, finalReply, ['manage_members']);
+  return true;
+}
+
 // ============================================================
 //  2. معالج الأوامر النصية التقليدية واليدوية (Manual Commands Router)
 // ============================================================
@@ -879,8 +1305,36 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'help':
     case 'أوامر':
     case 'مساعدة': {
-      const helpEmbed = createHelpEmbed('!opus ');
+      const helpEmbed = createHelpEmbed('!humanguard ');
       await message.reply({ embeds: [helpEmbed] }).catch(() => null);
+      return true;
+    }
+
+    case 'permissions':
+    case 'preflight':
+    case 'صلاحيات_البوت':
+    case 'صلاحيات': {
+      const featureAliases: Record<string, string> = {
+        create: 'create_channels',
+        channels: 'create_channels',
+        channel: 'create_channels',
+        permissions: 'edit_permissions',
+        roles: 'manage_roles',
+        role: 'manage_roles',
+        moderation: 'moderation',
+        messages: 'messages',
+        nickname: 'bot_nickname',
+        رومات: 'create_channels',
+        صلاحيات: 'edit_permissions',
+        رتب: 'manage_roles',
+        اشراف: 'moderation',
+        رسائل: 'messages',
+        لقب: 'bot_nickname',
+      };
+      const feature = featureAliases[String(args[0] ?? '').toLowerCase()] ?? args[0] ?? 'create_channels';
+      const categoryId = args.find((arg) => /^\d{17,20}$/.test(arg));
+      const report = await buildLeastPrivilegeReport(guild, feature, categoryId);
+      await sendLongMessage(message, report);
       return true;
     }
 
@@ -888,12 +1342,12 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'ذكاء': {
       const prompt = args.join(' ');
       if (!prompt) {
-        await message.reply('❌ يرجى كتابة السؤال أو البرومبت ليتم تحليله بالذكاء الاصطناعي. مثال: `!opus ai من أنت؟`').catch(() => null);
+        await message.reply('❌ يرجى كتابة السؤال أو البرومبت ليتم تحليله بالذكاء الاصطناعي. مثال: `!humanguard ai من أنت؟`').catch(() => null);
         return true;
       }
       const aiLimit = aiRateLimiter.check(message.author.id, message.guild!.id);
       if (!aiLimit.allowed) {
-        await message.reply(`وصلت حد طلبات الذكاء مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
+        await sendRateLimitReply(message, aiLimit.retryAfterSeconds ?? 60);
         return true;
       }
       await (message.channel as any).sendTyping().catch(() => null);
@@ -914,7 +1368,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
           await message.reply('✅ تمت معالجة طلبك بدون رد نصي مباشر.').catch(() => null);
         }
       } catch (err: any) {
-        await message.reply(`❌ فشلت معالجة الطلب بالذكاء الاصطناعي: ${err.message}`).catch(() => null);
+        await sendLongMessage(message, formatUserError(err, prompt));
       }
       return true;
     }
@@ -923,7 +1377,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'شغل': {
       const query = args.join(' ');
       if (!query) {
-        await message.reply('❌ يرجى كتابة اسم المقطع أو رابط التشغيل. مثال: `!opus play عمرين`').catch(() => null);
+        await message.reply('❌ يرجى كتابة اسم المقطع أو رابط التشغيل. مثال: `!humanguard play عمرين`').catch(() => null);
         return true;
       }
       const voiceChannel = message.member?.voice.channel;
@@ -1037,7 +1491,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'بناء': {
       const desc = args.join(' ');
       if (!desc) {
-        await message.reply('❌ يرجى إدخال وصف الخادم المراد بناؤه بالذكاء الاصطناعي. مثال: `!opus build سيرفر العاب متكامل`').catch(() => null);
+        await message.reply('❌ يرجى إدخال وصف الخادم المراد بناؤه بالذكاء الاصطناعي. مثال: `!humanguard build سيرفر العاب متكامل`').catch(() => null);
         return true;
       }
       await message.reply('⏳ جاري البدء في التخطيط وبناء القنوات بالذكاء الاصطناعي، قد يستغرق هذا بضع ثوان...').catch(() => null);
@@ -1069,7 +1523,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       const targetMember = message.mentions.members?.first();
       const reason = args.slice(1).join(' ') || 'مخالفة سلوكية عامة';
       if (!targetMember) {
-        await message.reply('❌ يجب الإشارة للعضو المطلوب تحذيره. مثال: `!opus warn @user سبام`').catch(() => null);
+        await message.reply('❌ يجب الإشارة للعضو المطلوب تحذيره. مثال: `!humanguard warn @user سبام`').catch(() => null);
         return true;
       }
       if (!message.member?.permissions.has(PermissionFlagsBits.KickMembers)) {
@@ -1216,7 +1670,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
         const level = parseInt(args[1] ?? '');
         const role = message.mentions.roles?.first();
         if (!level || !role) {
-          await message.reply('❌ استخدم: `!opus rankconfig set <level> @role`').catch(() => null);
+          await message.reply('❌ استخدم: `!humanguard rankconfig set <level> @role`').catch(() => null);
           return true;
         }
         setLevelRole(message.guild!.id, level, role.id);
@@ -1224,7 +1678,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       } else if (sub === 'remove' || sub === 'حذف') {
         const level = parseInt(args[1] ?? '');
         if (!level) {
-          await message.reply('❌ استخدم: `!opus rankconfig remove <level>`').catch(() => null);
+          await message.reply('❌ استخدم: `!humanguard rankconfig remove <level>`').catch(() => null);
           return true;
         }
         if (removeLevelRole(message.guild!.id, level)) {
@@ -1247,7 +1701,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
       } else if (sub === 'channel' || sub === 'room' || sub === 'روم' || sub === 'قناة') {
         const channel = message.mentions.channels?.first() || message.guild!.channels.cache.get(args[1] ?? '');
         if (!channel || !('send' in channel)) {
-          await message.reply('❌ استخدم: `!opus rankconfig channel #الروم` أو اكتب ID روم نصي.').catch(() => null);
+          await message.reply('❌ استخدم: `!humanguard rankconfig channel #الروم` أو اكتب ID روم نصي.').catch(() => null);
           return true;
         }
         setLevelUpChannel(message.guild!.id, channel.id);
@@ -1257,7 +1711,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
         const enabled = ['on', 'true', '1', 'yes', 'تشغيل', 'شغل', 'ايه', 'نعم'].includes(value);
         const disabled = ['off', 'false', '0', 'no', 'ايقاف', 'إيقاف', 'وقف', 'لا'].includes(value);
         if (!enabled && !disabled) {
-          await message.reply('❌ استخدم: `!opus rankconfig announce on` أو `!opus rankconfig announce off`.').catch(() => null);
+          await message.reply('❌ استخدم: `!humanguard rankconfig announce on` أو `!humanguard rankconfig announce off`.').catch(() => null);
           return true;
         }
         setAnnounceLevelUps(message.guild!.id, enabled);
@@ -1268,7 +1722,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
           .join('\n');
         await message.reply(`📊 **سلم الرتب الافتراضي:**\n${ranks}`).catch(() => null);
       } else {
-        await message.reply('❌ استخدم: `!opus rankconfig set <level> @role` أو `remove <level>` أو `list` أو `channel #room` أو `announce on/off` أو `ranks`').catch(() => null);
+        await message.reply('❌ استخدم: `!humanguard rankconfig set <level> @role` أو `remove <level>` أو `list` أو `channel #room` أو `announce on/off` أو `ranks`').catch(() => null);
       }
       return true;
     }
@@ -1310,7 +1764,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'تصويت': {
       const query = args.join(' ');
       if (!query || !query.includes('|')) {
-        await message.reply('❌ يرجى إدخال سؤال التصويت والخيارات مفصولة بـ |. مثال: `!opus poll هل تفضل البرمجة؟ | نعم | لا`').catch(() => null);
+        await message.reply('❌ يرجى إدخال سؤال التصويت والخيارات مفصولة بـ |. مثال: `!humanguard poll هل تفضل البرمجة؟ | نعم | لا`').catch(() => null);
         return true;
       }
       const subparts = query.split('|');
@@ -1331,7 +1785,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
     case 'بطولة': {
       const query = args.join(' ');
       if (!query || !query.includes('|')) {
-        await message.reply('❌ يرجى كتابة البيانات مفصولة بـ |. مثال: `!opus match League of Legends | Team A | Team B | 20:00`').catch(() => null);
+        await message.reply('❌ يرجى كتابة البيانات مفصولة بـ |. مثال: `!humanguard match League of Legends | Team A | Team B | 20:00`').catch(() => null);
         return true;
       }
       const subparts = query.split('|');
@@ -1364,7 +1818,7 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
   const dialectReport = runDialectEngineDiagnostics();
   const contextReport = runContextAnalyzerDiagnostics(guild, message.member);
 
-  // حساب النتيجة الكلية
+  // حساب الresults الكلية
   const overallSuccess = aiReport.success && monitorReport.success && toolsReport.success && 
                          communityReport.success && memoryReport.success && dialectReport.success;
 
@@ -1386,7 +1840,8 @@ async function runFullDiagnosticsReport(message: Message): Promise<void> {
 //  4. مستمع الأحداث ومتابعة حالة السيرفر (Discord client Events)
 // ============================================================
 client.once(Events.ClientReady, async () => {
-  Logger.startup(`Opus Bot (${client.user?.tag})`);
+  Logger.startup(`${PRODUCT_NAME} (client_id=${client.user?.id ?? 'unknown'})`);
+  Logger.info('System', `Discord client ready as ${PRODUCT_NAME}; client_id=${client.user?.id ?? 'unknown'}`);
   EntityRegistry.initialize();
   initializeRankSystem();
   LevelingSystem.initialize();
@@ -1401,7 +1856,7 @@ client.once(Events.ClientReady, async () => {
   contextCleanupTimer.unref();
     Logger.info(
     'System',
-    `AI routing ready: Groq primary (${config.groqModel}), circuit breaker active (3 failures → 90s cooldown)`
+    `AI routing ready: Groq ${config.groqApiKey ? 'configured' : 'missing GROQ_API_KEY'} (${config.groqModel}), circuit breaker active (3 failures → 90s cooldown)`
   );
   
   // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية
@@ -1409,7 +1864,7 @@ client.once(Events.ClientReady, async () => {
   
   // تحديث حالة البوت في ديسكورد
   client.user?.setActivity({
-    name: 'Opus Ai',
+    name: PRODUCT_NAME,
     type: ActivityType.Watching,
   });
 });
@@ -1496,9 +1951,10 @@ client.on(Events.MessageCreate, async (message: Message) => {
   let rawPrompt = message.content.trim();
   const botMention = `<@!?${client.user?.id}>`;
   
-  if (rawPrompt.startsWith('!opus')) {
+  const prefixedCommand = stripKnownCommandPrefix(rawPrompt);
+  if (prefixedCommand.matched) {
     isCommand = true;
-    rawPrompt = rawPrompt.slice(5).trim();
+    rawPrompt = prefixedCommand.content;
   } else if (rawPrompt.startsWith(botMention)) {
     isCommand = true;
     rawPrompt = rawPrompt.replace(new RegExp(botMention, 'g'), '').trim();
@@ -1511,10 +1967,11 @@ client.on(Events.MessageCreate, async (message: Message) => {
   }
 
   // 8. AI Assistant Logic - respond if mentioned, in helper channels, or any message with content
+  const channelNameForTarget = String((message.channel as any).name ?? '').toLowerCase();
   const isTargeted = message.mentions.has(client.user!) || 
-                     message.content.toLowerCase().includes('opus') || 
+                     containsProductName(message.content) || 
                      ((message.channel as any).name?.includes('مساعد') ?? false) ||
-                     ((message.channel as any).name?.includes('opus') ?? false) || 
+                     containsProductName(channelNameForTarget) || 
                      message.channel.isDMBased() ||
                      isCommand;
 
@@ -1529,7 +1986,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // For targeted messages, require authorization
   if (isTargeted && !isAuthorized) {
     try {
-      await message.reply({ content: 'You need an authorized role to use Opus Ai.' });
+      await message.reply({ content: `تحتاج رتبة مخوّلة لاستخدام ${PRODUCT_NAME}.` });
     } catch {}
     return;
   }
@@ -1540,25 +1997,67 @@ client.on(Events.MessageCreate, async (message: Message) => {
   // تنظيف البرومبت المستهدف بالمعالجة
   let cleanedPromptText = message.content.trim();
   cleanedPromptText = cleanedPromptText.replace(new RegExp(botMention, 'g'), '').trim();
-  if (cleanedPromptText.startsWith('!opus')) {
-    cleanedPromptText = cleanedPromptText.slice(5).trim();
+  const cleanedPrefix = stripKnownCommandPrefix(cleanedPromptText);
+  if (cleanedPrefix.matched) {
+    cleanedPromptText = cleanedPrefix.content;
   }
 
   if (!cleanedPromptText) {
-    await message.reply('ياهلا! أنا Opus Ai. وش تبغاني أسوي لك؟').catch(() => null);
+    await message.reply(`ياهلا! أنا ${PRODUCT_NAME}. وش تبغاني أسوي لك؟`).catch(() => null);
     return;
   }
 
-  const detectedLanguage = ContextEngine.detectLanguage(cleanedPromptText);
-  // Respect existing user preference — only update when user clearly uses a language
-  const existingProfile = memoryManager.getUserProfile(message.author.id);
-  const shouldUpdateLang = detectedLanguage === 'en' || detectedLanguage === 'ar';
-  memoryManager.updateUserProfile(message.author.id, {
-    preferredDialect: shouldUpdateLang
-      ? (detectedLanguage === 'en' ? 'en' : 'ar')
-      : (existingProfile?.preferredDialect ?? 'ar'),
-    totalMessagesSent: 1,
+  const approvedAction = consumeApprovalIfMatches({
+    guildId: message.guild.id,
+    channelId: message.channel.id,
+    userId: message.author.id,
+    content: cleanedPromptText,
   });
+  if (approvedAction) {
+    await (message.channel as any).sendTyping().catch(() => null);
+    const result = await executeToolWithAudit(
+      approvedAction.toolName,
+      { ...approvedAction.args, _approved: true },
+      message.guild,
+      message.channel.id,
+      message.author.id,
+      message.member,
+      true
+    );
+    const replyParts = [buildToolExecutionReply(message.guild, [{
+      name: approvedAction.toolName,
+      args: approvedAction.args,
+      result,
+    }]) ?? result?.message ?? 'تم تنفيذ الإجراء بعد الموافقة.'];
+    if (approvedAction.args?._afterStoreBuild && result?.success !== false) {
+      replyParts.push(await handleDirectStoreBuild(message));
+    }
+    const finalReply = replyParts.filter(Boolean).join('\n');
+    await sendLongMessage(message, finalReply);
+    rememberDirectInteraction(message, cleanedPromptText, finalReply, [approvedAction.toolName]);
+    return;
+  }
+
+  const pendingApproval = getPendingApproval({
+    guildId: message.guild.id,
+    channelId: message.channel.id,
+    userId: message.author.id,
+  });
+  if (pendingApproval) {
+    cancelPendingApproval({
+      guildId: message.guild.id,
+      channelId: message.channel.id,
+      userId: message.author.id,
+    });
+    await sendLongMessage(message, 'تم إلغاء العملية — ردك ما كان تأكيد واضح. إذا تبي تنفذها أرسل الطلب من جديد.');
+    return;
+  }
+
+  if (await handleDirectBulkChannelDeleteAndStore(message, cleanedPromptText)) return;
+  if (await handleDirectLoggingSystemRequest(message, cleanedPromptText)) return;
+  if (await handleWhyBotSaidRequest(message, cleanedPromptText)) return;
+
+  memoryManager.rememberUserLanguagePreference(message.author.id, cleanedPromptText);
 
   const conversationReply = getConversationReply(cleanedPromptText);
   if (conversationReply) {
@@ -1568,6 +2067,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
   }
 
   if (await handleDirectBotNicknameRequest(message, cleanedPromptText)) return;
+  if (await handleDirectModerationRequest(message, cleanedPromptText)) return;
   const pendingVoicePrompt = buildPendingVoicePrompt(message.channel.id, cleanedPromptText);
   if (pendingVoicePrompt && await handleDirectVoiceRoomRequest(message, pendingVoicePrompt)) return;
   if (await handleDirectVoiceRoomRequest(message, cleanedPromptText)) return;
@@ -1590,8 +2090,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
   if (directPermissionOperations.length > 0) {
     const results: string[] = [];
     for (const operation of directPermissionOperations) {
+      const dangerousEveryonePermissions = ['ManageChannels', 'ManageRoles', 'Administrator', 'BanMembers', 'KickMembers', 'ManageGuild', 'ModerateMembers'];
       const unsafeEveryoneAllow = operation.targetId === message.guild.id
-        ? operation.allow.filter((permission) => ['ManageChannels', 'ManageRoles', 'Administrator'].includes(permission))
+        ? operation.allow.filter((permission) => dangerousEveryonePermissions.includes(permission))
         : [];
       const safeOperation = unsafeEveryoneAllow.length > 0
         ? { ...operation, allow: operation.allow.filter((permission) => !unsafeEveryoneAllow.includes(permission)) }
@@ -1645,8 +2146,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
   const aiLimit = aiRateLimiter.check(message.author.id, message.guild.id);
   if (!aiLimit.allowed) {
-    const scope = aiLimit.scope === 'guild' ? 'السيرفر وصل حد طلبات الذكاء' : 'وصلت حد طلبات الذكاء';
-    await message.reply(`${scope} مؤقتًا. جرّب بعد ${aiLimit.retryAfterSeconds ?? 60} ثانية.`).catch(() => null);
+    await sendRateLimitReply(message, aiLimit.retryAfterSeconds ?? 60);
     return;
   }
 
@@ -1684,6 +2184,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
       cleanedPromptText,
       sessionEntities
     );
+    const localIntentPlan = CommandParser.decomposeIntent(cleanedPromptText);
+    if (localIntentPlan) memoryManager.setPendingPlan(message.channel.id, localIntentPlan);
+    else memoryManager.clearPendingPlan(message.channel.id);
     const referencedAt = Date.now();
     memoryManager.rememberEntities(message.channel.id, [
       ...explicitTargets.channelIds.map((id) => ({
@@ -1744,6 +2247,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       ContextEngine.buildSystemPrompt(sessionContext, message.guild, message.author.id),
       memoryManager.buildEntityContext(message.channel.id),
       memoryManager.buildUserPreferenceContext(message.author.id),
+      memoryManager.buildPendingPlanContext(message.channel.id),
       SkillRegistry.buildSkillManifestForAI(),
       buildKnowledgeSectionsForPrompt(cleanedPromptText),
     ].filter(Boolean).join('\n');
@@ -1825,13 +2329,15 @@ client.on(Events.MessageCreate, async (message: Message) => {
           return skillResult;
         }
 
+        const inlineApproved = hasInlineApprovalPhrase(cleanedPromptText);
         return executeToolWithAudit(
           toolOrSkillId,
-          stepArgs,
+          inlineApproved ? { ...stepArgs, _approved: true } : stepArgs,
           workflowGuild,
           message.channel.id,
           message.author.id,
-          workflowMember
+          workflowMember,
+          inlineApproved
         );
       });
       ContextEngine.clearWorkflow(message.channel.id);
@@ -1926,9 +2432,11 @@ client.on(Events.MessageCreate, async (message: Message) => {
 
         let executionResult;
         try {
+          const inlineApproved = hasInlineApprovalPhrase(cleanedPromptText);
           executionResult = await executeToolWithAudit(
-            toolName, toolArgs, message.guild,
-            message.channel.id, message.author.id, message.member
+            toolName, inlineApproved ? { ...toolArgs, _approved: true } : toolArgs, message.guild,
+            message.channel.id, message.author.id, message.member,
+            inlineApproved
           );
         } catch (toolError) {
           executionResult = {
@@ -1962,9 +2470,14 @@ client.on(Events.MessageCreate, async (message: Message) => {
       }
 
       const deterministicReply = buildToolExecutionReply(message.guild, completedToolResults);
-      if (deterministicReply) {
-        // Pass the deterministic reply as system-prompt context for AI natural-language wrapping
-        // (Avoids orphan tool_call_id — injected as prompt context, not as a tool message)
+      const missingAfterTools = findMissingIntents(
+        detectAllIntents(cleanedPromptText),
+        completedToolResults
+          .filter((result) => result.result?.success !== false)
+          .map((result) => result.name)
+      );
+      if (deterministicReply && missingAfterTools.length > 0 && loopCount < maxLoops) {
+        const missingPrompt = buildMissingIntentPrompt(missingAfterTools);
         await (message.channel as any).sendTyping().catch(() => null);
         aiResponse = await runAIRequest(message.guild.id, history, {
           systemPrompt: [
@@ -1972,14 +2485,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
             memoryManager.buildEntityContext(message.channel.id),
             memoryManager.buildUserPreferenceContext(message.author.id),
             SkillRegistry.buildSkillManifestForAI(),
-            '[TOOL_EXECUTION_COMPLETE]',
+            '[PARTIAL_TOOL_RESULTS]',
             deterministicReply,
-            '[/TOOL_EXECUTION_COMPLETE]',
-            'Reply naturally in your language. Summarize what happened using names when available. Ask if the user needs anything else.',
+            '[/PARTIAL_TOOL_RESULTS]',
+            missingPrompt,
+            'نفّذ الخطوات الناقصة فقط. إذا كانت خطوة ناقصة تعتمد على كيان تم إنشاؤه للتو، استخدم ID الموجود في SESSION_ENTITIES ولا تبحث بالاسم.',
           ].join('\n'),
         });
-
-        // Normalize <function> tags (Slice 1)
         if (!aiResponse.tool_calls && typeof aiResponse.content === 'string' && /<(?:function|tool_call)\b/i.test(aiResponse.content)) {
           const normalized = normalizeFunctionTags(aiResponse.content);
           if (normalized) {
@@ -1987,45 +2499,25 @@ client.on(Events.MessageCreate, async (message: Message) => {
             aiResponse.content = normalized.cleanContent || null;
           }
         }
-
-        if (aiResponse.content && (!aiResponse.tool_calls || aiResponse.tool_calls.length === 0)) {
-          // AI wrapped the result naturally — send warm reply and exit loop
-          await sendLongMessage(message, aiResponse.content);
-          const finalMsg: AIMessage = { role: 'assistant', content: aiResponse.content };
-          memoryManager.addMessage(message.channel.id, finalMsg);
-          memoryManager.rememberAction(message.channel.id, aiResponse.content);
-          history.push(finalMsg);
-          ContextEngine.addTurn(message.channel.id, {
-            role: 'assistant',
-            content: aiResponse.content,
-            timestamp: Date.now(),
-            userId: client.user!.id,
-            toolsUsed: completedToolResults.map((r) => r.name),
-          });
-          finalResponseSent = true;
-          break;
-        }
-
-        if (!aiResponse.content && (!aiResponse.tool_calls || aiResponse.tool_calls.length === 0)) {
-          // AI returned nothing — fall back to deterministic reply
-          await sendLongMessage(message, deterministicReply);
-          const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
-          memoryManager.addMessage(message.channel.id, finalMsg);
-          memoryManager.rememberAction(message.channel.id, deterministicReply);
-          history.push(finalMsg);
-          ContextEngine.addTurn(message.channel.id, {
-            role: 'assistant',
-            content: deterministicReply,
-            timestamp: Date.now(),
-            userId: client.user!.id,
-            toolsUsed: completedToolResults.map((r) => r.name),
-          });
-          finalResponseSent = true;
-          break;
-        }
-
-        // AI returned tool_calls — loop continues naturally; do NOT break
         continue;
+      }
+      if (deterministicReply) {
+        // Token-safe rebuild: do NOT call the LLM just to wrap completed tool results.
+        // The deterministic result is already a clean Arabic user-facing summary.
+        await sendLongMessage(message, deterministicReply);
+        const finalMsg: AIMessage = { role: 'assistant', content: deterministicReply };
+        memoryManager.addMessage(message.channel.id, finalMsg);
+        memoryManager.rememberAction(message.channel.id, deterministicReply);
+        history.push(finalMsg);
+        ContextEngine.addTurn(message.channel.id, {
+          role: 'assistant',
+          content: deterministicReply,
+          timestamp: Date.now(),
+          userId: client.user!.id,
+          toolsUsed: completedToolResults.map((r) => r.name),
+        });
+        finalResponseSent = true;
+        break;
       }
 
       await (message.channel as any).sendTyping().catch(() => null);
@@ -2064,7 +2556,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
     // التحقق من اكتمال جميع الخطوات المطلوبة قبل الرد النهائي
     if (!finalResponseSent) {
       const allIntents = detectAllIntents(cleanedPromptText);
-      const executedToolNames = completedToolResults.map((r) => r.name);
+      const executedToolNames = completedToolResults
+        .filter((r) => r.result?.success !== false)
+        .map((r) => r.name);
       const missingIntents = findMissingIntents(allIntents, executedToolNames);
 
       if (missingIntents.length > 0) {
@@ -2100,7 +2594,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
               continue;
             }
             try {
-              const vr = await executeToolWithAudit(tc.function.name, tArgs, message.guild, message.channel.id, message.author.id, message.member);
+              const inlineApproved = hasInlineApprovalPhrase(cleanedPromptText);
+              const vr = await executeToolWithAudit(tc.function.name, inlineApproved ? { ...tArgs, _approved: true } : tArgs, message.guild, message.channel.id, message.author.id, message.member, inlineApproved);
               completedToolResults.push({ name: tc.function.name, args: tArgs, result: vr });
               try { ContextEngine.addAccomplishment(message.channel.id, vr?.message || `${tc.function.name}: تم بنجاح`); } catch (e) { /* non-critical */ }
               const toolResultMsg: AIMessage = {
@@ -2110,8 +2605,9 @@ client.on(Events.MessageCreate, async (message: Message) => {
               memoryManager.addMessage(message.channel.id, toolResultMsg);
               history.push(toolResultMsg);
             } catch (e) {
-              completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: String(e) } });
-              try { ContextEngine.addAccomplishment(message.channel.id, `${tc.function.name}: فشل - ${String(e)}`); } catch (e2) { /* non-critical */ }
+              const cleanError = formatUserError(e, cleanedPromptText);
+              completedToolResults.push({ name: tc.function.name, args: tArgs, result: { success: false, message: cleanError } });
+              try { ContextEngine.addAccomplishment(message.channel.id, `${tc.function.name}: فشل - ${cleanError}`); } catch (e2) { /* non-critical */ }
             }
           }
           const verifyReply = buildToolExecutionReply(message.guild, completedToolResults);
@@ -2149,12 +2645,12 @@ client.on(Events.MessageCreate, async (message: Message) => {
       memoryManager.rememberAction(message.channel.id, deterministicReply);
     }
   } catch (error) {
-    console.error('[Core AI Loop] AI request processing failed:', error);
+    Logger.warn('AI Loop', formatConsoleErrorEnglish(error));
     const fallbackText = OfflineFallbackResponder.getFallbackReply(message.content);
     const friendlyError = formatUserError(error, message.content);
     
     // Check if this is an operational intent — try compound planner as fallback
-    const isOperationalIntent = /احذف|delete|حذف|create|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء|فويس|صوتي|اسمك|دسكونكت|دسكنوكت|اخرس/i.test(message.content);
+    const isOperationalIntent = /احذف|delete|حذف|create|ban|حظر|kick|طرد|رول|role|برمشن|permission|صلاح|تعديل|حركة|حرك|انشئ|سوي|سو|ابني|بناء|فويس|صوتي|اسمك|دسكونكت|دسكنوكت|اخرس|لوقات|لوق|logs?|سجل|audit/i.test(message.content);
     
     if (isOperationalIntent) {
       // Try compound planner as direct fallback when AI fails
@@ -2163,7 +2659,8 @@ client.on(Events.MessageCreate, async (message: Message) => {
         const fallbackSteps = planCompoundDiscordRequest(cleanedPromptText || message.content);
         if (fallbackSteps.length > 0 && fallbackGuild) {
           const fallbackExecutor = async (tool: string, args: Record<string, any>) => {
-            return executeToolWithAudit(tool, args, fallbackGuild, message.channel.id, message.author.id, message.member);
+            const inlineApproved = hasInlineApprovalPhrase(cleanedPromptText || message.content);
+            return executeToolWithAudit(tool, inlineApproved ? { ...args, _approved: true } : args, fallbackGuild, message.channel.id, message.author.id, message.member, inlineApproved);
           };
           const fallbackResult = await WorkflowEngine.execute(fallbackSteps, fallbackExecutor);
           const fallbackReply = fallbackResult.steps
@@ -2180,11 +2677,11 @@ client.on(Events.MessageCreate, async (message: Message) => {
       }
       
       // If fallback also failed or no compound plan matched
-      await message.reply(friendlyError).catch(() => null);
+      await sendLongMessage(message, friendlyError);
     } else if (fallbackText) {
       await message.reply(fallbackText).catch(() => null);
     } else {
-      await message.reply(friendlyError).catch(() => null);
+      await sendLongMessage(message, friendlyError);
     }
   }
 });
@@ -2192,7 +2689,13 @@ client.on(Events.MessageCreate, async (message: Message) => {
 //  6. وظائف التقسيم والإرسال والتنسيق (Utility Helpers)
 // ============================================================
 async function sendLongMessage(message: Message, content: string): Promise<void> {
-  const safeContent = AIResponseParser.formatResponseCard(stripRawToolMarkup(content)) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
+  const formatted = AIResponseParser.formatResponseCard(stripRawToolMarkup(content)) || 'ما راح أرسل أو أنفذ tool_call خام. إذا كان المطلوب إجراء إداري، بعالجه عبر أدوات البوت الآمنة فقط.';
+  const safeContent = sanitizeUserFacingText(formatted);
+  const classification = classifyReply(safeContent);
+  if (classification && safeContent.length <= 3900) {
+    await message.reply({ embeds: [buildReplyEmbed(classification.kind, classification.title, safeContent)] }).catch(() => null);
+    return;
+  }
   if (safeContent.length <= 2000) {
     await message.reply(safeContent).catch(() => null);
     return;
@@ -2207,7 +2710,7 @@ async function sendLongMessage(message: Message, content: string): Promise<void>
         await (message.channel as any).send(chunks[i]!);
       }
     } catch (err) {
-      console.error('[Sender] فشل إرسال جزء من الرسالة الطويلة:', err);
+      console.error('[Sender] Failed to send a long-message chunk:', err);
     }
   }
 }
@@ -2240,39 +2743,30 @@ function smartSplit(text: string, maxLength: number): string[] {
   return chunks;
 }
 
+function formatConsoleErrorEnglish(error: unknown): string {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (/GROQ_API_KEY|401|403/i.test(msg)) return 'AI provider authentication failed. Check GROQ_API_KEY in local .env.';
+  if (/rate limit|429/i.test(msg)) return 'AI provider rate limit reached.';
+  if (/timeout|timed out|AbortError/i.test(msg)) return 'AI provider request timed out.';
+  if (/Missing Permissions|50013|permission/i.test(msg)) return 'Discord rejected the action because permissions are missing.';
+  return msg.replace(/[\u0600-\u06FF]+/g, '[arabic]').slice(0, 240);
+}
+
 function formatUserError(error: unknown, userText?: string): string {
   const msg = error instanceof Error ? error.message : String(error);
+  const clean = sanitizeUserFacingText(msg);
+  if (clean !== msg) return clean;
 
-  if (msg.includes('تعذر تشغيل الذكاء الاصطناعي مؤقتًا')) {
-    // If the user had an operational intent, suggest using simpler wording
-    if (userText && /(?:سو|انشئ|احذف|حذف|عدل|غير|سوي|ابني|دسكنوكت|دسكونكت|برمشن|صلاح)/i.test(userText)) {
-      return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا. حاول تكون الطلب أبسط أو استخدم الأمر مباشرة. مثلاً: غير لقبك بدل "غير اسمك من الحلو ل Opus". أو جرب مرة ثانية بعد شوي.';
-    }
-    return 'تعذر تشغيل الذكاء الاصطناعي مؤقتًا، جرّب بعد شوي أو استخدم الأمر !opus مباشرة.';
+  if (/AI provider|All AI providers|temporarily unavailable/i.test(msg)) return 'البوت ما يرد الحين، جرب بعد شوي';
+  if (/GROQ_API_KEY|401|403|authentication/i.test(msg)) return 'إعدادات الذكاء تحتاج مراجعة من صاحب البوت.';
+  if (/rate limit|429/i.test(msg)) return 'البوت مشغول الحين، جرب بعد 60 ثانية 🕐';
+  if (/permission|Missing Permissions|50013/i.test(msg)) return 'ما قدرت أنفذ بسبب صلاحيات/ترتيب رتب. تأكد رتبة البوت أعلى من الهدف ومعه الصلاحية المطلوبة.';
+  if (/Unknown Channel|Unknown Role/i.test(msg)) return 'الروم أو الرتبة المطلوبة غير موجودة. استخدم منشن أو ID صحيح.';
+  if (/timeout|timed out|AbortError/i.test(msg)) return 'البوت تأخر بالرد، جرّب طلب أبسط.';
+  if (userText && /(?:سو|سوي|انشئ|احذف|حذف|عدل|غير|لوق|لوقات|سجل|برمشن|صلاح)/i.test(userText)) {
+    return 'ما فهمت الطلب كامل. اكتب الهدف بوضوح: العضو/الروم/الرتبة + الإجراء المطلوب.';
   }
-
-  if (msg.includes('مفاتيح الذكاء الاصطناعي غير صالحة')) {
-    return 'إعدادات الذكاء الاصطناعي غير صالحة حاليًا. يجب تحديث مفاتيح Groq في Railway.';
-  }
-
-  if (msg.includes('API error') || msg.includes('fetch') || msg.includes('ECONNREFUSED')) {
-    return 'تعذر الاتصال بمزودي الذكاء الاصطناعي مؤقتًا. جرّب بعد شوي.';
-  }
-  if (msg.includes('rate limit') || msg.includes('429')) {
-    return 'مزود الذكاء مزدحم حاليًا. انتظر دقيقة ثم جرّب مجددًا.';
-  }
-  if (msg.includes('permission') || msg.includes('Missing Permissions')) {
-    return 'صلاحيات البوت غير كافية لتنفيذ هذا الإجراء. تأكد أن رتبة البوت أعلى من الرتب المطلوب التعامل معها.';
-  }
-  if (msg.includes('Unknown Channel') || msg.includes('Unknown Role')) {
-    return 'الروم أو الرتبة المطلوبة غير موجودة أو حُذفت مؤخرًا. استخدم منشن أو ID صحيح.';
-  }
-  if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('AbortError')) {
-    return 'استغرقت العملية وقتاً طويلاً. جرّب طلب أبسط.';
-  }
-
-  const shortMsg = msg.length > 250 ? msg.slice(0, 250) + '...' : msg;
-  return `فشلت العملية: ${shortMsg}`;
+  return 'صار خطأ غير متوقع، جرب مرة ثانية';
 }
 
 // ============================================================
@@ -2511,7 +3005,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await ticketChannel.send({ content: `${interaction.user} | طاقم الدعم`, embeds: [ticketEmbed] }).catch(() => null);
       await interaction.editReply({ content: `✅ تم إنشاء تذكرتك بنجاح في القناة التالية: ${ticketChannel}` }).catch(() => null);
     } catch (err: any) {
-      await interaction.editReply({ content: `❌ تعذر إنشاء التذكرة: ${err.message}` }).catch(() => null);
+      await interaction.editReply({ content: `❌ ${formatUserError(err)}` }).catch(() => null);
     }
   }
 
@@ -2527,7 +3021,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
       await interaction.editReply({ content: '✅ تم تحديث أدوارك الإضافية المفضلة بنجاح!' }).catch(() => null);
     } catch (err: any) {
-      await interaction.editReply({ content: `❌ حدث خطأ أثناء تحديث أدوارك: ${err.message}` }).catch(() => null);
+      await interaction.editReply({ content: `❌ ${formatUserError(err)}` }).catch(() => null);
     }
   }
 });
@@ -2549,15 +3043,15 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'help',
     aliases: ['أوامر', 'مساعدة'],
     description: 'عرض قائمة الأوامر المتاحة للبوت الإداري والمشغل الموسيقي.',
-    usage: '!opus help',
+    usage: '!humanguard help',
     category: 'general',
     permissionRequired: 'NONE'
   },
   {
     name: 'ai',
     aliases: ['ذكاء'],
-    description: 'إجراء حوار مباشر مع المساعد اللغوي Opus وتجاهل اللهجات.',
-    usage: '!opus ai <سؤالك هنا>',
+    description: 'إجراء حوار مباشر مع المساعد اللغوي HumanGuard AI وتجاهل اللهجات.',
+    usage: '!humanguard ai <سؤالك هنا>',
     category: 'general',
     permissionRequired: 'AUTHORIZED_ROLE'
   },
@@ -2565,7 +3059,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'play',
     aliases: ['شغل'],
     description: 'تشغيل مقطع صوتي في قناة الصوت الحالية.',
-    usage: '!opus play <رابط أو اسم المقطع>',
+    usage: '!humanguard play <رابط أو اسم المقطع>',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2573,7 +3067,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'skip',
     aliases: ['تخطي'],
     description: 'تخطي المقطع الصوتي الحالي والانتقال للذي يليه.',
-    usage: '!opus skip',
+    usage: '!humanguard skip',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2581,7 +3075,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'stop',
     aliases: ['ايقاف', 'إيقاف'],
     description: 'إيقاف المشغل الموسيقي ومغادرة البوت لقناة الصوت.',
-    usage: '!opus stop',
+    usage: '!humanguard stop',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2589,7 +3083,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'pause',
     aliases: ['مؤقت'],
     description: 'إيقاف المقطع الصوتي الحالي مؤقتاً.',
-    usage: '!opus pause',
+    usage: '!humanguard pause',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2597,7 +3091,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'resume',
     aliases: ['استئناف'],
     description: 'استئناف تشغيل المقطع الموقوف مؤقتاً.',
-    usage: '!opus resume',
+    usage: '!humanguard resume',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2605,7 +3099,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'queue',
     aliases: ['قائمة'],
     description: 'عرض قائمة المقاطع الموسيقية المجدولة للتشغيل.',
-    usage: '!opus queue',
+    usage: '!humanguard queue',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2613,7 +3107,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'volume',
     aliases: ['صوت'],
     description: 'تعديل مستوى صوت الموسيقى (بين 0 و 200).',
-    usage: '!opus volume <القيمة>',
+    usage: '!humanguard volume <القيمة>',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2621,7 +3115,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'loop',
     aliases: ['تكرار'],
     description: 'تفعيل أو إلغاء تكرار المقطع الصوتي الحالي بشكل متكرر.',
-    usage: '!opus loop',
+    usage: '!humanguard loop',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2629,7 +3123,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'nowplaying',
     aliases: ['الان', 'الآن'],
     description: 'عرض بيانات وتفاصيل المقطع الصوتي الذي يعمل حالياً.',
-    usage: '!opus nowplaying',
+    usage: '!humanguard nowplaying',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2637,7 +3131,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'shuffle',
     aliases: ['عشوائي'],
     description: 'خلط وترتيب قائمة الانتظار الحالية عشوائياً.',
-    usage: '!opus shuffle',
+    usage: '!humanguard shuffle',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2645,7 +3139,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'remove',
     aliases: ['حذف_مقطع'],
     description: 'حذف مقطع محدد من قائمة الانتظار عبر موقعه الرقمي.',
-    usage: '!opus remove <ترتيب المقطع>',
+    usage: '!humanguard remove <ترتيب المقطع>',
     category: 'music',
     permissionRequired: 'NONE'
   },
@@ -2653,7 +3147,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'build',
     aliases: ['بناء'],
     description: 'بناء وهيكلة السيرفر وإنشاء الغرف والقنوات بالذكاء الاصطناعي.',
-    usage: '!opus build <وصف هيكلية خادمك>',
+    usage: '!humanguard build <وصف هيكلية خادمك>',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2661,7 +3155,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'serverinfo',
     aliases: ['معلومات_السيرفر'],
     description: 'عرض البيانات التقنية والإحصائية لخادم ديسكورد الحالي.',
-    usage: '!opus serverinfo',
+    usage: '!humanguard serverinfo',
     category: 'general',
     permissionRequired: 'NONE'
   },
@@ -2669,7 +3163,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'userinfo',
     aliases: ['معلومات'],
     description: 'عرض بيانات الحساب والتحذيرات والترقيات لعضو السيرفر.',
-    usage: '!opus userinfo [@عضو]',
+    usage: '!humanguard userinfo [@عضو]',
     category: 'general',
     permissionRequired: 'NONE'
   },
@@ -2677,7 +3171,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'warn',
     aliases: ['تحذير'],
     description: 'توجيه تحذير رسمي للعضو وتسجيله في بنك البيانات.',
-    usage: '!opus warn [@عضو] <السبب>',
+    usage: '!humanguard warn [@عضو] <السبب>',
     category: 'moderation',
     permissionRequired: 'KICK_MEMBERS'
   },
@@ -2685,7 +3179,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'warns',
     aliases: ['تحذيرات'],
     description: 'استعراض تاريخ وسجل مخالفات العضو في السيرفر.',
-    usage: '!opus warns [@عضو]',
+    usage: '!humanguard warns [@عضو]',
     category: 'moderation',
     permissionRequired: 'NONE'
   },
@@ -2693,7 +3187,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'clearwarns',
     aliases: ['تصفير_التحذيرات'],
     description: 'مسح وإلغاء كافة التحذيرات المسجلة على عضو محدد.',
-    usage: '!opus clearwarns [@عضو]',
+    usage: '!humanguard clearwarns [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2701,7 +3195,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'shadowban',
     aliases: ['حظر_صامت'],
     description: 'فرض الحجب الصامت وحذف رسائل العضو فوراً بدون تنبيهه.',
-    usage: '!opus shadowban [@عضو]',
+    usage: '!humanguard shadowban [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2709,7 +3203,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'unshadowban',
     aliases: ['الغاء_الحظر_الصامت'],
     description: 'إلغاء وضع الحجب الصامت وإرجاع العضو لوضعه الطبيعي.',
-    usage: '!opus unshadowban [@عضو]',
+    usage: '!humanguard unshadowban [@عضو]',
     category: 'moderation',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2717,7 +3211,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'status',
     aliases: ['حالة'],
     description: 'عرض تقرير الصحة التقنية لنظام البوت وحالة معالجة الأوامر.',
-    usage: '!opus status',
+    usage: '!humanguard status',
     category: 'general',
     permissionRequired: 'NONE'
   },
@@ -2725,7 +3219,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'diagnostics',
     aliases: ['فحص'],
     description: 'تشغيل فحوصات فنية لكامل ملفات ومحركات البوت ومقارنتها.',
-    usage: '!opus diagnostics',
+    usage: '!humanguard diagnostics',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2733,7 +3227,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'backup',
     aliases: ['نسخ_احتياطي'],
     description: 'سحب نسخة احتياطية إلكترونية من هيكلية السيرفر لملف JSON.',
-    usage: '!opus backup',
+    usage: '!humanguard backup',
     category: 'admin',
     permissionRequired: 'ADMINISTRATOR'
   },
@@ -2741,7 +3235,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'quran',
     aliases: ['قران'],
     description: 'عرض آية قرآنية كريمة مع ترجمتها باللغة الإنجليزية.',
-    usage: '!opus quran',
+    usage: '!humanguard quran',
     category: 'fun',
     permissionRequired: 'NONE'
   },
@@ -2749,7 +3243,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'azkar',
     aliases: ['اذكار'],
     description: 'عرض ذكر إسلامي من أذكار الصباح والمساء واليومية.',
-    usage: '!opus azkar',
+    usage: '!humanguard azkar',
     category: 'fun',
     permissionRequired: 'NONE'
   },
@@ -2757,7 +3251,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'poll',
     aliases: ['تصويت'],
     description: 'طرح تصويت تفاعلي للأعضاء مع إضافة الرموز للتفاعل تلقائياً.',
-    usage: '!opus poll <السؤال> | <الخيار1> | <الخيار2>',
+    usage: '!humanguard poll <السؤال> | <الخيار1> | <الخيار2>',
     category: 'utility',
     permissionRequired: 'NONE'
   },
@@ -2765,7 +3259,7 @@ export const BOT_COMMANDS_REGISTRY: CommandMetadata[] = [
     name: 'match',
     aliases: ['بطولة'],
     description: 'توليد إعلان مباراة إلكترونية تفاعلية مع خادم البث المباشر.',
-    usage: '!opus match <اللعبة> | <الفريق الأول> | <الفريق الثاني> | <التوقيت>',
+    usage: '!humanguard match <اللعبة> | <الفريق الأول> | <الفريق الثاني> | <التوقيت>',
     category: 'utility',
     permissionRequired: 'NONE'
   }
@@ -2787,13 +3281,13 @@ export const DIALECT_GLOSSARY_GUIDE = [
 // ============================================================
 export const DEVELOPER_SYSTEM_GUIDE = `
 ────────────────────────────────────────────────────────────────
-        Opus AI Assistant & Moderation Engine - Developer Guide
+        HumanGuard AI Assistant & Moderation Engine - Developer Guide
 ────────────────────────────────────────────────────────────────
 1. دورة حياة الطلب (Request Lifecycle):
    مستقبل الرسائل (index.ts) -> فحص الأمان (Credential/Bad words) -> تحليل السياق 
    (ContextAnalyzer.ts) -> استدعاء محرك الذاكرة المتقاربة (MemoryManager.ts) -> 
    الاتصال بنظام Groq/Cerebras (ai.ts) -> تحليل النية وتحديد وجود أداة برمجية 
-   -> في حال وجود أداة، يتم تنفيذها في (index.ts:executeTool) وإعادة النتيجة لـ AI 
+   -> في حال وجود أداة، يتم تنفيذها في (index.ts:executeTool) وإعادة الresults لـ AI 
    لصياغة رد مناسب -> إرسال الرد النهائي للمستخدم.
 
 2. المشغل الموسيقي (Voice Stream System):
@@ -2816,7 +3310,7 @@ export class SystemDiagnosticsCoordinator {
     const timeDiff = Date.now() - systemState.bootTime.getTime();
     const uptimeHrs = (timeDiff / (1000 * 60 * 60)).toFixed(2);
     
-    return `⚙️ **لوحة التحكم وصحة تشغيل البوت Opus**
+    return `⚙️ **لوحة التحكم وصحة تشغيل HumanGuard AI**
 • وقت التشغيل: ${uptimeHrs} ساعة
 • الرسائل المعالجة: ${systemState.processedMessages} رسالة
 • استعلامات الذكاء الاصطناعي: ${systemState.aiQueriesCount} استعلام
@@ -2830,7 +3324,7 @@ export class SystemDiagnosticsCoordinator {
 //  14. الكود التعريفي لشرح البنية الأساسية (Architecture Showcase)
 // ============================================================
 export const SYSTEM_ARCHITECTURE = {
-  name: "Opus AI Brain Infrastructure",
+  name: "HumanGuard AI Brain Infrastructure",
   version: "4.8.2-premium",
   framework: "Discord.js v14 + Node.js v20",
   designGoals: [
@@ -2846,7 +3340,7 @@ export const SYSTEM_ARCHITECTURE = {
 // ============================================================
 export const EXTENDED_DOCUMENTATION = `
 =========================================
-      تفاصيل هيكلية ذكاء البوت Opus
+      تفاصيل هيكلية ذكاء HumanGuard AI
 =========================================
 1. تحليل اللهجات (Dialect normalization):
    يتم معالجة الإدخال وتوحيد الكلمات العامية من اللهجات (النجدية، الحجازية، المصرية، الشامية، المغربية، إلخ)
@@ -2901,7 +3395,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     if (reaction.partial) await reaction.fetch();
     await MemberVerificationGateway.handleReaction(reaction, user);
   } catch (err) {
-    console.error('[Event Reaction] خطأ في معالجة التفاعل:', err);
+    console.error('[Event Reaction] Interaction handling failed:', err);
   }
 });
 
@@ -3522,7 +4016,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
       .setColor(EMBED_COLORS.success)
       .setTitle('📿 تصنيفات الأذكار والأدعية المتاحة')
       .setDescription(cats)
-      .setFooter({ text: 'استخدم: !opus azkar <التصنيف>' })
+      .setFooter({ text: 'استخدم: !humanguard azkar <التصنيف>' })
       .setTimestamp();
     await message.reply({ embeds: [embed] }).catch(() => null);
     return true;
@@ -3532,7 +4026,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
   if (command === 'rules_template' || command === 'قوالب_القوانين') {
     const genre = args[0];
     if (!genre) {
-      await message.reply('❌ يرجى تحديد نوع القالب المطلوبة (general, gaming, quran, study). مثال: `!opus rules_template gaming`').catch(() => null);
+      await message.reply('❌ يرجى تحديد نوع القالب المطلوبة (general, gaming, quran, study). مثال: `!humanguard rules_template gaming`').catch(() => null);
       return true;
     }
     const template = ServerRulesTemplateManager.getTemplate(genre);
@@ -3551,7 +4045,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
   if (command === 'suggest' || command === 'اقتراح') {
     const suggestionText = args.join(' ');
     if (!suggestionText) {
-      await message.reply('❌ يرجى كتابة اقتراحك. مثال: `!opus suggest زيادة قنوات الصوت`').catch(() => null);
+      await message.reply('❌ يرجى كتابة اقتراحك. مثال: `!humanguard suggest زيادة قنوات الصوت`').catch(() => null);
       return true;
     }
     await SuggestionBox.submitSuggestion(message, suggestionText);
@@ -3578,7 +4072,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     }
     const text = args.join(' ');
     if (!text || !text.includes('|')) {
-      await message.reply('❌ يرجى إدخال البيانات مفصولة بـ |. مثال: `!opus schedule_match League | Falcons | Geekay | 19:30`').catch(() => null);
+      await message.reply('❌ يرجى إدخال البيانات مفصولة بـ |. مثال: `!humanguard schedule_match League | Falcons | Geekay | 19:30`').catch(() => null);
       return true;
     }
     const subparts = text.split('|');
@@ -3598,7 +4092,7 @@ let handleManualCommandUpdated = async function(message: Message, commandText: s
     const list = EsportsTournamentScheduler.getMatches();
     const description = list.map(m => {
       const statusIcon = m.status === 'LIVE' ? '🔴 بث مباشر' : m.status === 'COMPLETED' ? '🏁 انتهت' : '⏳ مجدولة';
-      const score = m.score ? ` (النتيجة: ${m.score})` : '';
+      const score = m.score ? ` (الresults: ${m.score})` : '';
       return `**[${m.id}]** ${m.gameName}: **${m.teamA}** ضد **${m.teamB}** | ${statusIcon} @ ${m.startTime}${score}`;
     }).join('\n');
     const embed = new EmbedBuilder()
@@ -3676,34 +4170,34 @@ export class OfflineFallbackResponder {
     {
       keywords: ["أذكار", "اذكار", "دعاء", "ادعية", "ذكر"],
       replies: [
-        "أهلاً بك يالطيب! لقراءة الأذكار المتنوعة والأدعية اليومية، يمكنك استخدام الأمر: `!opus azkar` أو `!opus اذكار` 📿",
-        "لذكر الله فوائد عظيمة! اكتب `!opus azkar` لعرض ذكر عشوائي وثوابه الجميل."
+        "أهلاً بك يالطيب! لقراءة الأذكار المتنوعة والأدعية اليومية، يمكنك استخدام الأمر: `!humanguard azkar` أو `!humanguard اذكار` 📿",
+        "لذكر الله فوائد عظيمة! اكتب `!humanguard azkar` لعرض ذكر عشوائي وثوابه الجميل."
       ]
     },
     {
       keywords: ["مسابقة", "مسابقات", "سؤال", "اسئلة", "ثقافية", "تحدي"],
       replies: [
-        "أهلاً بك يالطيب! لبدء مسابقة ثقافية تفاعلية ممتعة في الشات، يمكنك استخدام الأمر: `!opus trivia` أو `!opus مسابقة` 🎮"
+        "أهلاً بك يالطيب! لبدء مسابقة ثقافية تفاعلية ممتعة في الشات، يمكنك استخدام الأمر: `!humanguard trivia` أو `!humanguard مسابقة` 🎮"
       ]
     },
     {
       keywords: ["شغل"],
       replies: [
-        "لتشغيل الموسيقى أو الأغاني، الرجاء التأكد من أن البوت متصل بالإنترنت وأنك قد منشنته مع طلبك مثل: `@Opus شغل عمرين` 🎵",
-        "إذا واجهت مشكلة في تشغيل الأغاني بسبب انقطاع الإنترنت أو الـ API، يرجى المحاولة لاحقاً بعد استقرار الاتصال."
+        "لتشغيل الموسيقى أو الأغاني، الرجاء التأكد من أن البوت متصل بالإنترنت وأنك قد منشنته مع طلبك مثل: `@HumanGuard AI شغل عمرين` 🎵",
+        "إذا واجهت مشكلة في تشغيل الأغاني بسبب انقطاع الإنترنت أو الـ API، يرجى attempt لاحقاً بعد استقرار الاتصال."
       ]
     },
     {
       keywords: ["كتم", "طرد", "حظر", "باند", "كيك", "تايم", "ميوت"],
       replies: [
-        "للإشراف الإداري على الأعضاء، يرجى استخدام منشن البوت مع تحديد نوع الإجراء مثل: `@Opus اكتم فلان لمدة 10 دقائق بسبب السب`. 🛡️",
+        "للإشراف الإداري على الأعضاء، يرجى استخدام منشن البوت مع تحديد نوع الإجراء مثل: `@HumanGuard AI اكتم فلان لمدة 10 دقائق بسبب السب`. 🛡️",
         "صلاحياتي الإدارية تطلب أن يمتلك البوت دوراً عالياً كافياً لإجراء الطرد أو الحظر بنجاح."
       ]
     },
     {
       keywords: ["بناء", "سيرفر", "ابنِ لي سيرفر", "ابني سيرفر"],
       replies: [
-        "يمكنني بناء خادم متكامل مع الرتب والقنوات! استخدم الأمر: `!opus rules_template` لعرض نماذج القوانين، أو `@Opus ابنِ لي سيرفر ألعاب`."
+        "يمكنني بناء خادم متكامل مع الرتب والقنوات! استخدم الأمر: `!humanguard rules_template` لعرض نماذج القوانين، أو `@HumanGuard AI ابنِ لي سيرفر ألعاب`."
       ]
     },
     {
@@ -3717,7 +4211,7 @@ export class OfflineFallbackResponder {
     {
       keywords: ["مين", "من أنت", "من انت", "وش البوت", "بوت وشو"],
       replies: [
-        "أنا Opus المساعد الذكي وسلطان الموسيقى في ديسكورد! تم تطويري لأكون المساعد الخارق والأكثر تفوقاً في إدارة خادمكم. 🤖"
+        "أنا HumanGuard AI المساعد الذكي وسلطان الموسيقى في ديسكورد! تم تطويري لأكون المساعد الخارق والأكثر تفوقاً في إدارة خادمكم. 🤖"
       ]
     }
   ];
@@ -3746,9 +4240,10 @@ client.on(Events.MessageCreate, async (message: Message) => {
   let rawPrompt = message.content.trim();
   const botMention = `<@!?${client.user?.id}>`;
   
-  if (rawPrompt.startsWith('!opus')) {
+  const prefixedCommand = stripKnownCommandPrefix(rawPrompt);
+  if (prefixedCommand.matched) {
     isCommand = true;
-    rawPrompt = rawPrompt.slice(5).trim();
+    rawPrompt = prefixedCommand.content;
   } else if (rawPrompt.startsWith(botMention)) {
     isCommand = true;
     rawPrompt = rawPrompt.replace(new RegExp(botMention, 'g'), '').trim();
@@ -3764,7 +4259,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
 //  بيانات توثيق اللهجات والتحسين الإداري المكمل (Extended System Info V2)
 // ============================================================
 export const SYSTEM_ARCHITECTURE_SUMMARY = {
-  name: "Opus AI Brain Infrastructure v2",
+  name: "HumanGuard AI Brain Infrastructure v2",
   version: "4.8.2-premium",
   framework: "Discord.js v14 + Node.js v20",
   designGoals: [
@@ -3795,10 +4290,17 @@ export const OFFLINE_RESPONDER_GUIDELINES = `
 startHealthServer();
 installLegacyEmbedRepair();
 
-client.login(config.discordToken).catch((err) => {
-  console.error('[Bot Boot Failure] ❌ فشل تشغيل البوت والاتصال بديسكورد:', err);
+const startupDiagnostics = getStartupDiagnostics();
+Logger.startupDiagnostics(startupDiagnostics);
+if (!config.discordToken) {
+  console.error(formatLocalSetupChecklist(startupDiagnostics));
   process.exit(1);
-});
+} else {
+  client.login(config.discordToken).catch((err) => {
+    console.error(`[Bot Boot Failure] Failed to start ${PRODUCT_NAME} locally or connect to Discord:`, err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}
 
 
 
@@ -4325,7 +4827,7 @@ export class SelfTestingDiagnosticsScheduler {
     this.isDiagnosticRunning = false;
     const success = issues.length === 0;
     
-    this.writeLog(`🏁 اكتمال الفحص الذاتي. النتيجة: ${score}/100. عدد المشاكل: ${issues.length}`);
+    this.writeLog(`🏁 اكتمال الفحص الذاتي. الresults: ${score}/100. عدد المشاكل: ${issues.length}`);
     if (!success) {
       for (const iss of issues) {
         this.writeLog(`  ⚠️ مشكلة: ${iss}`);
@@ -4426,7 +4928,7 @@ client.on(Events.MessageCreate, (msg: Message) => {
   if (msg.author.bot) return;
   AdminEventStatisticsTracker.recordEvent('MessageCreate');
   
-  if (msg.content.startsWith('!opus')) {
+  if (msg.content.startsWith('!humanguard')) {
     const cmd = msg.content.split(/\s+/)[0]?.substring(5);
     if (cmd) {
       AdminEventStatisticsTracker.recordCommand(cmd);

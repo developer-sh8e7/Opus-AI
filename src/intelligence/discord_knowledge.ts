@@ -227,14 +227,21 @@ function validatePermissionOverwriteRules(
     };
   }
 
-  // AP-005: ViewChannel denied for @everyone — hides the channel rather than creating visible-but-locked
-  if (isEveryoneRole(args, everyoneRoleId) && hasPermissionInDeny(args, 'ViewChannel')) {
+  // AP-004b: other high-risk permissions should never be granted to @everyone.
+  const dangerousEveryoneAllows = ['KickMembers', 'BanMembers', 'ManageGuild', 'ModerateMembers'];
+  const dangerousGranted = dangerousEveryoneAllows.find((permission) =>
+    isEveryoneRole(args, everyoneRoleId) && hasPermissionInAllow(args, permission)
+  );
+  if (dangerousGranted) {
     return {
       allowed: false,
-      reason: 'منع مشاهدة الروم للكل يخفي الروم بالكامل. إذا كنت تقصد "مقفل بس يشوفونه"، امنع صلاحية أخرى (مثل SendMessages للنصي أو Connect للصوتي) بدلاً من منع المشاهدة.',
-      fix: 'لروم نصي مقفل للقراءة فقط: امنع SendMessages. لروم صوتي مقفل: امنع Connect.',
+      reason: `لا يمكن إعطاء ${dangerousGranted} للكل لأنها صلاحية إدارية خطيرة.`,
+      fix: 'أعط هذه الصلاحية لرتبة إدارة موثوقة فقط، وليس @everyone.',
     };
   }
+
+  // AP-005: Denying ViewChannel for @everyone is valid for private/hidden rooms,
+  // but it is high-impact and is handled by the human approval gate.
 
   // AP-010: Category-level permission update — warn about unsynced children
   if (args.channelId && guild.channels.cache.get(args.channelId)?.type === ChannelType.GuildCategory) {
@@ -316,7 +323,11 @@ export function buildKnowledgeSectionsForPrompt(text: string): string {
   const intents = detectAllIntents(text);
   const sections = KnowledgeSkillLoader.getRelevantSections(intents, [], text);
   if (sections.length === 0) return '';
-  return sections.map((s) =>
+  const MAX_KNOWLEDGE_CHARS = 2_800; // ~700 tokens hard budget
+  const rendered = sections.map((s) =>
     `[DISCORD_KNOWLEDGE_${s.source.replace(/[^\w]/g, '_').toUpperCase()}]\n${s.content}`
   ).join('\n');
+  return rendered.length > MAX_KNOWLEDGE_CHARS
+    ? rendered.slice(0, MAX_KNOWLEDGE_CHARS) + '\n<!-- knowledge truncated -->'
+    : rendered;
 }

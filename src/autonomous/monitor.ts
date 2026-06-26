@@ -184,7 +184,7 @@ async function analyzeContentWithAI(text: string, authorName: string): Promise<M
     return result;
   } catch (err) {
     console.error('[AI Moderation] Content analysis failed:', err);
-    // في حالة الخطأ: إرجاع نتيجة آمنة تجنباً للأخطاء العشوائية
+    // في حالة الخطأ: إرجاع results آمنة تجنباً للأخطاء العشوائية
     return {
       isOffensive: false,
       category: 'clean',
@@ -263,7 +263,7 @@ async function takeModerationAction(
       { name: '🔢 عدد تحذيراتك الإجمالي', value: `${warnCount}/3 تحذيرات`, inline: true },
       { name: '📊 مستوى الخطورة المعين', value: result.category.toUpperCase(), inline: true },
     )
-    .setFooter({ text: 'نظام الحماية والرقابة الذكي - Opus Guard' })
+    .setFooter({ text: 'نظام الحماية والرقابة الذكي - HumanGuard AI Guard' })
     .setTimestamp();
 
   const warnMsg = await channel.send({ content: `${member}`, embeds: [embed] }).catch(() => null);
@@ -289,7 +289,7 @@ async function takeModerationAction(
 
       await channel.send({ embeds: [muteEmbed] }).catch(() => null);
     } catch (e: any) {
-      console.warn(`[Moderator] تعذر كتم العضو تلقائياً: ${e.message}`);
+      console.warn(`[Moderator] Auto-timeout failed: ${e.message}`);
     }
   }
 
@@ -325,7 +325,7 @@ async function takeModerationAction(
 //  تهيئة وتشغيل المراقبة التلقائية للرسائل والمستخدمين (Core Monitor Initialization)
 // ============================================================
 export function startAutonomousMonitor(client: Client): void {
-  console.log('[Opus Ai] Autonomous moderation monitor started.');
+  console.log('[HumanGuard AI] Autonomous moderation monitor started.');
 
   // 1. مراقبة انضمام الأعضاء الجدد والترحيب ومكافحة الغزو (Anti-Raid)
   client.on(Events.GuildMemberAdd, async (member: GuildMember) => {
@@ -616,7 +616,7 @@ export function runMonitorDiagnostics(): { success: boolean; log: string[] } {
     }
 
     // إنهاء التشخيص ورفع النتائج
-    log.push(`[Diagnostic-Monitor] انتهت الفحوصات بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
+    log.push(`[Diagnostic-Monitor] انتهت الفحوصات بنجاح. الresults العامة: ${success ? 'ناجح' : 'فاشل'}`);
   } catch (error: any) {
     success = false;
     log.push(`❌ حدث خطأ فادح أثناء تشغيل تشخيص المراقبة: ${error.message}`);

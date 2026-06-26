@@ -1,12 +1,15 @@
 import dotenv from 'dotenv';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
+import { PRODUCT_NAME } from './branding.js';
+import { installEnglishConsoleOutput } from './utils/consoleOutput.js';
 
-// Load .env file from root directory
-dotenv.config();
+installEnglishConsoleOutput();
 
-/**
- * Interface representing the validated application configuration.
- */
+const ENV_PATH = path.join(process.cwd(), '.env');
+
+dotenv.config({ path: ENV_PATH });
+
 export interface Config {
   discordToken: string;
   clientId: string;
@@ -17,48 +20,109 @@ export interface Config {
   groqApiBaseUrl: string;
   aiTimeoutMs: number;
   aiMaxRetries: number;
+  runtimeMode: 'local' | 'railway' | 'production';
+  envPath: string;
 }
 
-/**
- * Validates and retrieves environment variables.
- * @throws Error if any required environment variable is missing.
- */
+export interface StartupDiagnostics {
+  runtimeMode: Config['runtimeMode'];
+  envPath: string;
+  envFileExists: boolean;
+  missingRequired: string[];
+  missingRecommended: string[];
+  invalid: string[];
+  aiProviderConfigured: boolean;
+  databaseStatus: string;
+  railwayDetected: boolean;
+}
+
+function detectRuntimeMode(): Config['runtimeMode'] {
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID) return 'railway';
+  if (process.env.NODE_ENV === 'production') return 'production';
+  return 'local';
+}
+
+function readNumber(name: string, fallback: number): number {
+  const value = Number(process.env[name] || fallback);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 export function getEnvConfig(): Config {
-  const missingVars: string[] = [];
+  return {
+    discordToken: process.env.DISCORD_TOKEN || '',
+    clientId: process.env.CLIENT_ID || '',
+    guildId: process.env.GUILD_ID || '',
+    authorizedRoleId: process.env.AUTHORIZED_ROLE_ID || '',
+    groqApiKey: process.env.GROQ_API_KEY || '',
+    groqModel: process.env.GROQ_MODEL || 'qwen-2.5-32b',
+    groqApiBaseUrl: process.env.GROQ_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions',
+    aiTimeoutMs: readNumber('AI_TIMEOUT_MS', 25_000),
+    aiMaxRetries: Math.max(0, Math.trunc(readNumber('AI_MAX_RETRIES', 2))),
+    runtimeMode: detectRuntimeMode(),
+    envPath: ENV_PATH,
+  };
+}
 
-  const discordToken = process.env.DISCORD_TOKEN;
-  const clientId = process.env.CLIENT_ID;
-  const guildId = process.env.GUILD_ID;
-  const authorizedRoleId = process.env.AUTHORIZED_ROLE_ID;
-  const groqApiKey = process.env.GROQ_API_KEY;
-  const groqModel = process.env.GROQ_MODEL || 'qwen-2.5-32b';
-  const groqApiBaseUrl = process.env.GROQ_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions';
-  const aiTimeoutMs = Number(process.env.AI_TIMEOUT_MS || 25000);
-  const aiMaxRetries = Number(process.env.AI_MAX_RETRIES || 2);
+export function getStartupDiagnostics(cfg: Config = config): StartupDiagnostics {
+  const missingRequired: string[] = [];
+  const missingRecommended: string[] = [];
+  const invalid: string[] = [];
 
-  if (!discordToken) missingVars.push('DISCORD_TOKEN');
-  if (!clientId) missingVars.push('CLIENT_ID');
-  if (!guildId) missingVars.push('GUILD_ID');
-  if (!authorizedRoleId) missingVars.push('AUTHORIZED_ROLE_ID');
-  if (!groqApiKey) missingVars.push('GROQ_API_KEY');
-  if (!Number.isFinite(aiTimeoutMs) || aiTimeoutMs <= 0) missingVars.push('AI_TIMEOUT_MS');
-  if (!Number.isInteger(aiMaxRetries) || aiMaxRetries < 0) missingVars.push('AI_MAX_RETRIES');
-
-  if (missingVars.length > 0) {
-    throw new Error(`تعذر تشغيل البوت بسبب فقدان متغيرات البيئة التالية: ${missingVars.join(', ')}`);
-  }
+  if (!cfg.discordToken) missingRequired.push('DISCORD_TOKEN');
+  if (!cfg.clientId) missingRecommended.push('CLIENT_ID');
+  if (!cfg.guildId) missingRecommended.push('GUILD_ID');
+  if (!cfg.authorizedRoleId) missingRecommended.push('AUTHORIZED_ROLE_ID (optional; without it only admins/owner can use sensitive commands)');
+  if (!cfg.groqApiKey) missingRecommended.push('GROQ_API_KEY (optional for login; required for AI replies)');
+  if (cfg.groqApiKey && !/^gsk_[A-Za-z0-9_-]{20,}$/.test(cfg.groqApiKey)) invalid.push('GROQ_API_KEY format (Groq keys usually start with gsk_)');
+  if (!Number.isFinite(cfg.aiTimeoutMs) || cfg.aiTimeoutMs <= 0) invalid.push('AI_TIMEOUT_MS');
+  if (!Number.isInteger(cfg.aiMaxRetries) || cfg.aiMaxRetries < 0) invalid.push('AI_MAX_RETRIES');
 
   return {
-    discordToken: discordToken!,
-    clientId: clientId!,
-    guildId: guildId!,
-    authorizedRoleId: authorizedRoleId!,
-    groqApiKey: groqApiKey!,
-    groqModel,
-    groqApiBaseUrl,
-    aiTimeoutMs,
-    aiMaxRetries,
+    runtimeMode: cfg.runtimeMode,
+    envPath: cfg.envPath,
+    envFileExists: fs.existsSync(cfg.envPath),
+    missingRequired,
+    missingRecommended,
+    invalid,
+    aiProviderConfigured: Boolean(cfg.groqApiKey),
+    databaseStatus: fs.existsSync(path.join(process.cwd(), 'data')) ? 'data/ found; local memory enabled' : 'data/ will be created automatically for local memory',
+    railwayDetected: Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID),
   };
+}
+
+export function formatLocalSetupChecklist(diag: StartupDiagnostics = getStartupDiagnostics()): string {
+  const lines = [
+    `${PRODUCT_NAME} local startup checklist`,
+    `Mode: ${diag.runtimeMode}${diag.railwayDetected ? ' (Railway detected but not required for local mode)' : ''}`,
+    `.env: ${diag.envFileExists ? diag.envPath : `${diag.envPath} not found`}`,
+  ];
+
+  if (diag.missingRequired.length > 0) {
+    lines.push('', 'Missing required local variables:');
+    for (const name of diag.missingRequired) lines.push(`- ${name}`);
+  }
+
+  if (diag.missingRecommended.length > 0) {
+    lines.push('', 'Recommended local variables:');
+    for (const name of diag.missingRecommended) lines.push(`- ${name}`);
+  }
+
+  if (diag.invalid.length > 0) {
+    lines.push('', 'Invalid values:');
+    for (const name of diag.invalid) lines.push(`- ${name}`);
+  }
+
+  lines.push(
+    '',
+    'Fix:',
+    '1. cp .env.example .env',
+    '2. Open .env and add DISCORD_TOKEN plus any optional local values.',
+    '3. npm run dev',
+    '',
+    'Railway is optional later only; it is not required for local development now.'
+  );
+
+  return lines.join('\n');
 }
 
 export const config = getEnvConfig();

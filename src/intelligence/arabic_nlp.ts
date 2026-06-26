@@ -62,8 +62,9 @@ const PERMISSION_PHRASES: Array<{
   { pattern: /(?:ميوت|يكتم|كتم صوتي|mute)/i, flag: PermissionFlagsBits.MuteMembers, type: 'allow', name: 'MuteMembers' },
   { pattern: /(?:ديفن|ديفين|دفن|يصم|deafen)/i, flag: PermissionFlagsBits.DeafenMembers, type: 'allow', name: 'DeafenMembers' },
   { pattern: /(?:نشاط|أنشطة|activity|activities|watch\s+together|youtube\s+together|فيديو|video)/i, flag: PermissionFlagsBits.UseEmbeddedActivities, type: 'allow', name: 'UseEmbeddedActivities' },
-  { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?يكتب(?:ون)?/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
-  { pattern: /يكتب(?:ون)?|يرسل(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.SendMessages, type: 'allow', name: 'SendMessages' },
+  { pattern: /(?:ما|لا|محد|مو)\s*(?:يقدر(?:ون)?\s*)?يكتب(?:ون)?|(?:قفل|اقفل)\s*(?:الشات|الروم|القناه|القناة)/i, flag: PermissionFlagsBits.SendMessages, type: 'deny', name: 'SendMessages' },
+  { pattern: /يكتب(?:ون)?|يرسل(?:ون)?\s+رسائل|(?:فك|افتح)\s*(?:الشات|الروم|القناه|القناة)/i, flag: PermissionFlagsBits.SendMessages, type: 'allow', name: 'SendMessages' },
+  { pattern: /(?:اخف|اخفي|خب|خبي|لا\s+تخليهم\s+يشوفون)\s*(?:الروم|القناه|القناة|الشات)/i, flag: PermissionFlagsBits.ViewChannel, type: 'deny', name: 'ViewChannel' },
   { pattern: /(?:منشن|تاق).*(?:@?everyone|@?here)/i, flag: PermissionFlagsBits.MentionEveryone, type: 'deny', name: 'MentionEveryone' },
   { pattern: /يحذف(?:ون)?\s+رسائل/i, flag: PermissionFlagsBits.ManageMessages, type: 'allow', name: 'ManageMessages' },
 ];
@@ -181,6 +182,17 @@ export function buildArabicPermissionOperations(
     .map((match) => match[1])
     .filter((id) => isConcreteChannel(id) || sessionChannelIds.has(id));
   let channelId = mentionedChannelIds[0] ?? rawChannelIds[0];
+  if (!channelId) {
+    const textNorm = normalizeName(text);
+    const explicitGuildMatches = guild.channels.cache
+      .filter((channel) => channel.type !== ChannelType.GuildCategory)
+      .filter((channel) => {
+        const name = normalizeName(channel.name);
+        return name.length >= 2 && textNorm.includes(name);
+      })
+      .map((channel) => channel.id);
+    if (explicitGuildMatches.length === 1) channelId = explicitGuildMatches[0];
+  }
   if (!channelId && sessionChannels.length > 0) {
     const textNorm = normalizeName(text);
     const sessionChannel = sessionChannels.find((e) => textNorm.includes(normalizeName(e.name)))

@@ -29,14 +29,24 @@ export interface ProviderLimitResult {
 
 // Default limits from provider documentation
 const DEFAULT_LIMITS: Record<string, ProviderLimits> = {
-  'groq': { rpm: 30, tpm: 12_000 },  // Groq on-demand TPM limit
+  'groq': { rpm: 60, tpm: 20_000 },  // Conservative default; model overrides below
 };
 
 // Known model-specific overrides
 const MODEL_OVERRIDES: Record<string, ProviderLimits> = {
+  // Free/on-demand tier limits (conservative — observed ~6K TPM on small models)
+  'llama-3.1-8b-instant': { rpm: 30, tpm: 6_000 },
+  'meta-llama/llama-4-scout-17b-16e-instruct': { rpm: 30, tpm: 10_000 },
+  'openai/gpt-oss-20b': { rpm: 30, tpm: 10_000 },
+  'mixtral-8x7b-32768': { rpm: 30, tpm: 10_000 },
+  // Large models — higher free tier TPM
   'llama-3.3-70b-versatile': { rpm: 30, tpm: 12_000 },
-  'llama-3.1-8b-instant': { rpm: 30, tpm: 12_000 },
-  'mixtral-8x7b-32768': { rpm: 30, tpm: 12_000 },
+  'openai/gpt-oss-120b': { rpm: 15, tpm: 8_000 },
+  // Qwen (Arabic-strong)
+  'qwen/qwen3-32b': { rpm: 30, tpm: 12_000 },
+  'qwen/qwen3.6-27b': { rpm: 30, tpm: 12_000 },
+  // Decommissioned (kept for reference)
+  'qwen-2.5-32b': { rpm: 30, tpm: 12_000 },
 };
 
 export class ProviderRateLimiter {
@@ -74,8 +84,25 @@ export class ProviderRateLimiter {
     window.totalRequestsInWindow = window.requestTimestamps.length;
     window.totalTokensInWindow = window.tokenUsage.reduce((sum, tokens) => sum + tokens, 0);
 
-    // Check RPM
+    // First request in this window is always allowed (TPM is a rolling minute limit,
+    // a single burst request can exceed the per-minute limit temporarily)
+    if (window.totalRequestsInWindow === 0) {
+      window.requestTimestamps.push(now);
+      window.tokenUsage.push(estimatedTokens);
+      return {
+        allowed: true,
+        currentUsage: {
+          rpm: 1,
+          tpm: estimatedTokens,
+          rpmLimit: limits.rpm,
+          tpmLimit: limits.tpm,
+        },
+      };
+    }
+
+    // Check cumulative RPM
     const rpmExceeded = window.totalRequestsInWindow >= limits.rpm;
+    // Check cumulative TPM (only after first request is already recorded)
     const tpmExceeded = window.totalTokensInWindow + estimatedTokens > limits.tpm;
 
     if (rpmExceeded || tpmExceeded) {
@@ -84,18 +111,15 @@ export class ProviderRateLimiter {
       let reason: 'rpm' | 'tpm' | 'both' = 'both';
 
       if (rpmExceeded && tpmExceeded) {
-        // Wait for both to clear
         const oldestRequest = window.requestTimestamps[0];
         retryAfterMs = this.windowMs - (now - oldestRequest);
         reason = 'both';
       } else if (rpmExceeded) {
-        // Wait for oldest request to clear
         const oldestRequest = window.requestTimestamps[0];
         retryAfterMs = this.windowMs - (now - oldestRequest);
         reason = 'rpm';
       } else {
-        // TPM exceeded - calculate when enough tokens will have been used
-        // Find the point where cumulative token usage drops below limit
+        // TPM exceeded - calculate when enough tokens expire
         let cumulativeTokens = 0;
         let i = 0;
         while (i < window.tokenUsage.length) {
@@ -108,7 +132,6 @@ export class ProviderRateLimiter {
           i++;
         }
         if (retryAfterMs === 0) {
-          // All tokens in window - wait for window to clear
           retryAfterMs = this.windowMs;
         }
         reason = 'tpm';

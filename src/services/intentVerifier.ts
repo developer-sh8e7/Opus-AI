@@ -20,7 +20,7 @@ import { INTENT_PATTERNS } from '../intelligence/arabic_nlp.js';
 const INTENT_TO_TOOLS: Record<ArabicIntent, string[]> = {
   CREATE_CHANNEL: ['create_channels', 'build_custom_server', 'execute_community_build'],
   DELETE_CHANNEL: ['delete_channels'],
-  SET_PERMISSIONS: ['edit_permissions', 'bulk_permission_update'],
+  SET_PERMISSIONS: ['edit_permissions', 'bulk_permission_update', 'sweep_permission_overwrites'],
   VOICE_DISCONNECT: ['manage_members'],
   BAN_USER: ['manage_members'],
   KICK_USER: ['manage_members'],

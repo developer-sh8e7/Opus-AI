@@ -780,7 +780,7 @@ async function executeAutoModAction(
     }
 
     const rule = await guild.autoModerationRules.create({
-      name: args.name ?? `Opus ${action.replace('automod_create_', '')}`,
+      name: args.name ?? `HumanGuard ${action.replace('automod_create_', '')}`,
       eventType: AutoModerationRuleEventType.MessageSend,
       triggerType,
       triggerMetadata,

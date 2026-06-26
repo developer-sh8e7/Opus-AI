@@ -213,7 +213,7 @@ export class ContextEngine {
     ] : [];
     
     return [
-      'You are Opus Ai, a specialized Discord server administration assistant.',
+      'You are HumanGuard AI, a specialized Discord server administration assistant.',
       `Reply in ${language === 'ar' ? 'Arabic using the user dialect' : 'English'}.`,
       '[SERVER_CONTEXT]',
       `name=${guild.name}`,

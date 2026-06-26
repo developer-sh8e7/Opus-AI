@@ -2,6 +2,7 @@ import type { AIMessage } from './ai.js';
 
 const TOOL_GROUPS = {
   server: ['get_server_info', 'build_custom_server', 'execute_community_build'],
+  logging: ['create_channels', 'edit_permissions', 'analytics_operations', 'channel_operations'],
   channels: [
     'get_server_info',
     'create_channels',
@@ -40,7 +41,7 @@ const TOOL_GROUPS = {
 } as const;
 
 const EXPLICIT_ACTION_PATTERN =
-  /(?:^|\s)(?:خل|خلي|خله|سو|سوي|سووا|انشئ|أنشئ|اصنع|أصنع|اضف|أضف|احذف|تحذف|امسح|شيل|ازل|أزل|غير|غيّر|عدل|عدّل|حط|حطوا|انقل|اقفل|افتح|امنح|اسحب|اعط|أعط|ارسل|أرسل|ثبت|ثبّت|فك|شغل|وقف|اطرد|احظر|اكتم|افصل|دسكونكت|دسكنوكت|ديسكونكت|رتب|نظم|صمم|ابن|ابني|create|delete|remove|add|edit|change|rename|send|set|make|build|move|lock|unlock|ban|kick|timeout|mute|disconnect|voicekick|play|stop|assign|give)(?=\s|$|[^\p{L}\p{N}])/iu;
+  /(?:^|\s)(?:خل|خلي|خله|سو|سوي|سووا|انشئ|أنشئ|اصنع|أصنع|اضف|أضف|احذف|تحذف|امسح|شيل|ازل|أزل|غير|غيّر|عدل|عدّل|حط|حطوا|انقل|اقفل|افتح|امنح|اسحب|اعط|أعط|ارسل|أرسل|ثبت|ثبّت|فك|شغل|وقف|اطرد|احظر|اكتم|افصل|دسكونكت|دسكنوكت|ديسكونكت|رتب|نظم|صمم|ابن|ابني|لوق|لوقات|سجل|logs?|audit|create|delete|remove|add|edit|change|rename|send|set|make|build|move|lock|unlock|ban|kick|timeout|mute|disconnect|voicekick|play|stop|assign|give)(?=\s|$|[^\p{L}\p{N}])/iu;
 
 const EXPLICIT_DESIRE_PATTERN =
   /(?:^|\s)(?:ابي|أبي|ابغى|أبغى|اريد|أريد)(?:\s+(?:منك|انك|إنك))?\s+(?:(?:تسوي|تسوى|تنشئ|تصنع|تضيف|تحذف|تمسح|تشيل|تزيل|تغير|تعدّل|تعدل|تحط|تنقل|تقفل|تفتح|ترسل|تعطي|تسحب|تشغل|توقف|تطرد|تحظر|تكتم|ترتب|تنظم|تصمم)(?=\s|$|[^\p{L}\p{N}])|(?:روم|قناة|كاتقوري|فئة|رتبة|رول|ايمبد|إيمبد|سيرفر|متجر|بان|حظر|تايم\s*اوت|موسيقى)(?=\s|$))/iu;
@@ -117,7 +118,8 @@ export function selectToolNames(messages: AIMessage[]): Set<string> {
   if (/(emoji|ايموجي|إيموجي|sticker|ملصق|soundboard|ساوند بورد)/i.test(content)) {
     selected.add('expression_operations');
   }
-  if (/(audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i.test(content)) {
+  if (/(لوقات|لوق|logs?|log channel|سجل الاحداث|سجل الأحداث|سجلات|audit|سجل التدقيق|احصائيات|إحصائيات|stats|بوستات)/i.test(content)) {
+    addGroup(TOOL_GROUPS.logging);
     selected.add('analytics_operations');
   }
   if (/(clone|نسخ الروم|غير اسم الروم|غيّر اسم الروم|topic|وصف الروم|nsfw|سلومود|slowmode|bitrate|حد المستخدمين|حد الروم|عدد الاشخاص|عدد الأشخاص|user limit|قفل الروم|فك قفل الروم|دعوة|invite|مزامنة الصلاحيات)/i.test(content)) {

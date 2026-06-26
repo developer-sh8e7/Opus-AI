@@ -1,5 +1,6 @@
 import { ChannelType, Guild } from 'discord.js';
 import { EntityRegistry, type EntityType } from '../intelligence/entity_registry.js';
+import { normalizeDiscordEntityName } from '../utils/discordTools.js';
 
 export interface ExplicitToolTargets {
   channelIds: string[];
@@ -33,25 +34,55 @@ function normalizeWords(value: string): string[] {
 
 function findNamedMatches(rawText: string, entities: NamedEntity[]): string[] {
   const normalizedText = normalizeText(rawText);
+  const unique = (ids: string[]): string[] => [...new Set(ids)];
   const exactMatchedEntities = entities
-    .map((entity) => ({ entity, normalizedName: normalizeText(entity.name) }))
+    .map((entity) => ({ entity, normalizedName: normalizeDiscordEntityName(entity.name) }))
     .filter(({ normalizedName }) =>
       normalizedName.length >= 2 && new RegExp(`(?:^|\\s)${escapeRegExp(normalizedName)}(?:\\s|$)`, 'i').test(normalizedText)
     );
   if (exactMatchedEntities.length > 0) {
     const longest = Math.max(...exactMatchedEntities.map(({ normalizedName }) => normalizedName.length));
-    return exactMatchedEntities
+    return unique(exactMatchedEntities
       .filter(({ normalizedName }) => normalizedName.length === longest)
-      .map(({ entity }) => entity.id);
+      .map(({ entity }) => entity.id));
   }
 
   const textWords = new Set(normalizeWords(rawText));
-  return entities
+  const partial = entities
     .filter((entity) => {
       const entityWords = normalizeWords(entity.name).filter((word) => word.length >= 3);
       return entityWords.length > 0 && entityWords.every((word) => textWords.has(word));
     })
     .map((entity) => entity.id);
+  return unique(partial);
+}
+
+function hasSpecificEntityName(rawText: string, type: 'channel' | 'category' | 'role'): boolean {
+  // استخدم النص الخام بدون normalize لأننا نبحث عن أنماط محددة
+  const nonName = '(?:في|على|من|الى|إلى|ل|حق|حقه|هذا|هاذا|ذا|هذي|هذه|هال|اللي|الي|الذي|الجديد|الجديده|الجديدة|سويته|سويتها|سويناه|سويناها|نفس|نفسه|نفسها|الاخير|الأخير|اخر|آخر|الكل|الجميع|كل|ما|لا|محد|بس)$';
+  const patterns = type === 'channel'
+    ? ['الروم', 'روم', 'القناه', 'القناة', 'شانل', 'الشانل']
+    : type === 'category'
+      ? ['الكاتقوري', 'كاتقوري', 'الفئه', 'الفئة', 'قسم', 'القسم']
+      : ['الرول', 'رول', 'الرتبه', 'الرتبة'];
+  // اختبر النص الخام (rawText). كلمة "الروم" قد تصبح "روم" بعد normalizeWords،
+  // لذلك نستخدم النص الأصلي مع السماح بوجود prefix قبلها
+  return patterns.some((keyword) => {
+    const match = rawText.match(new RegExp(`(?:${keyword})\\s+(\\S+)`, 'i'));
+    return Boolean(match?.[1] && !new RegExp(nonName, 'i').test(match[1]));
+  });
+}
+
+function hasImplicitEntityReference(rawText: string, type: 'channel' | 'category' | 'role'): boolean {
+  // استخدم النص الخام مباشرة (rawText) لأن التطبيع يزيل 'ال' ويكسر المطابقة
+  if (type === 'channel') {
+    return /(?:^|\s)(?:الروم|القناه|القناة|الشانل|هذا الشانل|الروم اللي|الروم الي|القناة اللي|القناه الي|الشات اللي|الفويس اللي|رومه|هالروم)(?:\s|$)/i.test(rawText) ||
+           /(?:^|\s)(?:بس|غير|حق|على|من|في)\s+روم(?:\s|$)/i.test(rawText);
+  }
+  if (type === 'category') {
+    return /(?:^|\s)(?:الكاتقوري|كاتقوري|الفئه|الفئة|القسم|فيها|هالكاتقوري|ها الكاتقوري|ها القسم)(?:\s|$)/i.test(rawText);
+  }
+  return /(?:^|\s)(?:الرول|رول|الرتبه|الرتبة|هالرول|هالرتبه|هالرتبة|الرول اللي|الرتبة اللي)(?:\s|$)/i.test(rawText);
 }
 
 function normalizeText(value: string): string {
@@ -170,7 +201,11 @@ export function resolveExplicitToolTargets(
       .map((channel) => channel.id)
     : [];
 
-  if (channelIds.length === 0 && /(?:الروم|روم|القناة|الشانل|the\s+(?:room|channel))/i.test(rawText)) {
+  if (
+    channelIds.length === 0 &&
+    hasImplicitEntityReference(rawText, 'channel') &&
+    !hasSpecificEntityName(rawText, 'channel')
+  ) {
     const latestChannel = sessionEntities.find((entity) =>
       entity.type === 'channel' || entity.type === 'thread'
     ) ?? EntityRegistry.getLatest(guild.id, 'channel');
@@ -178,7 +213,11 @@ export function resolveExplicitToolTargets(
       channelIds.push(latestChannel.id);
     }
   }
-  if (categoryIds.length === 0 && /(?:فيها|الكاتقوري|الفئة|the\s+category)/i.test(rawText)) {
+  if (
+    categoryIds.length === 0 &&
+    hasImplicitEntityReference(rawText, 'category') &&
+    !hasSpecificEntityName(rawText, 'category')
+  ) {
     const latestCategory = sessionEntities.find((entity) =>
       entity.type === 'category'
     ) ?? EntityRegistry.getLatest(guild.id, 'category');
@@ -187,7 +226,11 @@ export function resolveExplicitToolTargets(
     }
   }
   const roleIds = unique([...mentionedRoleIds, ...findNamedMatches(rawText, namedRoles)]);
-  if (roleIds.length === 0 && /(?:الرتبة|الرول|هالرتبة|هالرول|the\s+role)/i.test(rawText)) {
+  if (
+    roleIds.length === 0 &&
+    hasImplicitEntityReference(rawText, 'role') &&
+    !hasSpecificEntityName(rawText, 'role')
+  ) {
     const latestRole = sessionEntities.find((entity) =>
       entity.type === 'role'
     ) ?? EntityRegistry.getLatest(guild.id, 'role');

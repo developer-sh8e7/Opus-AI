@@ -18,6 +18,14 @@ const {
   resolveExplicitToolTargets,
 } = require('../dist/services/toolTargeting.js');
 const { SkillRegistry } = require('../dist/skills/skill_registry.js');
+const { runPermissionPreflight } = require('../dist/safety/permission_preflight.js');
+const {
+  clearApprovalsForTests,
+  consumeApprovalIfMatches,
+  createApprovalGate,
+  getApprovalRequirement,
+} = require('../dist/safety/approval_flow.js');
+const { formatLocalSetupChecklist } = require('../dist/config.js');
 const { AIRequestLimiter } = require('../dist/utils/aiRateLimiter.js');
 const { getConversationReply } = require('../dist/services/conversation.js');
 const {
@@ -47,6 +55,7 @@ function createGuild() {
     ['200', { id: '200', name: 'TestRoom', type: ChannelType.GuildVoice, parentId: '300' }],
     ['300', { id: '300', name: 'VIP', type: ChannelType.GuildCategory, parentId: null }],
     ['400', { id: '400', name: 'الو', type: ChannelType.GuildText, parentId: null }],
+    ['401', { id: '401', name: 'الترحيب', type: ChannelType.GuildText, parentId: null }],
     ['1513737591793520903', {
       id: '1513737591793520903',
       name: 'private-voice',
@@ -221,6 +230,28 @@ test('compound Arabic server request becomes a five-step dependent workflow', ()
   assert.equal(steps[4].args.channelId, '$create_category.channelId');
 });
 
+test('compound planner maps "غير اسمك إلى X" to edit_bot_profile nickname', () => {
+  const results = [
+    planCompoundDiscordRequest('غير اسمك إلى HumanGuard AI'),
+    planCompoundDiscordRequest('غيّر لقبك إلى اختبار'),
+    planCompoundDiscordRequest('سميني يابطل'),
+    planCompoundDiscordRequest('عدّل نكك إلى مساعد'),
+  ];
+
+  for (const steps of results) {
+    assert.equal(steps.length, 1);
+    assert.equal(steps[0].tool, 'edit_bot_profile');
+    assert.ok(steps[0].args.nickname);
+    assert.ok(steps[0].args.nickname.length >= 2);
+    assert.ok(steps[0].args.nickname.length <= 32);
+  }
+
+  assert.equal(results[0][0].args.nickname, 'HumanGuard AI');
+  assert.equal(results[1][0].args.nickname, 'اختبار');
+  assert.equal(results[2][0].args.nickname, 'يابطل');
+  assert.equal(results[3][0].args.nickname, 'مساعد');
+});
+
 test('complex Arabic voice permissions map without contradictory flags', () => {
   const text = '\u0627\u0644\u0643\u0644 \u064a\u0634\u0648\u0641 \u0627\u0644\u0631\u0648\u0645 \u0628\u0633 \u0645\u062d\u062f \u064a\u0642\u062f\u0631 \u064a\u062f\u062e\u0644\u0647 \u0628\u0633 \u0627\u0630\u0627 \u062f\u062e\u0644\u0648\u0647 \u064a\u0642\u062f\u0631\u0648\u0646 \u064a\u062a\u0643\u0644\u0645\u0648\u0646 \u0648\u064a\u0641\u062a\u062d\u0648\u0646 \u0633\u0643\u0631\u064a\u0646 \u0634\u064a\u0631';
   const args = applyArabicPermissionsToToolArgs('edit_permissions', {}, text, '999');
@@ -309,6 +340,41 @@ test('loose Gulf create-and-permission voice request is planned as one configure
   });
 });
 
+test('single create request without permissions is planned for local deterministic execution', () => {
+  const steps = planCompoundDiscordRequest('سو لي روم فويس اسمه Room1 في كاتقوري 1511155543404974101');
+  assert.equal(steps.length, 1);
+  assert.deepEqual(steps[0].args, { type: 'voice', names: ['Room1'] });
+});
+
+test('create voice room plus VIP permissions becomes create then two overwrites', () => {
+  const steps = planCompoundDiscordRequest(
+    'سو لي روم فويس اسمه Room1 وخل الكل يشوفه بس مايدخل ويقدرون يتكلمون ويفتحون سكرين للرتبة VIP'
+  );
+  assert.equal(steps.length, 3);
+  assert.equal(steps[0].tool, 'create_channels');
+  assert.deepEqual(steps[1].args, {
+    channelId: '$create_channel.channelId',
+    targetId: '@everyone',
+    targetType: 'role',
+    allow: ['ViewChannel'],
+    deny: ['Connect'],
+  });
+  assert.deepEqual(steps[2].args, {
+    channelId: '$create_channel.channelId',
+    targetId: 'VIP',
+    targetType: 'role',
+    allow: ['ViewChannel', 'Connect', 'Speak', 'Stream'],
+    deny: [],
+  });
+});
+
+test('simple store request becomes a minimal two-step server setup plan', () => {
+  const steps = planCompoundDiscordRequest('سو متجر بسيط');
+  assert.equal(steps.length, 2);
+  assert.equal(steps[0].args.names[0], 'المتجر');
+  assert.deepEqual(steps[1].args.names, ['📢・إعلانات-المتجر', '🛒・الطلبات', '💬・استفسارات', '✅・الآراء']);
+});
+
 test('Arabic permission parser understands deafen spelling and recent room references', () => {
   const guild = createGuild();
   const operations = buildArabicPermissionOperations(
@@ -350,6 +416,17 @@ test('raw session channel IDs resolve even when Discord cache lacks the channel'
   assert.deepEqual(targets.channelIds, ['1513737591793520999']);
 });
 
+test('explicit channel name beats stale memory for Arabic permission operations', () => {
+  const guild = createGuild();
+  const operations = buildArabicPermissionOperations(
+    'روم الترحيب الكل يشوفه بس ما يكتب',
+    guild,
+    [{ id: '1513737591793520999', name: 'Room1', type: 'channel' }]
+  );
+  assert.equal(operations[0].channelId, '401');
+  assert.deepEqual(operations[0].deny, ['SendMessages']);
+});
+
 test('bulk channel deletion preserves every explicitly excluded channel', () => {
   const guild = createGuild();
   const text = 'ابي تحذف كل الرومات وتبقي فقط الو';
@@ -365,6 +442,54 @@ test('bulk channel deletion preserves every explicitly excluded channel', () => 
   assert.ok(targets.bulkDeleteChannelIds.includes('300'));
   assert.ok(!targets.bulkDeleteChannelIds.includes('400'));
   assert.ok(!call.args.channelIds.includes('400'));
+});
+
+test('permission preflight reports missing bot permissions with a fix checklist', async () => {
+  const guild = createGuild();
+  const botMember = {
+    id: 'bot',
+    permissions: { has: () => false },
+    roles: { highest: { position: 1 } },
+  };
+  guild.client = { user: { id: 'bot' } };
+  guild.members = { me: botMember, fetch: async () => botMember, cache: new Collection() };
+  const result = await runPermissionPreflight('create_channels', { type: 'text', names: ['x'] }, guild);
+  assert.equal(result.ok, false);
+  assert.match(result.message, /HumanGuard AI/);
+  assert.match(result.message, /ManageChannels/);
+  assert.match(result.message, /الحل/);
+});
+
+test('human approval gate blocks ban until the exact Arabic confirmation is sent', async () => {
+  clearApprovalsForTests();
+  const guild = createGuild();
+  const member = { id: '123', displayName: 'أحمد', user: { tag: 'Ahmed#1234' } };
+  guild.members = { cache: new Collection([['123', member]]), fetch: async () => member };
+  const requirement = getApprovalRequirement('manage_members', { action: 'ban', memberId: '123' });
+  assert.equal(requirement.required, true);
+  assert.equal(requirement.requiredPhrase, 'تأكيد الحظر');
+  const gate = await createApprovalGate('manage_members', { action: 'ban', memberId: '123', data: { reason: 'اختبار' } }, guild, '100', 'user-1');
+  assert.equal(gate.allowed, false);
+  assert.match(gate.message, /ما أنفذ هذا النوع تلقائيًا/);
+  assert.equal(consumeApprovalIfMatches({ guildId: guild.id, channelId: '100', userId: 'user-1', content: 'تمام' }), undefined);
+  assert.equal(consumeApprovalIfMatches({ guildId: guild.id, channelId: '100', userId: 'user-1', content: 'تأكيد الحظر' })?.toolName, 'manage_members');
+});
+
+test('local setup checklist is local-first and does not require Railway', () => {
+  const checklist = formatLocalSetupChecklist({
+    runtimeMode: 'local',
+    envPath: '.env',
+    envFileExists: false,
+    missingRequired: ['DISCORD_TOKEN'],
+    missingRecommended: ['GROQ_API_KEY'],
+    invalid: [],
+    aiProviderConfigured: false,
+    databaseStatus: 'data/ local memory',
+    railwayDetected: false,
+  });
+  assert.match(checklist, /DISCORD_TOKEN/);
+  assert.match(checklist, /npm run dev/);
+  assert.doesNotMatch(checklist, /Set these variables in Railway/);
 });
 
 test('AI limiter enforces user and guild windows and preserves queue order', async () => {
@@ -487,7 +612,7 @@ test('raw tool-call text is stripped before user-facing output', () => {
 test('legacy Arabic and emoji mojibake is repaired before display', () => {
   assert.equal(repairLegacyText('Ø§Ù„ÙƒÙ„ ÙŠØ´ÙˆÙ'), 'الكل يشوف');
   assert.equal(repairLegacyText('ðŸš¨ ØªØ­Ø°ÙŠØ±'), '🚨 تحذير');
-  assert.equal(repairLegacyText('Opus Ai'), 'Opus Ai');
+  assert.equal(repairLegacyText('HumanGuard AI'), 'HumanGuard AI');
 
   installLegacyEmbedRepair();
   const embed = new EmbedBuilder()

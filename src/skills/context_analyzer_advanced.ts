@@ -105,7 +105,7 @@ export class ContextAnalyzer {
    * تحليل شامل لرسالة الدسكورد
    */
   async analyzeMessage(message: Message): Promise<ContextData> {
-    console.log(`[ContextAnalyzer] تحليل الرسالة: "${message.content}"`);
+    console.log(`[ContextAnalyzer] Analyzing message: "${message.content}"`);
 
     const dialect = this.detectDialect(message.content);
     const semantic = this.analyzeSemantics(message.content);
@@ -137,7 +137,7 @@ export class ContextAnalyzer {
     // تخزين السياق في السجل
     this.storeContext(message.guildId || '', contextData);
 
-    console.log(`[ContextAnalyzer] ✅ تم التحليل: النية=${semantic.primaryIntent}, اللهجة=${dialect}`);
+    console.log(`[ContextAnalyzer] Analysis complete: intent=${semantic.primaryIntent}, dialect=${dialect}`);
     return contextData;
   }
 
@@ -414,7 +414,7 @@ export class ContextAnalyzer {
     } else {
       this.contextHistory.clear();
     }
-    console.log('[ContextAnalyzer] تم مسح السجل');
+    console.log('[ContextAnalyzer] History cleared');
   }
 }
 

@@ -142,12 +142,15 @@ export class SkillRegistry {
   }
 
   static buildSkillManifestForAI(): string {
+    // Token-safe manifest: never inject hundreds of skill IDs into every LLM request.
+    // The bot routes most actions through explicit tool schemas and deterministic workflows.
+    // If a skill is needed, resolve it locally by category/intent instead of asking the LLM
+    // to scan a huge manifest.
     if (this.skills.size === 0) return '[EXECUTABLE_SKILLS]\nnone loaded';
-    const lines = ['[EXECUTABLE_SKILLS]'];
-    for (const [category, ids] of this.categoryIndex) {
-      lines.push(`${category}: ${ids.join(', ')}`);
-    }
-    return lines.join('\n');
+    const summary = [...this.categoryIndex.entries()]
+      .map(([category, ids]) => `${category}:${ids.length}`)
+      .join(', ');
+    return `[EXECUTABLE_SKILLS]\nloaded=${this.skills.size}; categories=${summary}\nUse direct Discord tools when available; do not invent skill IDs.`;
   }
 
   private static async findSkillFiles(directory: string): Promise<string[]> {

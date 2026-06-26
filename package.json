@@ -1,7 +1,7 @@
 {
-  "name": "opus-ai",
+  "name": "humanguard-ai",
   "version": "1.0.0",
-  "description": "Discord AI Administrative Agent with Zero-Trust Security",
+  "description": "HumanGuard AI — permission-safe Arabic-first Discord manager and moderation copilot",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",

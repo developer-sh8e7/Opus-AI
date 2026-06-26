@@ -69,7 +69,7 @@ const skills: SkillDefinition[] = [
         name,
         type: ChannelType.GuildText,
         parent: args.categoryId,
-        topic: `Opus ticket owner: ${user.id}`,
+        topic: `HumanGuard AI ticket owner: ${user.id}`,
         permissionOverwrites: [
           { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
           {
@@ -81,7 +81,7 @@ const skills: SkillDefinition[] = [
             ],
           },
         ],
-        reason: String(args.reason ?? 'Support ticket opened through Opus Ai'),
+        reason: String(args.reason ?? 'Support ticket opened through HumanGuard AI'),
       });
       return {
         success: true,
@@ -106,7 +106,7 @@ const skills: SkillDefinition[] = [
         : channel;
       if (!target) return { success: false, message: 'التذكرة غير موجودة.' };
       const name = String(target.name);
-      await target.delete(String(args.reason ?? 'Support ticket closed through Opus Ai'));
+      await target.delete(String(args.reason ?? 'Support ticket closed through HumanGuard AI'));
       return { success: true, message: `تم إغلاق التذكرة "${name}".` };
     },
   }),

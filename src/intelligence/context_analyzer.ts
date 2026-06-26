@@ -720,7 +720,7 @@ export function runContextAnalyzerDiagnostics(mockGuild: any, mockMember: any): 
       results.push('✅ نجاح اختبار 4: بناء البرومبت المثرى بنجاح وبكافة الوسوم');
     }
 
-    results.push(`[Diagnostic] انتهى الفحص بنجاح. النتيجة العامة: ${passed ? 'ناجح' : 'فاشل'}`);
+    results.push(`[Diagnostic] انتهى الفحص بنجاح. الresults العامة: ${passed ? 'ناجح' : 'فاشل'}`);
   } catch (error: any) {
     passed = false;
     results.push(`❌ حدث خطأ فادح أثناء الفحص: ${error.message}`);

@@ -139,7 +139,7 @@ async function searchTrack(query: string, requestedBy: string): Promise<Track | 
       const cleanUrl = cleanYouTubeUrl(query);
       const videoId = extractVideoId(cleanUrl);
       if (!videoId) {
-        console.warn('[Music Search] فشل استخراج videoId من:', query);
+        console.warn('[Music Search] Failed to extract videoId from:', query);
         return null;
       }
 
@@ -190,13 +190,13 @@ async function searchTrack(query: string, requestedBy: string): Promise<Track | 
 
     // --- حالة 3: بحث نصي ذكي ---
     const searchQueries = enhanceSearchQuery(query);
-    console.log(`[Music Search] استعلامات البحث: ${JSON.stringify(searchQueries)}`);
+    console.log(`[Music Search] Search queries: ${JSON.stringify(searchQueries)}`);
 
     for (const sq of searchQueries) {
       try {
         const results = await YouTubeSearch.search(sq, { type: 'video', limit: 5 });
         if (results && results.length > 0) {
-          // اختيار أفضل نتيجة (تفضيل الفيديوهات الأطول من 30 ثانية والأقصر من ساعة)
+          // اختيار أفضل results (تفضيل الفيديوهات الأطول من 30 ثانية والأقصر من ساعة)
           const filtered = results.filter(r => {
             const dur = r.duration ? r.duration / 1000 : 0;
             return dur > 30 && dur < 3600;
@@ -221,15 +221,15 @@ async function searchTrack(query: string, requestedBy: string): Promise<Track | 
           };
         }
       } catch (searchErr) {
-        console.warn(`[Music Search] فشل البحث عن "${sq}":`, searchErr instanceof Error ? searchErr.message : searchErr);
+        console.warn(`[Music Search] Search failed for "${sq}":`, searchErr instanceof Error ? searchErr.message : searchErr);
         continue;
       }
     }
 
-    console.warn('[Music Search] لم يتم العثور على نتائج لجميع الاستعلامات');
+    console.warn('[Music Search] No results found for all queries');
     return null;
   } catch (err) {
-    console.error('[Music Search] خطأ عام:', err);
+    console.error('[Music Search] General error:', err);
     return null;
   }
 }
@@ -281,7 +281,7 @@ async function createStream(track: Track, attempt: number = 1): Promise<ReturnTy
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`ytdl-high: ${msg}`);
-      console.warn(`[Stream] الطريقة 1 (ytdl عالي الجودة) فشلت: ${msg}`);
+      console.warn(`[Stream] Method 1 (ytdl high quality) failed: ${msg}`);
     }
   }
 
@@ -308,7 +308,7 @@ async function createStream(track: Track, attempt: number = 1): Promise<ReturnTy
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`ytdl-low: ${msg}`);
-      console.warn(`[Stream] الطريقة 2 (ytdl منخفض الجودة) فشلت: ${msg}`);
+      console.warn(`[Stream] Method 2 (ytdl low quality) failed: ${msg}`);
     }
   }
 
@@ -336,7 +336,7 @@ async function createStream(track: Track, attempt: number = 1): Promise<ReturnTy
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`ytdl-manual: ${msg}`);
-      console.warn(`[Stream] الطريقة 3 (ytdl يدوي) فشلت: ${msg}`);
+      console.warn(`[Stream] Method 3 (manual ytdl) failed: ${msg}`);
     }
   }
 
@@ -358,7 +358,7 @@ function buildNowPlayingEmbed(track: Track, queueLen: number, looping: boolean, 
       { name: '🔁 تكرار', value: looping ? '✅ مفعّل' : '❌ معطّل', inline: true },
       { name: '🔊 الصوت', value: `${volume}%`, inline: true },
     )
-    .setFooter({ text: 'نظام الموسيقى • Opus Bot' })
+    .setFooter({ text: 'نظام الموسيقى • HumanGuard AI' })
     .setTimestamp();
 
   if (track.thumbnail) embed.setThumbnail(track.thumbnail);
@@ -410,7 +410,7 @@ async function playNextTrack(guildId: string): Promise<void> {
           cur.connection.destroy();
         } catch {}
         musicPlayers.delete(guildId);
-        console.log(`[Music] خرج من الصوتي تلقائياً (عدم نشاط) - ${guildId}`);
+        console.log(`[Music] Auto-left voice due to inactivity - ${guildId}`);
       }
     }, INACTIVITY_TIMEOUT);
     return;
@@ -423,23 +423,23 @@ async function playNextTrack(guildId: string): Promise<void> {
     resource.volume?.setVolumeLogarithmic(mp.volume / 100);
     mp.player.play(resource);
     mp.connection.subscribe(mp.player);
-    console.log(`[Music] ▶ يشغّل: ${nextTrack.title}`);
+    console.log(`[Music] Playing: ${nextTrack.title}`);
   } catch (err) {
-    console.error('[Music] خطأ في التشغيل:', err);
+    console.error('[Music] Playback error:', err);
     mp.retryCount++;
 
     if (mp.retryCount < MAX_RETRIES) {
-      console.log(`[Music] إعادة المحاولة ${mp.retryCount}/${MAX_RETRIES}...`);
+      console.log(`[Music] Retry ${mp.retryCount}/${MAX_RETRIES}...`);
       // محاولة بطريقة مختلفة
       try {
         const resource = await createStream(nextTrack, mp.retryCount + 1);
         resource.volume?.setVolumeLogarithmic(mp.volume / 100);
         mp.player.play(resource);
         mp.connection.subscribe(mp.player);
-        console.log(`[Music] ✅ نجحت المحاولة ${mp.retryCount + 1}`);
+        console.log(`[Music] Retry ${mp.retryCount + 1} succeeded`);
         return;
       } catch (retryErr) {
-        console.error(`[Music] فشلت المحاولة ${mp.retryCount + 1}:`, retryErr);
+        console.error(`[Music] failed attempt ${mp.retryCount + 1}:`, retryErr);
       }
     }
 
@@ -487,7 +487,7 @@ function createMusicPlayer(
 
   // خطأ في المشغل → محاولة التالية
   player.on('error', (err) => {
-    console.error('[AudioPlayer] خطأ:', err.message);
+    console.error('[AudioPlayer] Error:', err.message);
     const cur = musicPlayers.get(guildId);
     if (cur) {
       cur.currentTrack = null;
@@ -505,7 +505,7 @@ function createMusicPlayer(
     } catch {
       try { connection.destroy(); } catch {}
       musicPlayers.delete(guildId);
-      console.log(`[Music] تم قطع الاتصال نهائياً - ${guildId}`);
+      console.log(`[Music] Disconnected permanently - ${guildId}`);
     }
   });
 
@@ -658,7 +658,7 @@ export async function playMusic(
 ): Promise<{ success: boolean; message: string; embed?: EmbedBuilder }> {
   try {
     // === الخطوة 1: البحث عن الأغنية ===
-    console.log(`[Music] 🔍 البحث عن: "${query}" (طلب: ${requestedBy})`);
+    console.log(`[Music] Searching for: "${query}" (requested_by: ${requestedBy})`);
     const track = await searchTrack(query, requestedBy);
     if (!track) {
       return {
@@ -666,7 +666,7 @@ export async function playMusic(
         message: `❌ لم أجد نتائج لـ: "${query}".\n💡 جرب:\n• كتابة اسم الأغنية بالكامل\n• إضافة اسم الفنان\n• لصق رابط يوتيوب مباشر`,
       };
     }
-    console.log(`[Music] ✅ وُجد: ${track.title} | ${track.url}`);
+    console.log(`[Music] Found: ${track.title} | ${track.url}`);
 
     let mp = musicPlayers.get(guild.id);
 
@@ -681,7 +681,7 @@ export async function playMusic(
         const userVc = getUserVoiceChannel(guild, requestingUserId);
         if (userVc.found && userVc.channelId) {
           targetChannelId = userVc.channelId;
-          console.log(`[Music] 🎯 تم اكتشاف روم المستخدم تلقائياً: ${userVc.channelName}`);
+          console.log(`[Music] Auto-detected user voice channel: ${userVc.channelName}`);
         }
       }
 
@@ -703,7 +703,7 @@ export async function playMusic(
             await entersState(connection, VoiceConnectionStatus.Ready, 10_000);
           } catch {
             try { connection.destroy(); } catch {}
-            // إعادة المحاولة
+            // إعادة attempt
             if (targetChannelId) {
               connection = joinVoiceChannel({
                 channelId: targetChannelId,

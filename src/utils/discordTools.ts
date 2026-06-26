@@ -68,6 +68,7 @@ export const permissionMap: Record<string, bigint> = {
   ViewAuditLog: PermissionFlagsBits.ViewAuditLog,
   ViewGuildInsights: PermissionFlagsBits.ViewGuildInsights,
   ModerateMembers: PermissionFlagsBits.ModerateMembers,
+  ChangeNickname: PermissionFlagsBits.ChangeNickname,
 };
 
 /**
@@ -114,11 +115,21 @@ export const permissionArabicNames: Record<string, string> = {
   ViewAuditLog: 'سجل التدقيق',
   ViewGuildInsights: 'إحصائيات السيرفر',
   ModerateMembers: 'تأديب الأعضاء',
+  ChangeNickname: 'تغيير لقب البوت/العضو لنفسه',
 };
 
 /**
  * تحويل مصفوفة صلاحيات إلى أسماء عربية مفصولة بفواصل
  */
+function summarizeOverwritePermissions(allowBits: bigint, denyBits: bigint): string {
+  const allowed = PermissionHelper.stringifyPermissions(allowBits);
+  const denied = PermissionHelper.stringifyPermissions(denyBits);
+  const parts: string[] = [];
+  if (allowed.length > 0) parts.push(`مسموح: ${allowed.map((permission) => permissionArabicNames[permission] ?? permission).join('، ')}`);
+  if (denied.length > 0) parts.push(`ممنوع: ${denied.map((permission) => permissionArabicNames[permission] ?? permission).join('، ')}`);
+  return parts.length > 0 ? parts.join(' | ') : 'لا يوجد Overwrite واضح';
+}
+
 export function formatPermissionsArabic(permNames: string[], style: 'allowed' | 'denied'): string {
   const names = permNames
     .map(p => {
@@ -134,6 +145,78 @@ export function formatPermissionsArabic(permNames: string[], style: 'allowed' | 
   if (names.length === 0) return '';
   if (style === 'allowed') return `سُمح بـ: ${names.join('، ')}`;
   return `مُنع: ${names.join('، ')}`;
+}
+
+export interface StrictNameResolveResult<T extends { id: string; name: string }> {
+  status: 'found' | 'ambiguous' | 'not_found';
+  entity?: T;
+  matches: T[];
+  reason?: string;
+}
+
+export function normalizeDiscordEntityName(value: string): string {
+  const compact = value
+    .normalize('NFKC')
+    .toLocaleLowerCase('ar')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/^(?:روم|قناه|قناة|شانل|شات|فويس|تكست|نصي|صوتي|رتبه|رتبة|رول|كاتقوري|فئه|فئة|قسم)\s+/i, '')
+    .trim();
+  return compact
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.startsWith('ال') && word.length > 4 ? word.slice(2) : word)
+    .join(' ');
+}
+
+export function resolveDiscordEntityByNameStrict<T extends { id: string; name: string }>(
+  rawName: string,
+  entities: Iterable<T>
+): StrictNameResolveResult<T> {
+  const query = normalizeDiscordEntityName(rawName);
+  const all = [...entities];
+  if (!query) return { status: 'not_found', matches: [], reason: 'empty_query' };
+
+  const uniqueById = (items: T[]): T[] => [...new Map(items.map((item) => [item.id, item])).values()];
+  const exact = uniqueById(all.filter((entity) => normalizeDiscordEntityName(entity.name) === query));
+  if (exact.length === 1) return { status: 'found', entity: exact[0], matches: exact };
+  if (exact.length > 1) return { status: 'ambiguous', matches: exact, reason: 'multiple_exact_matches' };
+
+  const partial = uniqueById(all.filter((entity) => {
+    const entityName = normalizeDiscordEntityName(entity.name);
+    return query.length >= 2 && entityName.includes(query);
+  }));
+  if (partial.length === 1) return { status: 'found', entity: partial[0], matches: partial };
+  if (partial.length > 1) return { status: 'ambiguous', matches: partial, reason: 'multiple_partial_matches' };
+
+  return { status: 'not_found', matches: [] };
+}
+
+export function resolveDiscordChannelByNameStrict(
+  guild: Guild,
+  rawName: string,
+  includeCategories = false
+): StrictNameResolveResult<{ id: string; name: string; type: ChannelType }> {
+  const channels = guild.channels.cache
+    .filter((channel) => includeCategories || channel.type !== ChannelType.GuildCategory)
+    .map((channel) => ({ id: channel.id, name: channel.name, type: channel.type }));
+  return resolveDiscordEntityByNameStrict(rawName, channels);
+}
+
+export function resolveDiscordRoleByNameStrict(
+  guild: Guild,
+  rawName: string
+): StrictNameResolveResult<{ id: string; name: string }> {
+  const roles = guild.roles.cache
+    .filter((role) => role.id !== guild.id)
+    .map((role) => ({ id: role.id, name: role.name }));
+  return resolveDiscordEntityByNameStrict(rawName, roles);
 }
 
 export function resolvePermission(permStr: string): bigint | null {
@@ -250,30 +333,41 @@ export async function createChannels(
     }
   }
 
+  const isSnowflake = (value: unknown): value is string => typeof value === 'string' && /^\d{17,20}$/.test(value);
+  const parentId = type === 'category'
+    ? undefined // Discord forbids categories inside categories
+    : isSnowflake(categoryId)
+      ? categoryId
+      : undefined;
+
   for (let i = 0; i < names.length; i++) {
     const name = names[i];
     if (i > 0) {
       await delay(500); // تأخير لتفادي الـ Rate Limit
     }
     try {
-      const createdChannel = await guild.channels.create({
+      const createOptions: Parameters<typeof guild.channels.create>[0] = {
         name,
         type: channelType,
-        parent: categoryId || null,
         permissionOverwrites: permissionOverwrites.length > 0 ? permissionOverwrites : undefined,
         reason: 'إنشاء قنوات جماعية بواسطة نظام الإدارة الذكي',
-      });
+      };
+      if (parentId) createOptions.parent = parentId;
+      const createdChannel = await guild.channels.create(createOptions);
       created.push(createdChannel.name);
       createdEntities.push({ id: createdChannel.id, name: createdChannel.name, type });
     } catch (error) {
       failed.push(name);
-      console.error(`[DiscordTools] فشل إنشاء القناة "${name}":`, error);
+      console.error(`[DiscordTools] Failed to create channel "${name}":`, error);
     }
   }
 
-  const successMessage = `تم إنشاء ${created.length} قناة بنجاح${failed.length > 0 ? `، وفشل إنشاء ${failed.length} قناة (${failed.join(', ')})` : ''}.`;
+  const ok = created.length > 0;
+  const successMessage = ok
+    ? `تم إنشاء ${created.length} قناة بنجاح${failed.length > 0 ? `، وفشل إنشاء ${failed.length} قناة (${failed.join(', ')})` : ''}.`
+    : `فشل إنشاء القنوات: ${failed.join(', ') || 'لم يتم إنشاء أي قناة'}.`;
   return {
-    success: true,
+    success: ok,
     message: successMessage,
     created,
     createdEntities,
@@ -306,13 +400,16 @@ export async function deleteChannels(
       deleted.push(channelName);
     } catch (error) {
       failed.push(id);
-      console.error(`[DiscordTools] فشل حذف القناة ذات المعرف "${id}":`, error);
+      console.error(`[DiscordTools] Failed to delete channel id "${id}":`, error);
     }
   }
 
-  const successMessage = `تم حذف ${deleted.length} قناة بنجاح${failed.length > 0 ? `، وفشل حذف ${failed.length} قناة` : ''}.`;
+  const ok = deleted.length > 0;
+  const successMessage = ok
+    ? `تم حذف ${deleted.length} قناة بنجاح${failed.length > 0 ? `، وفشل حذف ${failed.length} قناة` : ''}.`
+    : `لم يتم حذف أي قناة${failed.length > 0 ? `، وفشل حذف ${failed.length} قناة` : ''}.`;
   return {
-    success: true,
+    success: ok,
     message: successMessage,
     deleted,
     failed,
@@ -552,6 +649,10 @@ export async function editPermissions(
     }
 
     if ('permissionOverwrites' in channel) {
+      const beforeOverwrite = channel.permissionOverwrites.cache.get(resolvedTargetId);
+      const beforeSummary = beforeOverwrite
+        ? summarizeOverwritePermissions(beforeOverwrite.allow.bitfield, beforeOverwrite.deny.bitfield)
+        : 'لا يوجد Overwrite سابق';
       await channel.permissionOverwrites.edit(resolvedTargetId, overwrites, {
         reason: 'تعديل صلاحيات القناة بواسطة نظام الإدارة الذكي'
       });
@@ -562,7 +663,11 @@ export async function editPermissions(
       if (allowedPerms.length > 0) parts.push(formatPermissionsArabic(allowedPerms, 'allowed'));
       if (deniedPerms.length > 0) parts.push(formatPermissionsArabic(deniedPerms, 'denied'));
       const detail = parts.length > 0 ? ` (${parts.join('، ')})` : '';
-      return { success: true, message: `تم تحديث صلاحيات القناة "${channel.name}" للرتبة/العضو "${targetLabel}" بنجاح.${detail}` };
+      const afterOverwrite = channel.permissionOverwrites.cache.get(resolvedTargetId);
+      const afterSummary = afterOverwrite
+        ? summarizeOverwritePermissions(afterOverwrite.allow.bitfield, afterOverwrite.deny.bitfield)
+        : 'لا يوجد Overwrite بعد التعديل';
+      return { success: true, message: `تم تحديث صلاحيات القناة "${channel.name}" للرتبة/العضو "${targetLabel}" بنجاح.${detail} قبل: ${beforeSummary}. بعد: ${afterSummary}.` };
     } else {
       return { success: false, message: "هذه القناة لا تدعم تعديل الصلاحيات." };
     }
@@ -631,8 +736,18 @@ export async function sweepPermissionOverwrites(
     includeEveryone?: boolean;
     includeRoles?: boolean;
     includeMembers?: boolean;
+    scope?: '@everyone' | 'allRoles' | 'allMembers' | string[];
   }
-): Promise<{ success: boolean; message: string; updated: string[]; failed: string[]; targets: string[] }> {
+): Promise<{
+  success: boolean;
+  message: string;
+  updated: string[];
+  failed: string[];
+  targets: string[];
+  targetLabels: string[];
+  verified: string[];
+  verificationFailed: string[];
+}> {
   const selectedIds = new Set(options.channelIds ?? []);
   if (options.categoryId) {
     for (const channel of guild.channels.cache.values()) {
@@ -641,23 +756,78 @@ export async function sweepPermissionOverwrites(
   }
 
   if (selectedIds.size === 0) {
-    return { success: false, message: 'لم يتم تحديد أي رومات لفحص الصلاحيات.', updated: [], failed: [], targets: [] };
+    return {
+      success: false,
+      message: 'لم يتم تحديد أي رومات لفحص الصلاحيات.',
+      updated: [],
+      failed: [],
+      targets: [],
+      targetLabels: [],
+      verified: [],
+      verificationFailed: [],
+    };
   }
 
   const permissionBits = options.permissions
     .map(resolvePermission)
     .filter((permission): permission is bigint => permission !== null);
   if (permissionBits.length === 0) {
-    return { success: false, message: 'لم يتم تحديد صلاحيات صالحة لسحبها.', updated: [], failed: [], targets: [] };
+    return {
+      success: false,
+      message: 'لم يتم تحديد صلاحيات صالحة لسحبها.',
+      updated: [],
+      failed: [],
+      targets: [],
+      targetLabels: [],
+      verified: [],
+      verificationFailed: [],
+    };
   }
 
-  // Default all to true — the AI must explicitly set to false to exclude
-  const includeEveryone = options.includeEveryone !== false;
-  const includeRoles = options.includeRoles !== false;
-  const includeMembers = options.includeMembers !== false;
+  const includeEveryone = options.scope
+    ? options.scope === '@everyone' || Array.isArray(options.scope)
+    : options.includeEveryone !== false;
+  const includeRoles = options.scope
+    ? options.scope === 'allRoles' || Array.isArray(options.scope)
+    : options.includeRoles !== false;
+  const includeMembers = options.scope
+    ? options.scope === 'allMembers' || Array.isArray(options.scope)
+    : options.includeMembers !== false;
+
+  const scopeAllowsTarget = (targetId: string, targetType: 'everyone' | 'role' | 'member'): boolean => {
+    if (Array.isArray(options.scope)) {
+      return options.scope.includes(targetId) || (targetType === 'everyone' && options.scope.includes('@everyone'));
+    }
+    if (options.scope === '@everyone') return targetType === 'everyone';
+    if (options.scope === 'allRoles') return targetType === 'role';
+    if (options.scope === 'allMembers') return targetType === 'member';
+    if (targetType === 'everyone') return includeEveryone;
+    if (targetType === 'role') return includeRoles;
+    return includeMembers;
+  };
+
+  const permissionNames = permissionBits
+    .map((permission) => Object.keys(permissionMap).find((name) => permissionMap[name] === permission))
+    .filter((name): name is string => Boolean(name));
+  const overwritePayload: Record<string, boolean> = Object.fromEntries(
+    permissionNames.map((permissionName) => [permissionName, false])
+  );
+
+  const labelTarget = async (targetId: string): Promise<string> => {
+    if (targetId === guild.id) return '@everyone';
+    const role = guild.roles.cache.get(targetId);
+    if (role) return role.name;
+    const member = guild.members.cache.get(targetId) || await guild.members.fetch(targetId).catch(() => null);
+    if (member) return member.displayName;
+    return targetId;
+  };
+
   const updated: string[] = [];
   const failed: string[] = [];
   const targets = new Set<string>();
+  const targetLabels = new Set<string>();
+  const verified = new Set<string>();
+  const verificationFailed = new Set<string>();
 
   for (const channelId of selectedIds) {
     const channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null);
@@ -666,52 +836,89 @@ export async function sweepPermissionOverwrites(
       continue;
     }
 
-    let changed = false;
-    const candidates = new Set<string>();
-    if (includeEveryone) candidates.add(guild.id);
+    const candidates = new Map<string, 'everyone' | 'role' | 'member'>();
+    const addCandidate = (targetId: string, targetType: 'everyone' | 'role' | 'member'): void => {
+      if (scopeAllowsTarget(targetId, targetType)) candidates.set(targetId, targetType);
+    };
 
     for (const overwrite of channel.permissionOverwrites.cache.values()) {
       const hasAllowedPermission = permissionBits.some((permission) => overwrite.allow.has(permission));
       if (!hasAllowedPermission) continue;
-      if (overwrite.type === 0 && includeRoles) candidates.add(overwrite.id);
-      if (overwrite.type === 1 && includeMembers) candidates.add(overwrite.id);
+      const targetType = overwrite.id === guild.id
+        ? 'everyone'
+        : overwrite.type === 0
+          ? 'role'
+          : 'member';
+      addCandidate(overwrite.id, targetType);
+    }
+
+    if (includeEveryone) {
+      const everyoneRole = guild.roles.cache.get(guild.id);
+      const everyoneOverwrite = channel.permissionOverwrites.cache.get(guild.id);
+      const everyoneHasPermission = permissionBits.some((permission) =>
+        Boolean(everyoneOverwrite?.allow.has(permission)) || Boolean(everyoneRole?.permissions.has(permission))
+      );
+      if (everyoneHasPermission) addCandidate(guild.id, 'everyone');
     }
 
     if (includeRoles) {
       for (const role of guild.roles.cache.values()) {
         if (role.id === guild.id || role.managed) continue;
-        if (permissionBits.some((permission) => role.permissions.has(permission))) candidates.add(role.id);
+        const roleHasBasePermission = permissionBits.some((permission) => role.permissions.has(permission));
+        if (roleHasBasePermission) addCandidate(role.id, 'role');
       }
     }
 
-    for (const targetId of candidates) {
+    let changed = false;
+    for (const [targetId] of candidates) {
       try {
-        const overwrite: Record<string, boolean> = {};
-        for (const permission of permissionBits) {
-          const key = Object.keys(permissionMap).find((name) => permissionMap[name] === permission);
-          if (key) overwrite[key] = false;
-        }
-        if (Object.keys(overwrite).length === 0) continue;
-        await channel.permissionOverwrites.edit(targetId, overwrite, {
-          reason: 'سحب صلاحيات خطيرة من الروم بواسطة Opus Ai',
+        await channel.permissionOverwrites.edit(targetId, overwritePayload, {
+          reason: 'سحب صلاحيات خطيرة من الروم بواسطة HumanGuard AI',
         });
         changed = true;
         targets.add(targetId);
+        targetLabels.add(await labelTarget(targetId));
         await delay(250);
       } catch (error) {
         failed.push(`${channelId}:${targetId}`);
       }
     }
 
-    if (changed) updated.push(channelId);
+    if (changed) {
+      updated.push(channelId);
+      for (const [targetId] of candidates) {
+        const overwrite = channel.permissionOverwrites.cache.get(targetId);
+        const isVerified = permissionBits.every((permission) =>
+          Boolean(overwrite?.deny.has(permission)) && !Boolean(overwrite?.allow.has(permission))
+        );
+        const label = `${channel.name}:${await labelTarget(targetId)}`;
+        if (isVerified) verified.add(label);
+        else verificationFailed.add(label);
+      }
+    }
   }
 
+  const permissionLabel = options.permissions
+    .map((permission) => permissionArabicNames[permission] ?? permission)
+    .join('، ');
+  const targetSummary = targetLabels.size > 0 ? [...targetLabels].join('، ') : 'لا توجد أهداف كانت تملك الصلاحية';
+  const verificationSummary = verificationFailed.size === 0
+    ? `تم التأكد: ${verified.size} هدف الآن بدون صلاحية ${permissionLabel}.`
+    : `تعذر التحقق من ${verificationFailed.size} هدف: ${[...verificationFailed].join('، ')}.`;
+
   return {
-    success: failed.length === 0,
-    message: `تم فحص ${selectedIds.size} روم وتحديث ${updated.length} روم${failed.length > 0 ? `، وتعذر تحديث ${failed.length} هدف` : ''}.`,
+    success: failed.length === 0 && verificationFailed.size === 0,
+    message: [
+      `تم فحص ${selectedIds.size} روم وتحديث ${updated.length} روم${failed.length > 0 ? `، وتعذر تحديث ${failed.length} هدف` : ''}.`,
+      `الأهداف المعدلة: ${targetSummary}.`,
+      verificationSummary,
+    ].join(' '),
     updated,
     failed,
     targets: [...targets],
+    targetLabels: [...targetLabels],
+    verified: [...verified],
+    verificationFailed: [...verificationFailed],
   };
 }
 
@@ -728,11 +935,12 @@ export async function manageMembers(
     reason?: string;
     nickname?: string;
     enabled?: boolean;
+    deleteMessageSeconds?: number;
   }
 ): Promise<{ success: boolean; message: string }> {
   try {
     if (action === 'unban') {
-      await guild.bans.remove(memberId, data?.reason || 'Administrative action by Opus Ai');
+      await guild.bans.remove(memberId, data?.reason || 'Administrative action by HumanGuard AI');
       return { success: true, message: `تم فك الحظر عن المستخدم ${memberId} بنجاح.` };
     }
 
@@ -761,8 +969,12 @@ export async function manageMembers(
 
     // 2. حظر عضو
     if (action === 'ban') {
-      await member.ban({ reason });
-      return { success: true, message: `تم حظر العضو "${member.displayName}" بنجاح. السبب: ${reason}` };
+      const deleteMessageSeconds = typeof data?.deleteMessageSeconds === 'number'
+        ? Math.max(0, Math.min(data.deleteMessageSeconds, 7 * 24 * 60 * 60))
+        : undefined;
+      await member.ban({ reason, deleteMessageSeconds });
+      const deleteNote = deleteMessageSeconds ? ` وحذف رسائله آخر ${Math.round(deleteMessageSeconds / 86_400)} يوم` : '';
+      return { success: true, message: `تم حظر العضو "${member.displayName}" بنجاح${deleteNote}. السبب: ${reason}` };
     }
 
     // 3. كتم عضو مؤقتاً
@@ -922,7 +1134,7 @@ export async function editBotProfile(
   try {
     if (data.nickname && guild) {
       const botMember = guild.members.me || await guild.members.fetch(client.user!.id);
-      await botMember.setNickname(data.nickname, 'تغيير لقب البوت داخل السيرفر بواسطة Opus Ai');
+      await botMember.setNickname(data.nickname, 'تغيير لقب البوت داخل السيرفر بواسطة HumanGuard AI');
       return { success: true, message: `تم تغيير لقب البوت في السيرفر إلى "${data.nickname}" بنجاح.` };
     }
 
@@ -1131,7 +1343,7 @@ export class ServerAuditLogAnalyzer {
 
       return { success: true, logs: entries };
     } catch (e: any) {
-      console.warn(`[AuditLog] تعذر جلب سجل التدقيق: ${e.message}`);
+      console.warn(`[AuditLog] Failed to fetch audit log: ${e.message}`);
       return { success: false, logs: [] };
     }
   }
@@ -1323,7 +1535,7 @@ export function runDiscordToolsDiagnostics(mockGuild: any): { success: boolean; 
     const testColor = 0xFFD700; // ذهبي
     log.push('✅ نجاح اختبار 4: معالجة الألوان المعتمدة متوفرة وجاهزة.');
 
-    log.push(`[Diagnostic] انتهى الفحص بنجاح. النتيجة العامة: ${success ? 'ناجح' : 'فاشل'}`);
+    log.push(`[Diagnostic] انتهى الفحص بنجاح. الresults العامة: ${success ? 'ناجح' : 'فاشل'}`);
   } catch (error: any) {
     success = false;
     log.push(`❌ حدث خطأ فادح أثناء الفحص: ${error.message}`);

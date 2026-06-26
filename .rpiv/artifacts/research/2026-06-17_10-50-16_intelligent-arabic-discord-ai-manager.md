@@ -59,7 +59,7 @@ Recommended architecture: replace the current first-match regex workflow path wi
 ## Detailed Findings
 
 ### Current Architecture Map
-- **Discord entrypoint**: `src/index.ts:1012` registers `Events.MessageCreate`; `src/index.ts:1014-1109` filters messages, strips mentions/`!opus`, and checks authorization.
+- **Discord entrypoint**: `src/index.ts:1012` registers `Events.MessageCreate`; `src/index.ts:1014-1109` filters messages, strips mentions/`!humanguard`, and checks authorization.
 - **Context enrichment**: `src/index.ts:1177-1261` runs `ContextAnalyzer`, resolves explicit targets, builds system prompt, injects memory via `memoryManager.buildEntityContext()`, and stores conversation history.
 - **Direct Arabic permission shortcut**: `src/index.ts:1123-1148` calls `buildArabicPermissionOperations()` and executes permission operations before the general AI path.
 - **Deterministic workflow path**: `src/index.ts:1270-1334` calls `planCompoundDiscordRequest()`, executes `WorkflowEngine`, sends a reply, and returns early.

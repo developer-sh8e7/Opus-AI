@@ -1,4 +1,4 @@
-# Opus Ai Project Analysis
+# HumanGuard AI Project Analysis
 
 ## Current architecture
 
