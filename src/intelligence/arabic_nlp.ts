@@ -12,12 +12,15 @@ export type ArabicIntent =
   | 'TIMEOUT_USER'
   | 'GIVE_ROLE'
   | 'BULK_DELETE'
+  | 'MOVE'
+  | 'REORDER'
+  | 'LOGGING_SYSTEM'
   | 'REBUILD_SERVER'
   | 'UNKNOWN';
 
 export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]> = {
   CREATE_CHANNEL: [
-    /(?:سو|سوي|انشئ|أنشئ|اضف|أضف|ابغى|ابي)\s+(?:لي\s+)?(?:روم|قناة|شانل)/i,
+    /(?:سو|سوي|انشئ|أنشئ|اضف|أضف|اصنع|ابني|ابغى|ابي)\s+(?:لي\s+)?(?:روم|قناة|شانل)(?!.*(?:انقل|نقل|حوّل|غيّر مكان|رتب|نظم|لوق|log))/i,
   ],
   SET_PERMISSIONS: [
     /(?:صلاحيات?|برمشن|برمشنز)/i,
@@ -27,7 +30,7 @@ export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]>
     /(?:احذف|إحذف|حذف|امسح|أمسح|ازيل|أزل)\s+(?:الروم|القناة|الشانل|روم|قناة)/i,
   ],
   VOICE_DISCONNECT: [
-    /(?:دسكونكت|دسكنوكت|ديسكونكت|disconnect|voice\s*kick|voicekick|افصل|فصل|طلعه|طلعه|اطرده|طرد).*(?:الروم|الفويس|الصوتي)/i,
+    /(?:دسكونكت|دسكنوكت|ديسكونكت|disconnect|voice\s*kick|voicekick|افصل|فصل|طلعه|اطرده من الروم|اخرجه من الروم|فصله من الروم|اطرده من الكول|اطرده من الفويس|اخرجه من الكول|اخرجه من الصوتي)/i,
   ],
   BAN_USER: [/(?:بان|ban|احظر|إحظر|حظر نهائي)\s+/i],
   KICK_USER: [/(?:كيك|kick)\s+/i, /طرد\s+(?!نهائي)/i],
@@ -41,6 +44,15 @@ export const INTENT_PATTERNS: Record<Exclude<ArabicIntent, 'UNKNOWN'>, RegExp[]>
     /(?:سوي|سو|انشئ|انشاء|ابني|بناء|جدد|جديد)\s+(?:سيرفر|server)/i,
     /(?:نظف|ترتيب|إعادة|اعادة|re(?:build|organize|design))\s+(?:السيرفر|السيرفرات)/i,
     /تحسين\s+السيرفر\s+(?:وتطويره|وتنظيمه)/i,
+  ],
+  MOVE: [
+    /(?:انقل|نقّل|نقل|حوّل|حول|حول|غيّر مكان|غير مكان|شيل من|حطه في|حط في|ضعه في|انتقل|حرك)\s+/i,
+  ],
+  REORDER: [
+    /(?:رتّب|رتب|نظّم|نظم|رتب السيرفر|نظم السيرفر|رتب الرومات|نظم الرومات)/i,
+  ],
+  LOGGING_SYSTEM: [
+    /(?:لوقات|لوق|logs?|logging|سجل أحداث|سجل الاحداث|سجل الأحداث|audit|نظام سجل|قناة سجل|لوق شانل|نظام لوقات)/i,
   ],
 };
 

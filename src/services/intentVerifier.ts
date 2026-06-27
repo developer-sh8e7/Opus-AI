@@ -28,6 +28,9 @@ const INTENT_TO_TOOLS: Record<ArabicIntent, string[]> = {
   GIVE_ROLE: ['manage_roles'],
   BULK_DELETE: ['delete_channels'],
   REBUILD_SERVER: ['create_channels', 'delete_channels', 'edit_permissions', 'manage_roles'],
+  MOVE: ['channel_operations', 'manage_members'],
+  REORDER: ['channel_operations', 'manage_roles'],
+  LOGGING_SYSTEM: ['analytics_operations', 'guild_operations'],
   UNKNOWN: [],
 };
 
@@ -42,6 +45,9 @@ const INTENT_DESCRIPTIONS: Record<ArabicIntent, string> = {
   GIVE_ROLE: 'إعطاء الرتب',
   BULK_DELETE: 'حذف جميع الرومات',
   REBUILD_SERVER: 'إعادة بناء السيرفر',
+  MOVE: 'نقل القنوات أو الأعضاء',
+  REORDER: 'ترتيب القنوات أو الرتب',
+  LOGGING_SYSTEM: 'إعداد نظام السجل والمراقبة',
   UNKNOWN: '',
 };
 

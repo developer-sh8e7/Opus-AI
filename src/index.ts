@@ -127,6 +127,7 @@ import {
 import { WorkflowEngine } from './intelligence/workflow_engine.js';
 import { planCompoundDiscordRequest } from './intelligence/compound_planner.js';
 import { memoryManager, MemoryManager } from './intelligence/memory_manager.js';
+import { sessionLedgerManager } from './intelligence/session_ledger.js';
 import { CommandParser } from './skills/command_parser.js';
 import { normalizeFunctionTags, stripRawToolMarkup } from './utils/functionTagNormalizer.js';
 import { detectAllIntents, findMissingIntents, buildMissingIntentPrompt } from './services/intentVerifier.js';
@@ -579,6 +580,26 @@ async function executeToolWithAudit(
       result,
       duration_ms: Date.now() - startedAt,
     });
+    // Record session ledger entry
+    try {
+      const entryAction = result?.success !== false ? 'modified' : 'modified';
+      const entryType = name.includes('channel') || name === 'create_channels' || name === 'delete_channels'
+        ? 'channel'
+        : name.includes('role') || name === 'manage_roles'
+          ? 'role'
+          : name.includes('member') || name === 'manage_members'
+            ? 'member_state'
+          : 'channel';
+      const entryName = executionArgs?.name
+        ?? executionArgs?.names?.[0]
+        ?? (Array.isArray(executionArgs?.channelIds) ? executionArgs.channelIds[0] : name);
+      sessionLedgerManager.recordEntry(guild.id, {
+        id: `${name}_${Date.now()}`,
+        name: String(entryName ?? name),
+        type: entryType,
+        action: name === 'create_channels' ? 'created' : name === 'delete_channels' ? 'deleted' : entryAction,
+      });
+    } catch { /* ledger recording is non-critical */ }
     return result;
   } catch (error) {
     Logger.audit('tool_execution', {
@@ -1843,6 +1864,7 @@ client.once(Events.ClientReady, async () => {
   Logger.startup(`${PRODUCT_NAME} (client_id=${client.user?.id ?? 'unknown'})`);
   Logger.info('System', `Discord client ready as ${PRODUCT_NAME}; client_id=${client.user?.id ?? 'unknown'}`);
   EntityRegistry.initialize();
+  sessionLedgerManager.cleanup();
   initializeRankSystem();
   LevelingSystem.initialize();
   await SkillRegistry.loadDirectory(path.join(__dirname, 'skills')).catch((error) => {
