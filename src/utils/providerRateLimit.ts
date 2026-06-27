@@ -30,7 +30,7 @@ export interface ProviderLimitResult {
 // Default limits from provider documentation
 const DEFAULT_LIMITS: Record<string, ProviderLimits> = {
   'groq': { rpm: 60, tpm: 20_000 },  // Conservative default; model overrides below
-  'gemini': { rpm: 60, tpm: 120_000 },  // Gemini free tier is 60 RPM, 120K TPM for Flash
+  'gemini': { rpm: 15, tpm: 1_000_000 },  // Gemini free tier: 15 RPM, 1M TPM, 1500 RPD
   'cerebras': { rpm: 30, tpm: 15_000 }, // Cerebras free tier conservative
 };
 
@@ -51,6 +51,8 @@ const MODEL_OVERRIDES: Record<string, ProviderLimits> = {
   'qwen-2.5-32b': { rpm: 30, tpm: 12_000 },
   // Cerebras model overrides
   'llama-3.3-70b': { rpm: 30, tpm: 15_000 },
+  // Gemini model - conservative free tier
+  'gemini-2.0-flash-exp': { rpm: 15, tpm: 1_000_000 },
 };
 
 export class ProviderRateLimiter {

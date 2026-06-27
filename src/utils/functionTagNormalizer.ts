@@ -80,6 +80,11 @@ export function stripRawToolMarkup(content: string): string {
     .replace(/\b(?:voicekick|voice_set_user_limit)\s+[^\n\r]*(?:user_?id|member_?id|channel_?id|user_?limit|value)\s*=\s*[^\s]+/gi, '')
     // Strip unresolved internal template variables ($create_store_category.channelId, etc.)
     .replace(/\$[a-zA-Z_]\S*/g, '')
+    // Strip raw JSON tool call leaks like {"": "", "": "move_channels", "": {...}}
+    // where keys are empty strings and values look like tool names + args
+    .replace(/\{[^}]*""\s*:\s*""[^}]*""\s*:\s*"[a-z_]+\"[^}]*\}/g, '')
+    // Strip any JSON that starts with {"": and contains tool-like names
+    .replace(/\{"":\s*""(?:\s*,\s*"":\s*(?:"[a-z_]+"|\{))/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -93,7 +98,12 @@ export function stripRawToolMarkup(content: string): string {
  */
 export function normalizeFunctionTags(content: string): NormalizedFunctionTagResult | null {
   if (!content || typeof content !== 'string') return null;
-  if (!/<(?:function|tool_call)\b/i.test(content)) return null;
+  
+  // Quick check for any malformed content that needs normalization
+  const hasTags = /<(?:function|tool_call)\b/i.test(content);
+  const hasMalformedJson = /\{""\s*:\s*""/.test(content);
+  
+  if (!hasTags && !hasMalformedJson) return null;
 
   const toolCalls: NormalizedFunctionTagResult['toolCalls'] = [];
   let cleanContent = content;
@@ -180,6 +190,17 @@ export function normalizeFunctionTags(content: string): NormalizedFunctionTagRes
       args[key] = parseArgValue(argMatch[2]);
     }
     if (rawName) pushCall(rawName, JSON.stringify(args), toolCallMatch[0]);
+  }
+
+  // Pattern 4: Raw JSON tool call leaks from Gemini
+  // Format: {"": "", "": "move_channels", "": {"channel_ids": [...]}}
+  // Keys are empty strings, values are tool name and args object
+  const malformedJsonPattern = /\{""\s*:\s*""\s*,\s*""\s*:\s*"([a-z_]+)"\s*,\s*""\s*:\s*(\{[^}]+\})\s*\}/g;
+  let malformedMatch: RegExpExecArray | null;
+  while ((malformedMatch = malformedJsonPattern.exec(content)) !== null) {
+    const toolName = malformedMatch[1];
+    const rawArgs = malformedMatch[2];
+    pushCall(toolName, rawArgs, malformedMatch[0]);
   }
 
   if (!hasNormalized) return null;

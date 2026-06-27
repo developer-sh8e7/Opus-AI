@@ -130,30 +130,84 @@ export async function callGemini(
 
   return retryProvider('gemini', async (attempt) => {
     const systemInstruction = composeSystemPrompt(options.systemPrompt);
-    const userMessages = messages
-      .filter((m) => m.role !== 'system')
-      .map((m) => {
-        if (m.role === 'user') {
-          return { role: 'user' as const, parts: [{ text: m.content || '' }] };
+
+    // Convert tools to Gemini functionDeclarations format
+    const selectedTools = compactTools(
+      messages,
+      options.toolsEnabled ?? selectToolNames(messages).size > 0
+    );
+    const geminiTools = selectedTools && selectedTools.length > 0
+      ? [{
+          functionDeclarations: selectedTools.map((t) => ({
+            name: t.function.name,
+            description: t.function.description,
+            parameters: t.function.parameters,
+          })),
+        }]
+      : undefined;
+
+    // Convert messages to Gemini format
+    const geminiContents: Array<{
+      role: 'user' | 'model' | 'function';
+      parts: Array<{ text?: string; functionCall?: any; functionResponse?: any }>;
+    }> = [];
+
+    for (const m of messages) {
+      if (m.role === 'system') continue;
+
+      if (m.role === 'user') {
+        geminiContents.push({
+          role: 'user',
+          parts: [{ text: m.content || '' }],
+        });
+      } else if (m.role === 'assistant') {
+        const parts: Array<{ text?: string; functionCall?: any }> = [];
+        if (m.content) {
+          parts.push({ text: m.content });
         }
-        if (m.role === 'assistant') {
-          return { role: 'model' as const, parts: [{ text: m.content || '' }] };
+        if (m.tool_calls) {
+          for (const tc of m.tool_calls) {
+            let args: Record<string, any> = {};
+            try { args = JSON.parse(tc.function.arguments); } catch {}
+            parts.push({
+              functionCall: {
+                name: tc.function.name,
+                args,
+              },
+            });
+          }
         }
-        // Skip tool messages for Gemini (they don't support native tool calls in the same way)
-        return null;
-      })
-      .filter(Boolean) as Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
+        geminiContents.push({ role: 'model', parts });
+      } else if (m.role === 'tool') {
+        // Gemini expects functionResponse parts for tool results
+        let responseObj: any = {};
+        try {
+          responseObj = m.content ? JSON.parse(m.content) : {};
+        } catch {
+          responseObj = { result: m.content || '' };
+        }
+        geminiContents.push({
+          role: 'function',
+          parts: [{
+            functionResponse: {
+              name: m.name || '',
+              response: responseObj,
+            },
+          }],
+        });
+      }
+    }
 
     // Estimate token usage
-    const totalText = systemInstruction + ' ' + userMessages.map((m) => m.parts[0]?.text || '').join(' ');
+    const totalText = systemInstruction + ' ' + geminiContents.map((c) => c.parts.map((p) => p.text || '').join(' ')).join(' ');
     const estimatedTokens = estimateTokens(totalText) + (options.maxTokens ?? 400);
-    const toolCount = tools.length;
+    const toolCount = selectedTools?.length ?? 0;
 
-    Logger.info('AI', `Gemini Req: est=${estimatedTokens}t sys=${estimateTokens(systemInstruction)}t msgs=${userMessages.length} tools=${toolCount} out=${options.maxTokens ?? 400}`);
+    Logger.info('AI', `Gemini Req: est=${estimatedTokens}t sys=${estimateTokens(systemInstruction)}t msgs=${geminiContents.length} tools=${toolCount} out=${options.maxTokens ?? 400}`);
 
     const limitCheck = providerRateLimiter.check('gemini', estimatedTokens, config.geminiModel);
     if (!limitCheck.allowed) {
-      Logger.warn('AI', `Gemini rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`);
+      Logger.warn('AI', `Gemini rate limit (${limitCheck.reason}): silently switching, retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`);
       throw new AIProviderError(
         'gemini',
         `Gemini rate limited on ${limitCheck.reason}: retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`,
@@ -165,17 +219,46 @@ export async function callGemini(
 
     const startedAt = Date.now();
     try {
-      const result = await model.generateContent({
+      const requestPayload: any = {
         systemInstruction: { role: 'user', parts: [{ text: systemInstruction }] },
-        contents: userMessages,
+        contents: geminiContents,
         generationConfig: {
           temperature: options.temperature ?? 0.7,
           maxOutputTokens: options.maxTokens ?? 400,
         },
-      });
+      };
 
-      const response = result.response;
-      const text = response.text();
+      if (geminiTools) {
+        requestPayload.tools = geminiTools;
+      }
+
+      const result = await model.generateContent(requestPayload);
+
+      const candidate = result.response.candidates?.[0];
+      const parts = candidate?.content?.parts ?? [];
+
+      let text = '';
+      const toolCalls: AIMessage['tool_calls'] = [];
+
+      for (const part of parts) {
+        if (part.text) {
+          text += part.text;
+        }
+        if (part.functionCall) {
+          const fc = part.functionCall;
+          const args = typeof fc.args === 'object' && fc.args !== null
+            ? JSON.stringify(fc.args)
+            : '{}';
+          toolCalls.push({
+            id: `gemini_fn_${Date.now()}_${toolCalls.length}`,
+            type: 'function',
+            function: {
+              name: fc.name ?? '',
+              arguments: args,
+            },
+          });
+        }
+      }
 
       const duration = Date.now() - startedAt;
       Logger.audit('ai_request', {
@@ -184,13 +267,17 @@ export async function callGemini(
         outcome: 'success',
         status: 200,
         duration_ms: duration,
-        messages: userMessages.length,
+        messages: geminiContents.length,
         tools: toolCount,
       });
 
       providerRateLimiter.recordUsage('gemini', estimatedTokens);
 
-      return { role: 'assistant', content: text, tool_calls: undefined };
+      return {
+        role: 'assistant',
+        content: text || null,
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+      };
     } catch (error: any) {
       const duration = Date.now() - startedAt;
       // Check for auth errors
@@ -207,7 +294,7 @@ export async function callGemini(
         outcome: 'error',
         status: isQuota ? 429 : isTimeout ? 408 : 500,
         duration_ms: duration,
-        messages: userMessages.length,
+        messages: geminiContents.length,
         tools: toolCount,
       });
       throw new AIProviderError(
@@ -874,8 +961,17 @@ export async function generateAIResponse(
     }
 
     let lastError: unknown;
+    let allRateLimited = true;
 
-    for (const provider of providers) {
+    for (let i = 0; i < providers.length; i++) {
+      const provider = providers[i];
+      
+      // Add 2-second delay between provider switches, except for the first provider
+      if (i > 0) {
+        Logger.info('AI', `Switching from ${providers[i-1].name} to ${provider.name} in 2s...`);
+        await delay(2000);
+      }
+      
       try {
         Logger.info('AI', `Trying provider: ${provider.name}`);
         const result = await provider.call();
@@ -883,7 +979,15 @@ export async function generateAIResponse(
         return result;
       } catch (error) {
         lastError = error;
-        Logger.warn('AI', `${provider.name} failed: ${error instanceof Error ? error.message : String(error)}`);
+        
+        const isRateLimit = error instanceof AIProviderError &&
+          (error.status === 429 || (error.message && error.message.includes('rate limited')));
+        
+        if (!isRateLimit) {
+          allRateLimited = false;
+        }
+        
+        Logger.warn('AI', `${provider.name} failed: ${error instanceof Error ? error.message : String(error)} ${isRateLimit ? '(rate limited, silent switch)' : ''}`);
         
         if (error instanceof AIProviderError) {
           if (error.status === 401 || error.status === 403) {
@@ -900,25 +1004,31 @@ export async function generateAIResponse(
 
     // All providers failed
     Logger.error('AI', 'All AI providers failed');
-    sendAdminAlert('All AI providers down', [
-      'All providers failed in sequence.',
-      'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
-      'Request intent: ' + (options.intent ?? 'fast'),
-    ].join('\n'));
+    
+    // Only send admin alert if at least one provider had a non-rate-limit failure
+    if (!allRateLimited) {
+      sendAdminAlert('AI provider failure', [
+        'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
+        'Request intent: ' + (options.intent ?? 'fast'),
+      ].join('\n'));
+    }
 
     // Generate appropriate error message
-    if (lastError instanceof AIProviderError) {
-      if (lastError.status === 429) {
-        const seconds = lastError.retryAfterMs
-          ? Math.ceil(lastError.retryAfterMs / 1000)
-          : 30;
-        throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
+    if (allRateLimited) {
+      // ALL providers rate limited — show "مشغول" message
+      const seconds = lastError instanceof AIProviderError && lastError.retryAfterMs
+        ? Math.ceil(lastError.retryAfterMs / 1000)
+        : 30;
+      throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
+    } else {
+      // At least one provider had a non-rate-limit failure — generic message
+      if (lastError instanceof AIProviderError) {
+        if (lastError.status === 408 || lastError.message.includes('timed out')) {
+          throw new Error(AI_TIMEOUT_MESSAGE);
+        }
       }
-      if (lastError.status === 408 || lastError.message.includes('timed out')) {
-        throw new Error(AI_TIMEOUT_MESSAGE);
-      }
+      throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
     }
-    throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
   });
 }
 
