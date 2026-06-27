@@ -136,6 +136,7 @@ import { runContextAnalyzerDiagnostics } from './intelligence/context_analyzer.j
 import { runMemoryManagerDiagnostics } from './intelligence/memory_manager.js';
 import { buildKnowledgeSectionsForPrompt, validateToolKnowledgeRules } from './intelligence/discord_knowledge.js';
 import { Logger } from './utils/logger.js';
+import { parseDurationMs, getHardCapMs } from './utils/duration_parser.js';
 import { runPermissionPreflight, diagnoseDiscordApiError } from './safety/permission_preflight.js';
 import { createApprovalGate, consumeApprovalIfMatches, getPendingApproval, cancelPendingApproval } from './safety/approval_flow.js';
 import { buildLeastPrivilegeReport } from './safety/least_privilege.js';
@@ -773,6 +774,27 @@ function parseArabicDurationMs(text: string, fallbackMs: number): number {
   return fallbackMs;
 }
 
+/** Small set of English words that may legitimately appear in bot output. */
+const ALLOWED_ENGLISH_WORDS = new Set([
+  'the','and','for','not','but','has','was','are','its','all','can','you','get','out','use','set','new','now','how',
+  'yes','no','on','off','id','dm','xp','ok','okay','vs','aka','etc','inc','ltd','co','org','com','net','io','app',
+]);
+
+function detectNonArabicNonEnglishWords(text: string): string {
+  // Find words composed solely of Latin letters (a-zA-Z) of length >= 3
+  const latinWords = text.match(/\b[a-zA-Z]{3,}\b/g);
+  if (latinWords) {
+    const suspicious = latinWords.filter((w) => !ALLOWED_ENGLISH_WORDS.has(w.toLowerCase()));
+    if (suspicious.length > 0) {
+      Logger.warn('LanguageFilter', `Non-Arabic/non-English words detected in output: ${[...new Set(suspicious)].join(', ')}`);
+    }
+  }
+  // Strip unknown Latin words (length >= 3) not in the allowlist
+  return text.replace(/\b[a-zA-Z]{3,}\b/g, (match) =>
+    ALLOWED_ENGLISH_WORDS.has(match.toLowerCase()) ? match : ''
+  ).replace(/\s{2,}/g, ' ').trim();
+}
+
 function sanitizeUserFacingText(text: string): string {
   const retry = text.match(/AI request limit reached\. Try again after (\d+) seconds/i)?.[1]
     ?? text.match(/try again after (\d+) seconds/i)?.[1];
@@ -780,16 +802,28 @@ function sanitizeUserFacingText(text: string): string {
   if (/AI provider is temporarily unavailable|All AI providers|AI unavailable|GROQ_API_KEY|Invalid or missing/i.test(text)) {
     return 'البوت ما يرد الحين، جرب بعد شوي';
   }
-  if (/\b(?:HTTP|status)\s*\d{3}\b|ECONNREFUSED|ETIMEDOUT|fetch failed|AbortError/i.test(text)) {
+  if (/\b(?:HTTP|status)\s*\d{3}\b|ECONNREFUSED|ETIMEDOUT|fetch failed|AbortError|Internal Server Error|Bad Gateway|Service Unavailable/i.test(text)) {
     return 'صار خطأ مؤقت بالاتصال، جرب بعد شوي';
   }
   if (/^failed العملية:/i.test(text)) return 'صار خطأ غير متوقع، جرب مرة ثانية';
-  return text
+  
+  let result = text
     .replace(/AI request limit reached\. Try again after (\d+) seconds\.?/gi, (_m, s) => `البوت مشغول الحين، جرب بعد ${s} ثانية 🕐`)
     .replace(/AI provider is temporarily unavailable\. Try again shortly\.?/gi, 'البوت ما يرد الحين، جرب بعد شوي')
     .replace(/AI response timed out\. Try a smaller request\.?/gi, 'البوت تأخر بالرد، جرّب طلب أبسط')
     .replace(/Invalid or missing GROQ_API_KEY\. Update your local \.env file\.?/gi, 'إعدادات الذكاء تحتاج مراجعة من صاحب البوت')
-    .replace(/\btool_call\b|\bfunction_call\b/gi, 'أداة داخلية');
+    .replace(/Failedعملية:|^failed العملية\s*/gi, 'خطأ: ')
+    .replace(/\btool_call\b|\bfunction_call\b/gi, 'أداة داخلية')
+    .replace(/API key|api_key|API_KEY|auth key|authorization/i, 'مفتاح API')
+    .replace(/stack trace:|at\s+[\w.$]+\s*\(/gi, '')
+    .replace(/Error:\s*/gi, '')
+    .replace(/DiscordAPIError\[\d+\]|DiscordAPIError:/gi, '')
+    .replace(/Cannot read propert|Cannot destructure|undefined is not|is not defined|is not a function|is not iterable/i, 'خطأ داخلي في المعالجة');
+  
+  // Bug 4: strip non-Arabic/non-English words (cosa, chose, etc.)
+  result = detectNonArabicNonEnglishWords(result);
+  
+  return result;
 }
 
 function buildReplyEmbed(kind: 'success' | 'failure' | 'warning' | 'info', title: string, description: string): EmbedBuilder {
@@ -1380,6 +1414,7 @@ async function handleManualCommand(message: Message, commandText: string): Promi
           ContextEngine.buildSystemPrompt(context, guild, message.author.id),
           memoryManager.buildEntityContext(message.channel.id),
           memoryManager.buildUserPreferenceContext(message.author.id),
+          sessionLedgerManager.getSummary(guild.id),
         ].filter(Boolean).join('\n');
         const history: AIMessage[] = [{ role: 'user', content: prompt }];
         const response = await runAIRequest(guild.id, history, { systemPrompt });
@@ -2272,6 +2307,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
       memoryManager.buildPendingPlanContext(message.channel.id),
       SkillRegistry.buildSkillManifestForAI(),
       buildKnowledgeSectionsForPrompt(cleanedPromptText),
+      sessionLedgerManager.getSummary(message.guild.id),
     ].filter(Boolean).join('\n');
     const enrichedPrompt = [
       ContextAnalyzer.buildEnrichedPrompt(ctx),
@@ -2507,6 +2543,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
             memoryManager.buildEntityContext(message.channel.id),
             memoryManager.buildUserPreferenceContext(message.author.id),
             SkillRegistry.buildSkillManifestForAI(),
+            sessionLedgerManager.getSummary(message.guild.id),
             '[PARTIAL_TOOL_RESULTS]',
             deterministicReply,
             '[/PARTIAL_TOOL_RESULTS]',
@@ -2549,6 +2586,7 @@ client.on(Events.MessageCreate, async (message: Message) => {
           memoryManager.buildEntityContext(message.channel.id),
           memoryManager.buildUserPreferenceContext(message.author.id),
           SkillRegistry.buildSkillManifestForAI(),
+          sessionLedgerManager.getSummary(message.guild.id),
         ].join('\n'),
       });
 
