@@ -136,12 +136,52 @@ export async function callGemini(
       messages,
       options.toolsEnabled ?? selectToolNames(messages).size > 0
     );
+
+    // Gemini doesn't support OpenAI-specific JSON Schema fields like
+    // additionalProperties, $schema, etc. Sanitize every tool definition.
+    function sanitizeSchemaForGemini(schema: any): any {
+      if (!schema || typeof schema !== 'object') return schema;
+
+      const unsupportedFields = [
+        'additionalProperties',
+        '$schema',
+        '$id',
+        'unevaluatedProperties',
+        'if', 'then', 'else',
+        'dependentSchemas',
+        'dependentRequired',
+      ];
+
+      const cleaned = { ...schema };
+      for (const field of unsupportedFields) {
+        delete cleaned[field];
+      }
+
+      // Recursively clean nested schemas
+      if (cleaned.properties) {
+        for (const key of Object.keys(cleaned.properties)) {
+          cleaned.properties[key] = sanitizeSchemaForGemini(cleaned.properties[key]);
+        }
+      }
+      if (cleaned.items) {
+        cleaned.items = sanitizeSchemaForGemini(cleaned.items);
+      }
+      if (cleaned.anyOf) {
+        cleaned.anyOf = cleaned.anyOf.map(sanitizeSchemaForGemini);
+      }
+      if (cleaned.oneOf) {
+        cleaned.oneOf = cleaned.oneOf.map(sanitizeSchemaForGemini);
+      }
+
+      return cleaned;
+    }
+
     const geminiTools = selectedTools && selectedTools.length > 0
       ? [{
           functionDeclarations: selectedTools.map((t) => ({
             name: t.function.name,
             description: t.function.description,
-            parameters: t.function.parameters,
+            parameters: sanitizeSchemaForGemini(t.function.parameters),
           })),
         }]
       : undefined;
