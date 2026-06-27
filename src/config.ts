@@ -62,7 +62,7 @@ export function getEnvConfig(): Config {
     groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     groqApiBaseUrl: process.env.GROQ_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions',
     geminiApiKey: process.env.GEMINI_API_KEY || '',
-    geminiModel: process.env.Model_Google || 'gemini-2.0-flash-exp',
+    geminiModel: process.env.Model_Google || 'gemini-2.0-flash',
     cerebrasApiKey: process.env.CEREBRAS_API_KEY || '',
     cerebrasModel: process.env.CEREBRAS_MODEL || 'llama-3.3-70b',
     cerebrasApiBaseUrl: process.env.CEREBRAS_API_BASE_URL || 'https://api.cerebras.ai/v1/chat/completions',

@@ -52,7 +52,7 @@ const MODEL_OVERRIDES: Record<string, ProviderLimits> = {
   // Cerebras model overrides
   'llama-3.3-70b': { rpm: 30, tpm: 15_000 },
   // Gemini model - conservative free tier
-  'gemini-2.0-flash-exp': { rpm: 15, tpm: 1_000_000 },
+  'gemini-2.0-flash': { rpm: 15, tpm: 1_000_000 },
 };
 
 export class ProviderRateLimiter {
