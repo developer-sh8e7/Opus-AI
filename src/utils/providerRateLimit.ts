@@ -30,6 +30,8 @@ export interface ProviderLimitResult {
 // Default limits from provider documentation
 const DEFAULT_LIMITS: Record<string, ProviderLimits> = {
   'groq': { rpm: 60, tpm: 20_000 },  // Conservative default; model overrides below
+  'gemini': { rpm: 60, tpm: 120_000 },  // Gemini free tier is 60 RPM, 120K TPM for Flash
+  'cerebras': { rpm: 30, tpm: 15_000 }, // Cerebras free tier conservative
 };
 
 // Known model-specific overrides
@@ -47,6 +49,8 @@ const MODEL_OVERRIDES: Record<string, ProviderLimits> = {
   'qwen/qwen3.6-27b': { rpm: 30, tpm: 12_000 },
   // Decommissioned (kept for reference)
   'qwen-2.5-32b': { rpm: 30, tpm: 12_000 },
+  // Cerebras model overrides
+  'llama-3.3-70b': { rpm: 30, tpm: 15_000 },
 };
 
 export class ProviderRateLimiter {
@@ -59,7 +63,7 @@ export class ProviderRateLimiter {
 
   /**
    * Check if a request to the provider would exceed limits.
-   * @param provider - Provider name (groq)
+   * @param provider - Provider name (groq|gemini|cerebras)
    * @param estimatedTokens - Estimated tokens for this request (input + output)
    * @param modelName - Optional model name for model-specific limits
    */

@@ -18,6 +18,11 @@ export interface Config {
   groqApiKey: string;
   groqModel: string;
   groqApiBaseUrl: string;
+  geminiApiKey: string;
+  geminiModel: string;
+  cerebrasApiKey: string;
+  cerebrasModel: string;
+  cerebrasApiBaseUrl: string;
   aiTimeoutMs: number;
   aiMaxRetries: number;
   runtimeMode: 'local' | 'railway' | 'production';
@@ -54,8 +59,13 @@ export function getEnvConfig(): Config {
     guildId: process.env.GUILD_ID || '',
     authorizedRoleId: process.env.AUTHORIZED_ROLE_ID || '',
     groqApiKey: process.env.GROQ_API_KEY || '',
-    groqModel: process.env.GROQ_MODEL || 'qwen-2.5-32b',
+    groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     groqApiBaseUrl: process.env.GROQ_API_BASE_URL || 'https://api.groq.com/openai/v1/chat/completions',
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    geminiModel: process.env.Model_Google || 'gemini-2.0-flash-exp',
+    cerebrasApiKey: process.env.CEREBRAS_API_KEY || '',
+    cerebrasModel: process.env.CEREBRAS_MODEL || 'llama-3.3-70b',
+    cerebrasApiBaseUrl: process.env.CEREBRAS_API_BASE_URL || 'https://api.cerebras.ai/v1/chat/completions',
     aiTimeoutMs: readNumber('AI_TIMEOUT_MS', 25_000),
     aiMaxRetries: Math.max(0, Math.trunc(readNumber('AI_MAX_RETRIES', 2))),
     runtimeMode: detectRuntimeMode(),
@@ -74,6 +84,8 @@ export function getStartupDiagnostics(cfg: Config = config): StartupDiagnostics 
   if (!cfg.authorizedRoleId) missingRecommended.push('AUTHORIZED_ROLE_ID (optional; without it only admins/owner can use sensitive commands)');
   if (!cfg.groqApiKey) missingRecommended.push('GROQ_API_KEY (optional for login; required for AI replies)');
   if (cfg.groqApiKey && !/^gsk_[A-Za-z0-9_-]{20,}$/.test(cfg.groqApiKey)) invalid.push('GROQ_API_KEY format (Groq keys usually start with gsk_)');
+  if (!cfg.geminiApiKey) missingRecommended.push('GEMINI_API_KEY (optional for primary AI provider)');
+  if (!cfg.cerebrasApiKey) missingRecommended.push('CEREBRAS_API_KEY (optional fallback provider)');
   if (!Number.isFinite(cfg.aiTimeoutMs) || cfg.aiTimeoutMs <= 0) invalid.push('AI_TIMEOUT_MS');
   if (!Number.isInteger(cfg.aiMaxRetries) || cfg.aiMaxRetries < 0) invalid.push('AI_MAX_RETRIES');
 
@@ -84,7 +96,7 @@ export function getStartupDiagnostics(cfg: Config = config): StartupDiagnostics 
     missingRequired,
     missingRecommended,
     invalid,
-    aiProviderConfigured: Boolean(cfg.groqApiKey),
+    aiProviderConfigured: Boolean(cfg.geminiApiKey) || Boolean(cfg.groqApiKey),
     databaseStatus: fs.existsSync(path.join(process.cwd(), 'data')) ? 'data/ found; local memory enabled' : 'data/ will be created automatically for local memory',
     railwayDetected: Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID),
   };

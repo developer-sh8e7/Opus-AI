@@ -1856,7 +1856,7 @@ client.once(Events.ClientReady, async () => {
   contextCleanupTimer.unref();
     Logger.info(
     'System',
-    `AI routing ready: Groq ${config.groqApiKey ? 'configured' : 'missing GROQ_API_KEY'} (${config.groqModel}), circuit breaker active (3 failures → 90s cooldown)`
+    `AI routing ready: Gemini ${config.geminiApiKey ? 'configured' : 'not configured'} (${config.geminiModel}) | Groq ${config.groqApiKey ? 'configured' : 'not configured'} (${config.groqModel}) | Cerebras ${config.cerebrasApiKey ? 'configured' : 'not configured'} | circuit breaker active (3 failures → 90s cooldown)`
   );
   
   // تهيئة مراقب السيرفر التلقائي بصوتيات الشات ورابط الحماية

@@ -62,8 +62,6 @@ function compactRuntimePrompt(runtimePrompt?: string): string {
 }
 
 function composeSystemPrompt(runtimePrompt?: string): string {
-  // SYSTEM_PROMPT already contains personality, reasoning loop, permission rules,
-  // session entities, moderation, and safety — no duplicate prompt injection.
   const runtime = compactRuntimePrompt(runtimePrompt);
   if (!runtime) return SYSTEM_PROMPT;
   return `${SYSTEM_PROMPT}\n\n[RUNTIME_CONTEXT]\n${runtime}`;
@@ -71,7 +69,6 @@ function composeSystemPrompt(runtimePrompt?: string): string {
 
 // ─── Token estimation ──
 function estimateTokens(text: string): number {
-  // Rough estimate: ~4 chars per token for mixed Arabic/English
   return Math.ceil(text.length / 4);
 }
 
@@ -85,17 +82,145 @@ function estimateBodyTokens(body: ChatCompletionBody): number {
       }
     }
   }
-  // Tools schema overhead (rough)
   if (body.tools) {
     total += JSON.stringify(body.tools).length / 3;
   }
-  // Max completion tokens
   total += body.max_completion_tokens;
   return Math.round(total);
 }
 
-// ─── Groq (sole AI provider) ──
+// ─── Provider auth invalidation flags ──
+let geminiAuthInvalid = false;
 let groqAuthInvalid = false;
+let cerebrasAuthInvalid = false;
+
+// ─── Gemini (Primary) ──
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Store the model instance once initialized
+let geminiModelInstance: ReturnType<GoogleGenerativeAI['getGenerativeModel']> | null = null;
+
+function getGeminiModel() {
+  if (geminiModelInstance) return geminiModelInstance;
+  if (!config.geminiApiKey) return null;
+  try {
+    const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+    geminiModelInstance = genAI.getGenerativeModel({ model: config.geminiModel });
+    return geminiModelInstance;
+  } catch {
+    return null;
+  }
+}
+
+export async function callGemini(
+  messages: AIMessage[],
+  options: GenerateAIOptions = {}
+): Promise<ProviderMessage> {
+  if (!config.geminiApiKey) {
+    throw new AIProviderError('gemini', 'No GEMINI_API_KEY configured', false, 401);
+  }
+  if (geminiAuthInvalid) {
+    throw new AIProviderError('gemini', 'GEMINI_API_KEY was rejected earlier', false, 401);
+  }
+
+  const model = getGeminiModel();
+  if (!model) {
+    throw new AIProviderError('gemini', 'Failed to initialize Gemini model', false, 500);
+  }
+
+  return retryProvider('gemini', async (attempt) => {
+    const systemInstruction = composeSystemPrompt(options.systemPrompt);
+    const userMessages = messages
+      .filter((m) => m.role !== 'system')
+      .map((m) => {
+        if (m.role === 'user') {
+          return { role: 'user' as const, parts: [{ text: m.content || '' }] };
+        }
+        if (m.role === 'assistant') {
+          return { role: 'model' as const, parts: [{ text: m.content || '' }] };
+        }
+        // Skip tool messages for Gemini (they don't support native tool calls in the same way)
+        return null;
+      })
+      .filter(Boolean) as Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
+
+    // Estimate token usage
+    const totalText = systemInstruction + ' ' + userMessages.map((m) => m.parts[0]?.text || '').join(' ');
+    const estimatedTokens = estimateTokens(totalText) + (options.maxTokens ?? 400);
+    const toolCount = tools.length;
+
+    Logger.info('AI', `Gemini Req: est=${estimatedTokens}t sys=${estimateTokens(systemInstruction)}t msgs=${userMessages.length} tools=${toolCount} out=${options.maxTokens ?? 400}`);
+
+    const limitCheck = providerRateLimiter.check('gemini', estimatedTokens, config.geminiModel);
+    if (!limitCheck.allowed) {
+      Logger.warn('AI', `Gemini rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`);
+      throw new AIProviderError(
+        'gemini',
+        `Gemini rate limited on ${limitCheck.reason}: retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`,
+        true,
+        429,
+        limitCheck.retryAfterMs
+      );
+    }
+
+    const startedAt = Date.now();
+    try {
+      const result = await model.generateContent({
+        systemInstruction: { role: 'user', parts: [{ text: systemInstruction }] },
+        contents: userMessages,
+        generationConfig: {
+          temperature: options.temperature ?? 0.7,
+          maxOutputTokens: options.maxTokens ?? 400,
+        },
+      });
+
+      const response = result.response;
+      const text = response.text();
+
+      const duration = Date.now() - startedAt;
+      Logger.audit('ai_request', {
+        provider: 'gemini',
+        model: config.geminiModel,
+        outcome: 'success',
+        status: 200,
+        duration_ms: duration,
+        messages: userMessages.length,
+        tools: toolCount,
+      });
+
+      providerRateLimiter.recordUsage('gemini', estimatedTokens);
+
+      return { role: 'assistant', content: text, tool_calls: undefined };
+    } catch (error: any) {
+      const duration = Date.now() - startedAt;
+      // Check for auth errors
+      if (error.message && (error.message.includes('API_KEY') || error.message.includes('403') || error.message.includes('UNAUTHENTICATED'))) {
+        geminiAuthInvalid = true;
+        Logger.error('AI', `Gemini auth failed: ${error.message}`);
+        throw new AIProviderError('gemini', 'Gemini auth failed', false, 401);
+      }
+      const isQuota = error.message && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'));
+      const isTimeout = error.message && (error.message.includes('timeout') || error.message.includes('DEADLINE_EXCEEDED'));
+      Logger.audit('ai_request', {
+        provider: 'gemini',
+        model: config.geminiModel,
+        outcome: 'error',
+        status: isQuota ? 429 : isTimeout ? 408 : 500,
+        duration_ms: duration,
+        messages: userMessages.length,
+        tools: toolCount,
+      });
+      throw new AIProviderError(
+        'gemini',
+        `Gemini error: ${error.message || String(error)}`,
+        isQuota || isTimeout || !error.message?.includes('API_KEY'),
+        isQuota ? 429 : isTimeout ? 408 : 500
+      );
+    }
+  });
+}
+
+// ─── Groq (Fallback #1) ──
 
 export async function callGroq(
   messages: AIMessage[],
@@ -109,7 +234,7 @@ export async function callGroq(
     throw new AIProviderError('groq', 'No GROQ_API_KEY configured', false, 401);
   }
   if (groqAuthInvalid) {
-    throw new AIProviderError('groq', 'GROQ_API_KEY was rejected earlier in this process', false, 401);
+    throw new AIProviderError('groq', 'GROQ_API_KEY was rejected earlier', false, 401);
   }
 
   return retryProvider('groq', (attempt) => {
@@ -118,16 +243,15 @@ export async function callGroq(
       temperature: Math.max(0.35, (options.temperature ?? 0.7) - (attempt * 0.1)),
     }, model);
 
-    // Estimate & log token usage
     const estimatedTokens = estimateBodyTokens(body);
     const toolCount = body.tools?.length ?? 0;
     const msgCount = body.messages.length;
     const sysLen = body.messages[0]?.content?.length ?? 0;
-    Logger.info('AI', `Req: est=${estimatedTokens}t sys=${Math.round(sysLen/4)}t msgs=${msgCount} tools=${toolCount} out=${body.max_completion_tokens}`);
+    Logger.info('AI', `Groq Req: est=${estimatedTokens}t sys=${Math.round(sysLen/4)}t msgs=${msgCount} tools=${toolCount} out=${body.max_completion_tokens}`);
 
     const limitCheck = providerRateLimiter.check('groq', estimatedTokens, model);
     if (!limitCheck.allowed) {
-      Logger.warn('AI', `Groq rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s (est. ${estimatedTokens} tokens, usage: ${limitCheck.currentUsage?.tpm ?? '?'}/${limitCheck.currentUsage?.tpmLimit ?? '?'})`);
+      Logger.warn('AI', `Groq rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`);
       throw new AIProviderError(
         'groq',
         `Groq rate limited on ${limitCheck.reason}: retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`,
@@ -138,6 +262,50 @@ export async function callGroq(
     }
 
     return postChatCompletion('groq', endpoint, apiKey, body, estimatedTokens);
+  });
+}
+
+// ─── Cerebras (Fallback #2) ──
+
+export async function callCerebras(
+  messages: AIMessage[],
+  options: GenerateAIOptions = {}
+): Promise<ProviderMessage> {
+  const apiKey = config.cerebrasApiKey;
+  const endpoint = config.cerebrasApiBaseUrl;
+  const model = config.cerebrasModel;
+
+  if (!apiKey) {
+    throw new AIProviderError('cerebras', 'No CEREBRAS_API_KEY configured', false, 401);
+  }
+  if (cerebrasAuthInvalid) {
+    throw new AIProviderError('cerebras', 'CEREBRAS_API_KEY was rejected earlier', false, 401);
+  }
+
+  return retryProvider('cerebras', (attempt) => {
+    const body = buildCompletionBody(messages, {
+      ...options,
+      temperature: Math.max(0.35, (options.temperature ?? 0.7) - (attempt * 0.1)),
+    }, model);
+
+    const estimatedTokens = estimateBodyTokens(body);
+    const toolCount = body.tools?.length ?? 0;
+    const msgCount = body.messages.length;
+    Logger.info('AI', `Cerebras Req: est=${estimatedTokens}t msgs=${msgCount} tools=${toolCount} out=${body.max_completion_tokens}`);
+
+    const limitCheck = providerRateLimiter.check('cerebras', estimatedTokens, model);
+    if (!limitCheck.allowed) {
+      Logger.warn('AI', `Cerebras rate limit (${limitCheck.reason}): retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`);
+      throw new AIProviderError(
+        'cerebras',
+        `Cerebras rate limited on ${limitCheck.reason}: retry after ${Math.round((limitCheck.retryAfterMs ?? 0) / 1000)}s`,
+        true,
+        429,
+        limitCheck.retryAfterMs
+      );
+    }
+
+    return postChatCompletion('cerebras', endpoint, apiKey, body, estimatedTokens);
   });
 }
 
@@ -223,7 +391,6 @@ export class AIResponseParser {
     if (!text) return '';
     return text
       .trim()
-      // Hide internal tool names from user-facing replies
       .replace(/\bplay_music\b/g, 'مشغل الموسيقى')
       .replace(/\bbuild_custom_server\b/g, 'منظّم السيرفر')
       .replace(/\bexecute_community_build\b/g, 'باني السيرفر')
@@ -231,7 +398,6 @@ export class AIResponseParser {
       .replace(/\bmanage_roles\b/g, 'إدارة الرتب')
       .replace(/\bedit_permissions\b/g, 'تعديل الصلاحيات')
       .replace(/\bget_server_info\b/g, 'معلومات السيرفر')
-      // Remove robotic assistant disclaimers that sometimes leak from LLMs
       .replace(/\bI am (an? )?(AI|language model|assistant)[^.\n]*\.?/gi, '')
       .replace(/\bAs an? (AI|language model)[^.\n]*\.?/gi, '')
       .replace(/أنا (?:نموذج لغة|مساعد ذكاء اصطناعي)[^\n.]*[.؟]?/g, '')
@@ -242,12 +408,11 @@ export class AIResponseParser {
 }
 
 export const AI_TEMPORARY_ERROR_MESSAGE = 'AI provider is temporarily unavailable. Try again shortly.';
-export const AI_CONFIGURATION_ERROR_MESSAGE = 'Invalid or missing GROQ_API_KEY. Update your local .env file.';
+export const AI_CONFIGURATION_ERROR_MESSAGE = 'Invalid or missing AI API key. Update your local .env file.';
 export const AI_PROVIDER_STATE_MESSAGE = 'All AI providers are currently unavailable.';
 export const AI_RATE_LIMIT_MESSAGE = 'AI request limit reached. Try again after {seconds} seconds.';
 export const AI_TIMEOUT_MESSAGE = 'AI response timed out. Try a smaller request.';
 
-// Request deduplication for identical AI requests
 const aiRequestDedup = new RequestDeduplication<ProviderMessage>(5000, 10000);
 aiRequestDedup.startCleanup();
 export const EXTENDED_CONVERSATIONAL_SCENARIOS_DATABASE: readonly never[] = [];
@@ -381,7 +546,6 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
 
   const content = getCurrentUserText(messages);
   
-  // Simple conversation? Zero tools needed.
   if (CONVERSATIONAL_PATTERN.test(content.trim())) return selected;
 
   let latestUserIndex = -1;
@@ -392,7 +556,6 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
     }
   }
 
-  // Add previously-used tools from ongoing chain first
   for (const message of messages.slice(latestUserIndex + 1)) {
     if (selected.size >= MAX_TOOLS) break;
     if (message.role === 'tool' && message.name) selected.add(message.name);
@@ -402,7 +565,6 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
     }
   }
 
-  // Intent-to-group mapping — limit to 5 tools total
   const intentMatch = (pattern: RegExp, group: readonly string[]) => {
     if (selected.size >= MAX_TOOLS) return;
     if (!pattern.test(content)) return;
@@ -412,7 +574,6 @@ function selectToolNames(messages: AIMessage[]): Set<string> {
     }
   };
 
-  // Priority order: most specific groups first
   intentMatch(/(clone role|نسخ الرتبة|لون الرتبة|hoist|mentionable)/i, ['manage_roles']);
   intentMatch(/(channel|room|روم|قناة|قنوات|برمشن|permission|صلاحية|صلاحيات|يشوف|يدخل|يخش|يكتب|يتكلم|سكرين|اخف|إخف)/i,
     ['create_channels', 'edit_permissions', 'delete_channels', 'get_server_info', 'send_embed']);
@@ -454,7 +615,6 @@ function compactTools(messages: AIMessage[], enabled: boolean): FunctionTool[] |
       },
     }));
   
-  // Hard cap
   if (mapped.length > MAX_TOOLS) mapped.length = MAX_TOOLS;
   return mapped;
 }
@@ -524,7 +684,7 @@ function safeErrorDetail(raw: string): string {
 
   return String(detail)
     .replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
-    .replace(/(?:gsk_|csk-)[A-Za-z0-9_-]+/g, '[REDACTED]')
+    .replace(/(?:gsk_|csk-|AIza)[A-Za-z0-9_-]+/g, '[REDACTED]')
     .replace(/\s+/g, ' ')
     .slice(0, 240);
 }
@@ -592,9 +752,8 @@ async function postChatCompletion(
     }
 
     outcome = 'success';
-    // Record actual token usage for rate limiting
     if (estimatedTokens) {
-      providerRateLimiter.recordUsage('groq', estimatedTokens);
+      providerRateLimiter.recordUsage(provider, estimatedTokens);
     }
     return message;
   } catch (error) {
@@ -649,45 +808,117 @@ async function retryProvider(
   throw lastError;
 }
 
+// ════════════════════════════════════════════════════════════════
+//  Main AI generation — tries Gemini first, falls back to
+//  Groq (#1), then Cerebras (#2), then raises final error.
+// ════════════════════════════════════════════════════════════════
+
+async function tryProvider(
+  providerName: string,
+  callFn: () => Promise<ProviderMessage>
+): Promise<ProviderMessage> {
+  if (isCircuitOpen(providerName)) {
+    Logger.warn('AI', `${providerName} circuit is open, skipping`);
+    throw new AIProviderError(providerName, `${providerName} circuit is open`, false, 503);
+  }
+  try {
+    const result = await callFn();
+    recordSuccess(providerName);
+    return result;
+  } catch (error) {
+    recordFailure(providerName);
+    throw error;
+  }
+}
+
 export async function generateAIResponse(
   messages: AIMessage[],
   options: GenerateAIOptions = {}
 ): Promise<ProviderMessage> {
-  // Generate deduplication key
   const dedupKey = RequestDeduplication.getCacheKey(messages, options);
   
-  // Use deduplication wrapper
   return aiRequestDedup.execute(dedupKey, async () => {
-    try {
-      const result = await callGroq(messages, options);
-      return result;
-    } catch (error) {
-      // Diffentiate error messages
-      if (error instanceof AIProviderError) {
-        if (error.status === 401 || error.status === 403) {
-          groqAuthInvalid = true;
-          Logger.error('AI', 'Groq auth failed; check GROQ_API_KEY in local .env');
-          throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
-        }
-        if (error.status === 429) {
-          const seconds = error.retryAfterMs
-            ? Math.ceil(error.retryAfterMs / 1000)
-            : 30;
-          Logger.warn('AI', `Groq rate limited, retry after ${seconds}s`);
-          throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
-        }
-        if (error.status === 408 || error.name === 'AbortError' || (error instanceof AIProviderError && error.message.includes('timed out'))) {
-          throw new Error(AI_TIMEOUT_MESSAGE);
-        }
-      }
-      // Non-retryable or final failure
-      Logger.error('AI', `Groq failed: ${error instanceof Error ? error.message : String(error)}`);
-      sendAdminAlert('Groq AI down', [
-        'Last error: ' + (error instanceof Error ? error.message : String(error)),
-        'Request intent: ' + (options.intent ?? 'fast'),
-      ].join('\n'));
-      throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
+    // Collect providers in priority order
+    const providers: Array<{
+      name: string;
+      call: () => Promise<ProviderMessage>;
+    }> = [];
+
+    // Primary: Gemini
+    if (config.geminiApiKey && !geminiAuthInvalid) {
+      providers.push({
+        name: 'gemini',
+        call: () => tryProvider('gemini', () => callGemini(messages, options)),
+      });
     }
+
+    // Fallback #1: Groq
+    if (config.groqApiKey && !groqAuthInvalid) {
+      providers.push({
+        name: 'groq',
+        call: () => tryProvider('groq', () => callGroq(messages, options)),
+      });
+    }
+
+    // Fallback #2: Cerebras
+    if (config.cerebrasApiKey && !cerebrasAuthInvalid) {
+      providers.push({
+        name: 'cerebras',
+        call: () => tryProvider('cerebras', () => callCerebras(messages, options)),
+      });
+    }
+
+    if (providers.length === 0) {
+      Logger.error('AI', 'No AI providers configured');
+      throw new Error(AI_CONFIGURATION_ERROR_MESSAGE);
+    }
+
+    let lastError: unknown;
+
+    for (const provider of providers) {
+      try {
+        Logger.info('AI', `Trying provider: ${provider.name}`);
+        const result = await provider.call();
+        Logger.info('AI', `${provider.name}:${provider.name === 'gemini' ? config.geminiModel : provider.name === 'groq' ? config.groqModel : config.cerebrasModel} outcome=success`);
+        return result;
+      } catch (error) {
+        lastError = error;
+        Logger.warn('AI', `${provider.name} failed: ${error instanceof Error ? error.message : String(error)}`);
+        
+        if (error instanceof AIProviderError) {
+          if (error.status === 401 || error.status === 403) {
+            // Auth failure — mark permanent and skip in future
+            if (provider.name === 'gemini') geminiAuthInvalid = true;
+            else if (provider.name === 'groq') groqAuthInvalid = true;
+            else if (provider.name === 'cerebras') cerebrasAuthInvalid = true;
+            continue;
+          }
+        }
+        // Continue to next provider on any failure
+      }
+    }
+
+    // All providers failed
+    Logger.error('AI', 'All AI providers failed');
+    sendAdminAlert('All AI providers down', [
+      'All providers failed in sequence.',
+      'Last error: ' + (lastError instanceof Error ? lastError.message : String(lastError)),
+      'Request intent: ' + (options.intent ?? 'fast'),
+    ].join('\n'));
+
+    // Generate appropriate error message
+    if (lastError instanceof AIProviderError) {
+      if (lastError.status === 429) {
+        const seconds = lastError.retryAfterMs
+          ? Math.ceil(lastError.retryAfterMs / 1000)
+          : 30;
+        throw new Error(AI_RATE_LIMIT_MESSAGE.replace('{seconds}', String(seconds)));
+      }
+      if (lastError.status === 408 || lastError.message.includes('timed out')) {
+        throw new Error(AI_TIMEOUT_MESSAGE);
+      }
+    }
+    throw new Error(AI_TEMPORARY_ERROR_MESSAGE);
   });
 }
 
@@ -705,17 +936,32 @@ export function runAIDiagnostics(): {
   totalScenarios: number;
   logs: string[];
 } {
-  const success = Boolean(config.groqApiKey && tools.length >= 20);
+  const geminiOk = Boolean(config.geminiApiKey);
+  const groqOk = Boolean(config.groqApiKey);
+  const cerebrasOk = Boolean(config.cerebrasApiKey);
+  const success = (geminiOk || groqOk) && tools.length >= 20;
+
+  const providers: string[] = [];
+  if (geminiOk) providers.push(`Gemini (${config.geminiModel})`);
+  if (groqOk) providers.push(`Groq (${config.groqModel})`);
+  if (cerebrasOk) providers.push(`Cerebras (${config.cerebrasModel})`);
+
+  const breakerInfo = circuitBreakers.size > 0 
+    ? [...circuitBreakers.entries()].map(([k, v]) => `${k}=${v.consecutiveFailures}fails`).join(', ')
+    : 'all closed';
+
   return {
     success,
     promptLength: SYSTEM_PROMPT.length,
     totalTools: tools.length,
     totalScenarios: 0,
     logs: [
-      `AI provider configured locally: ${success ? 'yes' : 'no'}`,
+      `AI providers: ${providers.length > 0 ? providers.join(', ') : 'none configured'}`,
+      `Primary: ${geminiOk ? config.geminiModel : 'Gemini not configured'}`,
+      `Fallback #1: ${groqOk ? config.groqModel : 'Groq not configured'}`,
+      `Fallback #2: ${cerebrasOk ? config.cerebrasModel : 'Cerebras not configured'}`,
       `Executable AI tools: ${tools.length}`,
-      `Groq (${config.groqModel})`,
-      `Circuit breaker: ${circuitBreakers.size > 0 ? [...circuitBreakers.entries()].map(([k, v]) => `${k}=${v.consecutiveFailures}fails`).join(', ') : 'all closed'}`,
+      `Circuit breaker: ${breakerInfo}`,
     ],
   };
 }
